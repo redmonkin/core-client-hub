@@ -14,7 +14,215 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      clients: {
+        Row: {
+          billing_address: string | null
+          client_name: string
+          company_name: string | null
+          created_at: string
+          email: string | null
+          id: string
+          notes: string | null
+          phone: string | null
+          primary_contact_name: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          billing_address?: string | null
+          client_name: string
+          company_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          primary_contact_name?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          billing_address?: string | null
+          client_name?: string
+          company_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          primary_contact_name?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      contracts: {
+        Row: {
+          client_id: string
+          contract_type: string
+          created_at: string
+          end_date: string
+          id: string
+          project_id: string | null
+          renewal_frequency: string
+          start_date: string
+          status: string
+          updated_at: string
+          user_id: string
+          value: number
+        }
+        Insert: {
+          client_id: string
+          contract_type: string
+          created_at?: string
+          end_date: string
+          id?: string
+          project_id?: string | null
+          renewal_frequency: string
+          start_date: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          value?: number
+        }
+        Update: {
+          client_id?: string
+          contract_type?: string
+          created_at?: string
+          end_date?: string
+          id?: string
+          project_id?: string | null
+          renewal_frequency?: string
+          start_date?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contracts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          client_id: string
+          created_at: string
+          end_date: string | null
+          id: string
+          project_name: string
+          project_type: string
+          start_date: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          project_name: string
+          project_type: string
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          project_name?: string
+          project_type?: string
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposals: {
+        Row: {
+          client_id: string
+          cost_breakdown: string | null
+          created_at: string
+          id: string
+          project_id: string | null
+          scope_of_work: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+          validity_date: string | null
+        }
+        Insert: {
+          client_id: string
+          cost_breakdown?: string | null
+          created_at?: string
+          id?: string
+          project_id?: string | null
+          scope_of_work?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+          validity_date?: string | null
+        }
+        Update: {
+          client_id?: string
+          cost_breakdown?: string | null
+          created_at?: string
+          id?: string
+          project_id?: string | null
+          scope_of_work?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+          validity_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposals_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
