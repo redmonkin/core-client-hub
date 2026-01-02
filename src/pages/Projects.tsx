@@ -54,12 +54,12 @@ export default function Projects() {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-8">
       <PageHeader
         title="Projects"
         description="Track and manage all your projects"
         actions={
-          <Button>
+          <Button size="lg">
             <Plus className="mr-2 h-4 w-4" />
             New Project
           </Button>
@@ -68,16 +68,16 @@ export default function Projects() {
 
       <div className="flex flex-col gap-4 sm:flex-row">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search projects..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="h-12 pl-11 text-base"
           />
         </div>
         <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as ProjectStatus | 'all')}>
-          <SelectTrigger className="w-full sm:w-48">
+          <SelectTrigger className="h-12 w-full sm:w-48">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>
@@ -92,25 +92,25 @@ export default function Projects() {
       </div>
 
       {filteredProjects.length > 0 ? (
-        <div className="rounded-lg border border-border">
+        <div className="overflow-hidden rounded-xl border border-border bg-card">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Project</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Timeline</TableHead>
-                <TableHead>Status</TableHead>
+              <TableRow className="bg-muted/30 hover:bg-muted/30">
+                <TableHead className="font-semibold">Project</TableHead>
+                <TableHead className="font-semibold">Client</TableHead>
+                <TableHead className="font-semibold">Type</TableHead>
+                <TableHead className="font-semibold">Timeline</TableHead>
+                <TableHead className="font-semibold">Status</TableHead>
                 <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredProjects.map(project => (
-                <TableRow key={project.id}>
+                <TableRow key={project.id} className="group">
                   <TableCell>
                     <Link 
                       to={`/projects/${project.id}`}
-                      className="font-medium text-foreground hover:text-primary"
+                      className="font-medium text-foreground hover:text-primary transition-colors"
                     >
                       {project.projectName}
                     </Link>
@@ -118,19 +118,19 @@ export default function Projects() {
                   <TableCell>
                     <Link 
                       to={`/clients/${project.clientId}`}
-                      className="text-muted-foreground hover:text-primary"
+                      className="text-muted-foreground hover:text-primary transition-colors"
                     >
                       {getClientName(project.clientId)}
                     </Link>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">
+                    <Badge variant="outline" className="font-medium">
                       {projectTypeLabels[project.projectType]}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <Calendar className="h-3 w-3" />
+                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                      <Calendar className="h-3.5 w-3.5" />
                       <span>
                         {format(project.startDate, 'MMM dd')}
                         {project.endDate && ` - ${format(project.endDate, 'MMM dd, yyyy')}`}
@@ -143,7 +143,7 @@ export default function Projects() {
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>

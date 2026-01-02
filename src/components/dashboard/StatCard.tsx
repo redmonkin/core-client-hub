@@ -13,21 +13,25 @@ interface StatCardProps {
 
 export function StatCard({ title, value, icon: Icon, description, className }: StatCardProps) {
   return (
-    <Card className={cn("transition-shadow hover:shadow-md", className)}>
+    <Card className={cn(
+      "group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5",
+      className
+    )}>
       <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
+        <div className="flex items-start justify-between">
+          <div className="space-y-2">
             <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className="text-3xl font-bold text-foreground">{value}</p>
+            <p className="text-4xl font-bold tracking-tight text-foreground">{value}</p>
             {description && (
-              <p className="text-xs text-muted-foreground">{description}</p>
+              <p className="text-sm text-muted-foreground">{description}</p>
             )}
           </div>
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-            <Icon className="h-6 w-6 text-primary" />
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 transition-transform duration-300 group-hover:scale-110">
+            <Icon className="h-7 w-7 text-primary" />
           </div>
         </div>
       </CardContent>
+      <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-primary/50 to-primary opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
     </Card>
   );
 }

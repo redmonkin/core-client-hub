@@ -50,12 +50,12 @@ export default function Proposals() {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-8">
       <PageHeader
         title="Proposals"
         description="Create and manage client proposals"
         actions={
-          <Button>
+          <Button size="lg">
             <Plus className="mr-2 h-4 w-4" />
             New Proposal
           </Button>
@@ -64,16 +64,16 @@ export default function Proposals() {
 
       <div className="flex flex-col gap-4 sm:flex-row">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search proposals..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="h-12 pl-11 text-base"
           />
         </div>
         <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as ProposalStatus | 'all')}>
-          <SelectTrigger className="w-full sm:w-48">
+          <SelectTrigger className="h-12 w-full sm:w-48">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>
@@ -87,28 +87,28 @@ export default function Proposals() {
       </div>
 
       {filteredProposals.length > 0 ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {filteredProposals.map(proposal => (
-            <Card key={proposal.id} className="transition-shadow hover:shadow-md">
-              <CardContent className="p-5">
+            <Card key={proposal.id} className="group overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5">
+              <CardContent className="p-6">
                 <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-foreground">{proposal.title}</h3>
-                    <div className="mt-1 space-y-1">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="truncate font-semibold text-foreground">{proposal.title}</h3>
+                    <div className="mt-1.5 space-y-1">
                       <Link 
                         to={`/clients/${proposal.clientId}`}
-                        className="block text-sm text-muted-foreground hover:text-primary"
+                        className="block truncate text-sm text-muted-foreground hover:text-primary transition-colors"
                       >
                         {getClientName(proposal.clientId)}
                       </Link>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="truncate text-xs text-muted-foreground">
                         {getProjectName(proposal.projectId)}
                       </p>
                     </div>
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -124,14 +124,14 @@ export default function Proposals() {
                   </DropdownMenu>
                 </div>
 
-                <div className="mt-4 rounded-lg bg-muted/50 p-3">
-                  <p className="text-xs font-medium text-muted-foreground">Scope of Work</p>
-                  <p className="mt-1 line-clamp-2 text-sm text-foreground">
+                <div className="mt-5 rounded-xl bg-muted/50 p-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Scope of Work</p>
+                  <p className="mt-2 line-clamp-2 text-sm text-foreground">
                     {proposal.scopeOfWork}
                   </p>
                 </div>
 
-                <div className="mt-4 flex items-center justify-between">
+                <div className="mt-5 flex items-center justify-between">
                   <div className="text-sm text-muted-foreground">
                     Valid until {format(proposal.validityDate, 'MMM dd, yyyy')}
                   </div>
