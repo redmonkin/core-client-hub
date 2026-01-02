@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   LogOut,
   Settings,
+  ChevronsUpDown,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -23,8 +24,13 @@ import {
   SidebarFooter,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -53,6 +59,13 @@ export function AppSidebar() {
   const getUserInitials = () => {
     if (!user?.email) return 'U';
     return user.email.charAt(0).toUpperCase();
+  };
+
+  const getUserName = () => {
+    if (user?.user_metadata?.full_name) {
+      return user.user_metadata.full_name;
+    }
+    return user?.email?.split('@')[0] || 'User';
   };
 
   return (
@@ -115,36 +128,60 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border p-3">
+      <SidebarFooter className="mt-auto border-t border-sidebar-border p-3">
         {user && (
-          <div className={cn(
-            "flex items-center gap-3",
-            collapsed ? "justify-center" : "justify-between"
-          )}>
-            {!collapsed && (
-              <div className="flex items-center gap-3 min-w-0">
-                <Avatar className="h-8 w-8 shrink-0">
-                  <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className={cn(
+                  "flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-sidebar-accent",
+                  collapsed && "justify-center"
+                )}
+              >
+                <Avatar className="h-9 w-9 shrink-0 ring-2 ring-primary/10">
+                  <AvatarFallback className="bg-primary text-primary-foreground text-sm font-semibold">
                     {getUserInitials()}
                   </AvatarFallback>
                 </Avatar>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-sidebar-foreground">
-                    {user.email}
-                  </p>
-                </div>
-              </div>
-            )}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleSignOut}
-              className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
-              title="Sign out"
+                {!collapsed && (
+                  <>
+                    <div className="flex-1 min-w-0">
+                      <p className="truncate text-sm font-medium text-sidebar-foreground">
+                        {getUserName()}
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {user.email}
+                      </p>
+                    </div>
+                    <ChevronsUpDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </>
+                )}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent 
+              align={collapsed ? "center" : "end"} 
+              side="top"
+              className="w-56"
             >
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
+              <div className="px-2 py-1.5">
+                <p className="text-sm font-medium text-foreground">{getUserName()}</p>
+                <p className="text-xs text-muted-foreground">{user.email}</p>
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="cursor-pointer">
+                <Settings className="mr-2 h-4 w-4" />
+                Settings
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                className="cursor-pointer text-destructive focus:text-destructive"
+                onClick={handleSignOut}
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </SidebarFooter>
     </Sidebar>
