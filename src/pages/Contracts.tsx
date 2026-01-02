@@ -69,12 +69,12 @@ export default function Contracts() {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-8">
       <PageHeader
         title="Contracts & AMCs"
         description="Manage contracts and annual maintenance agreements"
         actions={
-          <Button>
+          <Button size="lg">
             <Plus className="mr-2 h-4 w-4" />
             New Contract
           </Button>
@@ -83,16 +83,16 @@ export default function Contracts() {
 
       <div className="flex flex-col gap-4 sm:flex-row">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search by client or project..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="h-12 pl-11 text-base"
           />
         </div>
         <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as ContractStatus | 'all')}>
-          <SelectTrigger className="w-full sm:w-48">
+          <SelectTrigger className="h-12 w-full sm:w-48">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>
@@ -105,16 +105,16 @@ export default function Contracts() {
       </div>
 
       {filteredContracts.length > 0 ? (
-        <div className="rounded-lg border border-border">
+        <div className="overflow-hidden rounded-xl border border-border bg-card">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Client / Project</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Value</TableHead>
-                <TableHead>Duration</TableHead>
-                <TableHead>Renewal</TableHead>
-                <TableHead>Status</TableHead>
+              <TableRow className="bg-muted/30 hover:bg-muted/30">
+                <TableHead className="font-semibold">Client / Project</TableHead>
+                <TableHead className="font-semibold">Type</TableHead>
+                <TableHead className="font-semibold">Value</TableHead>
+                <TableHead className="font-semibold">Duration</TableHead>
+                <TableHead className="font-semibold">Renewal</TableHead>
+                <TableHead className="font-semibold">Status</TableHead>
                 <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
@@ -124,12 +124,12 @@ export default function Contracts() {
                 const isExpiringSoon = daysUntilEnd > 0 && daysUntilEnd <= 30;
 
                 return (
-                  <TableRow key={contract.id}>
+                  <TableRow key={contract.id} className="group">
                     <TableCell>
                       <div>
                         <Link 
                           to={`/clients/${contract.clientId}`}
-                          className="font-medium text-foreground hover:text-primary"
+                          className="font-medium text-foreground hover:text-primary transition-colors"
                         >
                           {getClientName(contract.clientId)}
                         </Link>
@@ -139,22 +139,22 @@ export default function Contracts() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">
+                      <Badge variant="outline" className="font-medium">
                         {contractTypeLabels[contract.contractType]}
                       </Badge>
                     </TableCell>
-                    <TableCell className="font-medium">
+                    <TableCell className="font-semibold text-foreground">
                       ${contract.value.toLocaleString()}
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1 text-sm">
-                        <Calendar className="h-3 w-3 text-muted-foreground" />
+                      <div className="flex items-center gap-1.5 text-sm">
+                        <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                         <span className={isExpiringSoon ? 'text-destructive font-medium' : 'text-muted-foreground'}>
                           {format(contract.startDate, 'MMM dd')} - {format(contract.endDate, 'MMM dd, yyyy')}
                         </span>
                       </div>
                       {isExpiringSoon && (
-                        <p className="mt-1 text-xs text-destructive">
+                        <p className="mt-1 text-xs font-medium text-destructive">
                           Expires in {daysUntilEnd} days
                         </p>
                       )}
@@ -170,7 +170,7 @@ export default function Contracts() {
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>

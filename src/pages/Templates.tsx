@@ -61,14 +61,14 @@ export default function Templates() {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-8">
       <PageHeader
         title="Templates"
         description="Manage document templates for proposals, contracts, and AMCs"
         actions={
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button size="lg">
                 <Plus className="mr-2 h-4 w-4" />
                 New Template
               </Button>
@@ -77,7 +77,7 @@ export default function Templates() {
               <DialogHeader>
                 <DialogTitle>Create New Template</DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleCreateTemplate} className="space-y-4">
+              <form onSubmit={handleCreateTemplate} className="space-y-6">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="templateName">Template Name</Label>
@@ -110,7 +110,7 @@ export default function Templates() {
                     required 
                   />
                 </div>
-                <div className="flex justify-end gap-2">
+                <div className="flex justify-end gap-3">
                   <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                     Cancel
                   </Button>
@@ -122,20 +122,20 @@ export default function Templates() {
         }
       />
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
         {mockTemplates.map(template => (
-          <Card key={template.id} className="transition-shadow hover:shadow-md">
+          <Card key={template.id} className="group overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5">
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 transition-transform duration-300 group-hover:scale-110">
                     <FileCode className="h-5 w-5 text-primary" />
                   </div>
                   <div>
                     <CardTitle className="text-base">{template.name}</CardTitle>
                     <Badge 
                       variant="secondary" 
-                      className={`mt-1 text-xs ${templateTypeColors[template.type]}`}
+                      className={`mt-1.5 text-xs ${templateTypeColors[template.type]}`}
                     >
                       {templateTypeLabels[template.type]}
                     </Badge>
@@ -143,7 +143,7 @@ export default function Templates() {
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -166,12 +166,12 @@ export default function Templates() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="rounded-lg bg-muted/50 p-3">
+              <div className="rounded-xl bg-muted/50 p-4">
                 <pre className="line-clamp-4 whitespace-pre-wrap font-mono text-xs text-muted-foreground">
                   {template.content}
                 </pre>
               </div>
-              <p className="mt-3 text-xs text-muted-foreground">
+              <p className="mt-4 text-xs text-muted-foreground">
                 Created {format(template.createdAt, 'MMM dd, yyyy')}
               </p>
             </CardContent>
@@ -195,12 +195,12 @@ export default function Templates() {
           <DialogHeader>
             <DialogTitle>{selectedTemplate?.name}</DialogTitle>
           </DialogHeader>
-          <div className="rounded-lg bg-muted/50 p-4">
+          <div className="rounded-xl bg-muted/50 p-6">
             <pre className="whitespace-pre-wrap font-mono text-sm">
               {selectedTemplate?.content}
             </pre>
           </div>
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-3">
             <Button variant="outline" onClick={() => setSelectedTemplate(null)}>
               Close
             </Button>

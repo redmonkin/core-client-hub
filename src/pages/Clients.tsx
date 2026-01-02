@@ -46,14 +46,14 @@ export default function Clients() {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-8">
       <PageHeader
         title="Clients"
         description="Manage your client relationships"
         actions={
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button size="lg">
                 <Plus className="mr-2 h-4 w-4" />
                 Add Client
               </Button>
@@ -62,7 +62,7 @@ export default function Clients() {
               <DialogHeader>
                 <DialogTitle>Add New Client</DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleCreateClient} className="space-y-4">
+              <form onSubmit={handleCreateClient} className="space-y-6">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="clientName">Client Name</Label>
@@ -93,7 +93,7 @@ export default function Clients() {
                   <Label htmlFor="notes">Notes</Label>
                   <Textarea id="notes" placeholder="Add any notes about this client..." rows={3} />
                 </div>
-                <div className="flex justify-end gap-2">
+                <div className="flex justify-end gap-3">
                   <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                     Cancel
                   </Button>
@@ -106,39 +106,39 @@ export default function Clients() {
       />
 
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Search clients..."
+          placeholder="Search clients by name, company, or email..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10"
+          className="h-12 pl-11 text-base"
         />
       </div>
 
       {filteredClients.length > 0 ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {filteredClients.map(client => (
-            <Card key={client.id} className="transition-shadow hover:shadow-md">
-              <CardContent className="p-5">
+            <Card key={client.id} className="group overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5">
+              <CardContent className="p-6">
                 <div className="flex items-start justify-between">
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <Link 
                         to={`/clients/${client.id}`}
-                        className="font-semibold text-foreground hover:text-primary"
+                        className="truncate font-semibold text-foreground hover:text-primary transition-colors"
                       >
                         {client.clientName}
                       </Link>
                       <StatusBadge status={client.status} />
                     </div>
-                    <div className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
-                      <Building2 className="h-3 w-3" />
-                      <span>{client.companyName}</span>
+                    <div className="mt-1.5 flex items-center gap-1.5 text-sm text-muted-foreground">
+                      <Building2 className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">{client.companyName}</span>
                     </div>
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -152,18 +152,18 @@ export default function Clients() {
                   </DropdownMenu>
                 </div>
 
-                <div className="mt-4 space-y-2 text-sm">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Mail className="h-4 w-4" />
-                    <span>{client.email}</span>
+                <div className="mt-5 space-y-2.5">
+                  <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                    <Mail className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{client.email}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Phone className="h-4 w-4" />
+                  <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                    <Phone className="h-4 w-4 shrink-0" />
                     <span>{client.phone}</span>
                   </div>
                 </div>
 
-                <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
+                <div className="mt-5 flex items-center justify-between border-t border-border pt-5">
                   <span className="text-sm text-muted-foreground">
                     {getProjectCount(client.id)} project{getProjectCount(client.id) !== 1 ? 's' : ''}
                   </span>
