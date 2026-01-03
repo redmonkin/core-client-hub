@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, FileText, MoreHorizontal, Download, Loader2 } from 'lucide-react';
+import { Plus, Search, FileText, MoreHorizontal, Download, Loader2, Pencil, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,15 +27,48 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 
 type ProposalStatus = 'draft' | 'sent' | 'approved' | 'rejected';
+
+type Proposal = {
+  id: string;
+  title: string;
+  client_id: string;
+  project_id: string | null;
+  scope_of_work: string | null;
+  cost_breakdown: string | null;
+  validity_date: string | null;
+  status: string;
+};
+
+const emptyProposal = {
+  title: '',
+  clientId: '',
+  projectId: '',
+  scopeOfWork: '',
+  costBreakdown: '',
+  validityDate: '',
+  status: 'draft' as ProposalStatus,
+};
 
 export default function Proposals() {
   const { user } = useAuth();
@@ -43,15 +76,11 @@ export default function Proposals() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ProposalStatus | 'all'>('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [newProposal, setNewProposal] = useState({
-    title: '',
-    clientId: '',
-    projectId: '',
-    scopeOfWork: '',
-    costBreakdown: '',
-    validityDate: '',
-    status: 'draft' as ProposalStatus,
-  });
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
+  const [newProposal, setNewProposal] = useState(emptyProposal);
+  const [editProposal, setEditProposal] = useState(emptyProposal);
 
   const { data: proposals = [], isLoading: proposalsLoading } = useQuery({
     queryKey: ['proposals'],
@@ -111,19 +140,57 @@ export default function Proposals() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['proposals'] });
       setIsDialogOpen(false);
-      setNewProposal({
-        title: '',
-        clientId: '',
-        projectId: '',
-        scopeOfWork: '',
-        costBreakdown: '',
-        validityDate: '',
-        status: 'draft',
-      });
+      setNewProposal(emptyProposal);
       toast.success('Proposal created successfully');
     },
     onError: (error) => {
       toast.error('Failed to create proposal: ' + error.message);
+    },
+  });
+
+  const updateProposalMutation = useMutation({
+    mutationFn: async ({ id, ...proposal }: { id: string } & typeof editProposal) => {
+      const { data, error } = await supabase
+        .from('proposals')
+        .update({
+          title: proposal.title,
+          client_id: proposal.clientId,
+          project_id: proposal.projectId || null,
+          scope_of_work: proposal.scopeOfWork || null,
+          cost_breakdown: proposal.costBreakdown || null,
+          validity_date: proposal.validityDate || null,
+          status: proposal.status,
+        })
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['proposals'] });
+      setIsEditDialogOpen(false);
+      setSelectedProposal(null);
+      toast.success('Proposal updated successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to update proposal: ' + error.message);
+    },
+  });
+
+  const deleteProposalMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('proposals').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['proposals'] });
+      setIsDeleteDialogOpen(false);
+      setSelectedProposal(null);
+      toast.success('Proposal deleted successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to delete proposal: ' + error.message);
     },
   });
 
@@ -145,6 +212,7 @@ export default function Proposals() {
   };
 
   const filteredProjects = projects.filter(p => p.client_id === newProposal.clientId);
+  const editFilteredProjects = projects.filter(p => p.client_id === editProposal.clientId);
 
   const handleExportPDF = (proposalId: string) => {
     toast.success('PDF export started - this feature requires backend integration');
@@ -157,6 +225,35 @@ export default function Proposals() {
       return;
     }
     createProposalMutation.mutate(newProposal);
+  };
+
+  const handleEdit = (proposal: Proposal) => {
+    setSelectedProposal(proposal);
+    setEditProposal({
+      title: proposal.title,
+      clientId: proposal.client_id,
+      projectId: proposal.project_id || '',
+      scopeOfWork: proposal.scope_of_work || '',
+      costBreakdown: proposal.cost_breakdown || '',
+      validityDate: proposal.validity_date || '',
+      status: proposal.status as ProposalStatus,
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleDelete = (proposal: Proposal) => {
+    setSelectedProposal(proposal);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedProposal) return;
+    if (!editProposal.title || !editProposal.clientId) {
+      toast.error('Please fill in required fields');
+      return;
+    }
+    updateProposalMutation.mutate({ id: selectedProposal.id, ...editProposal });
   };
 
   if (proposalsLoading) {
@@ -343,14 +440,22 @@ export default function Proposals() {
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem>View Details</DropdownMenuItem>
-                      <DropdownMenuItem>Edit</DropdownMenuItem>
+                    <DropdownMenuContent align="end" className="bg-popover">
+                      <DropdownMenuItem onClick={() => handleEdit(proposal)}>
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Edit
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleExportPDF(proposal.id)}>
                         <Download className="mr-2 h-4 w-4" />
                         Export PDF
                       </DropdownMenuItem>
-                      <DropdownMenuItem>Send to Client</DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => handleDelete(proposal)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -387,6 +492,141 @@ export default function Proposals() {
           onAction={() => setIsDialogOpen(true)}
         />
       )}
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Proposal</DialogTitle>
+            <DialogDescription>Update proposal details.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-title">Proposal Title *</Label>
+              <Input
+                id="edit-title"
+                value={editProposal.title}
+                onChange={(e) => setEditProposal({ ...editProposal, title: e.target.value })}
+                placeholder="Enter proposal title"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-client">Client *</Label>
+              <Select
+                value={editProposal.clientId}
+                onValueChange={(value) => setEditProposal({ ...editProposal, clientId: value, projectId: '' })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a client" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.client_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-project">Project (Optional)</Label>
+              <Select
+                value={editProposal.projectId}
+                onValueChange={(value) => setEditProposal({ ...editProposal, projectId: value })}
+                disabled={!editProposal.clientId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a project" />
+                </SelectTrigger>
+                <SelectContent>
+                  {editFilteredProjects.map((project) => (
+                    <SelectItem key={project.id} value={project.id}>
+                      {project.project_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-scopeOfWork">Scope of Work</Label>
+              <Textarea
+                id="edit-scopeOfWork"
+                value={editProposal.scopeOfWork}
+                onChange={(e) => setEditProposal({ ...editProposal, scopeOfWork: e.target.value })}
+                placeholder="Describe the scope of work"
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-costBreakdown">Cost Breakdown</Label>
+              <Textarea
+                id="edit-costBreakdown"
+                value={editProposal.costBreakdown}
+                onChange={(e) => setEditProposal({ ...editProposal, costBreakdown: e.target.value })}
+                placeholder="Enter pricing details"
+                rows={2}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-validityDate">Valid Until</Label>
+                <Input
+                  id="edit-validityDate"
+                  type="date"
+                  value={editProposal.validityDate}
+                  onChange={(e) => setEditProposal({ ...editProposal, validityDate: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-status">Status</Label>
+                <Select
+                  value={editProposal.status}
+                  onValueChange={(value) => setEditProposal({ ...editProposal, status: value as ProposalStatus })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="sent">Sent</SelectItem>
+                    <SelectItem value="approved">Approved</SelectItem>
+                    <SelectItem value="rejected">Rejected</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={updateProposalMutation.isPending}>
+                {updateProposalMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Proposal</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this proposal? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => selectedProposal && deleteProposalMutation.mutate(selectedProposal.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteProposalMutation.isPending ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
