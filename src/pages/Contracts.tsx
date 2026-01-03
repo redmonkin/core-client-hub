@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, FileSignature, MoreHorizontal, Calendar, Loader2 } from 'lucide-react';
+import { Plus, Search, FileSignature, MoreHorizontal, Calendar, Loader2, Pencil, Trash2 } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -40,25 +40,53 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { ContractStatus } from '@/lib/types';
 
+type Contract = {
+  id: string;
+  client_id: string;
+  project_id: string | null;
+  contract_type: string;
+  start_date: string;
+  end_date: string;
+  value: number;
+  renewal_frequency: string;
+  status: string;
+};
+
+const emptyContract = {
+  client_id: '',
+  project_id: '',
+  contract_type: '',
+  start_date: '',
+  end_date: '',
+  value: '',
+  renewal_frequency: '',
+  status: 'active',
+};
+
 export default function Contracts() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ContractStatus | 'all'>('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [newContract, setNewContract] = useState({
-    client_id: '',
-    project_id: '',
-    contract_type: '',
-    start_date: '',
-    end_date: '',
-    value: '',
-    renewal_frequency: '',
-    status: 'active',
-  });
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
+  const [newContract, setNewContract] = useState(emptyContract);
+  const [editContract, setEditContract] = useState(emptyContract);
 
   const { user } = useAuth();
   const { toast } = useToast();
@@ -124,20 +152,58 @@ export default function Contracts() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contracts'] });
       setIsDialogOpen(false);
-      setNewContract({
-        client_id: '',
-        project_id: '',
-        contract_type: '',
-        start_date: '',
-        end_date: '',
-        value: '',
-        renewal_frequency: '',
-        status: 'active',
-      });
+      setNewContract(emptyContract);
       toast({ title: 'Contract created successfully' });
     },
     onError: (error) => {
       toast({ title: 'Failed to create contract', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const updateContractMutation = useMutation({
+    mutationFn: async ({ id, ...contractData }: { id: string } & typeof editContract) => {
+      const { data, error } = await supabase
+        .from('contracts')
+        .update({
+          client_id: contractData.client_id,
+          project_id: contractData.project_id || null,
+          contract_type: contractData.contract_type,
+          start_date: contractData.start_date,
+          end_date: contractData.end_date,
+          value: parseFloat(contractData.value),
+          renewal_frequency: contractData.renewal_frequency,
+          status: contractData.status,
+        })
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contracts'] });
+      setIsEditDialogOpen(false);
+      setSelectedContract(null);
+      toast({ title: 'Contract updated successfully' });
+    },
+    onError: (error) => {
+      toast({ title: 'Failed to update contract', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const deleteContractMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('contracts').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contracts'] });
+      setIsDeleteDialogOpen(false);
+      setSelectedContract(null);
+      toast({ title: 'Contract deleted successfully' });
+    },
+    onError: (error) => {
+      toast({ title: 'Failed to delete contract', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -163,6 +229,37 @@ export default function Contracts() {
   });
 
   const filteredProjects = projects.filter(p => p.client_id === newContract.client_id);
+  const editFilteredProjects = projects.filter(p => p.client_id === editContract.client_id);
+
+  const handleEdit = (contract: Contract) => {
+    setSelectedContract(contract);
+    setEditContract({
+      client_id: contract.client_id,
+      project_id: contract.project_id || '',
+      contract_type: contract.contract_type,
+      start_date: contract.start_date,
+      end_date: contract.end_date,
+      value: String(contract.value),
+      renewal_frequency: contract.renewal_frequency,
+      status: contract.status,
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleDelete = (contract: Contract) => {
+    setSelectedContract(contract);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedContract) return;
+    if (!editContract.client_id || !editContract.contract_type || !editContract.start_date || !editContract.end_date || !editContract.value || !editContract.renewal_frequency) {
+      toast({ title: 'Please fill in all required fields', variant: 'destructive' });
+      return;
+    }
+    updateContractMutation.mutate({ id: selectedContract.id, ...editContract });
+  };
 
   const contractTypeLabels: Record<string, string> = {
     'amc': 'AMC',
@@ -436,11 +533,18 @@ export default function Contracts() {
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>View Details</DropdownMenuItem>
-                          <DropdownMenuItem>Edit</DropdownMenuItem>
-                          <DropdownMenuItem>Renew Contract</DropdownMenuItem>
-                          <DropdownMenuItem>View History</DropdownMenuItem>
+                        <DropdownMenuContent align="end" className="bg-popover">
+                          <DropdownMenuItem onClick={() => handleEdit(contract)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleDelete(contract)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -461,6 +565,162 @@ export default function Contracts() {
           onAction={() => setIsDialogOpen(true)}
         />
       )}
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Contract</DialogTitle>
+            <DialogDescription>Update contract details.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-client">Client *</Label>
+              <Select
+                value={editContract.client_id}
+                onValueChange={(value) => setEditContract({ ...editContract, client_id: value, project_id: '' })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a client" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.client_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-project">Project (Optional)</Label>
+              <Select
+                value={editContract.project_id}
+                onValueChange={(value) => setEditContract({ ...editContract, project_id: value })}
+                disabled={!editContract.client_id}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a project" />
+                </SelectTrigger>
+                <SelectContent>
+                  {editFilteredProjects.map((project) => (
+                    <SelectItem key={project.id} value={project.id}>
+                      {project.project_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-contract_type">Contract Type *</Label>
+              <Select
+                value={editContract.contract_type}
+                onValueChange={(value) => setEditContract({ ...editContract, contract_type: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="amc">AMC</SelectItem>
+                  <SelectItem value="fixed">Fixed</SelectItem>
+                  <SelectItem value="retainer">Retainer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-start_date">Start Date *</Label>
+                <Input
+                  id="edit-start_date"
+                  type="date"
+                  value={editContract.start_date}
+                  onChange={(e) => setEditContract({ ...editContract, start_date: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-end_date">End Date *</Label>
+                <Input
+                  id="edit-end_date"
+                  type="date"
+                  value={editContract.end_date}
+                  onChange={(e) => setEditContract({ ...editContract, end_date: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-value">Contract Value *</Label>
+              <Input
+                id="edit-value"
+                type="number"
+                placeholder="Enter value"
+                value={editContract.value}
+                onChange={(e) => setEditContract({ ...editContract, value: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-renewal_frequency">Renewal Frequency *</Label>
+              <Select
+                value={editContract.renewal_frequency}
+                onValueChange={(value) => setEditContract({ ...editContract, renewal_frequency: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select frequency" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                  <SelectItem value="quarterly">Quarterly</SelectItem>
+                  <SelectItem value="yearly">Yearly</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-status">Status</Label>
+              <Select
+                value={editContract.status}
+                onValueChange={(value) => setEditContract({ ...editContract, status: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="expired">Expired</SelectItem>
+                  <SelectItem value="pending-renewal">Pending Renewal</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={updateContractMutation.isPending}>
+                {updateContractMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Contract</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this contract? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => selectedContract && deleteContractMutation.mutate(selectedContract.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteContractMutation.isPending ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
