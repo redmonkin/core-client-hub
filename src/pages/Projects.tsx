@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Calendar, MoreHorizontal } from 'lucide-react';
+import { Plus, Search, Calendar, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -36,27 +36,55 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 
 type ProjectStatus = 'planned' | 'active' | 'on-hold' | 'completed' | 'cancelled';
 type ProjectType = 'one-time' | 'amc' | 'retainer';
 
+type Project = {
+  id: string;
+  project_name: string;
+  client_id: string;
+  project_type: string;
+  start_date: string | null;
+  end_date: string | null;
+  status: string;
+};
+
+const emptyProject = {
+  project_name: '',
+  client_id: '',
+  project_type: 'one-time' as ProjectType,
+  start_date: '',
+  end_date: '',
+  status: 'planned' as ProjectStatus,
+};
+
 export default function Projects() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'all'>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [newProject, setNewProject] = useState({
-    project_name: '',
-    client_id: '',
-    project_type: 'one-time' as ProjectType,
-    start_date: '',
-    end_date: '',
-    status: 'planned' as ProjectStatus,
-  });
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [newProject, setNewProject] = useState(emptyProject);
+  const [editProject, setEditProject] = useState(emptyProject);
 
   const { user } = useAuth();
   const { toast } = useToast();
@@ -99,18 +127,53 @@ export default function Projects() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       setDialogOpen(false);
-      setNewProject({
-        project_name: '',
-        client_id: '',
-        project_type: 'one-time',
-        start_date: '',
-        end_date: '',
-        status: 'planned',
-      });
+      setNewProject(emptyProject);
       toast({ title: 'Project created successfully' });
     },
     onError: (error) => {
       toast({ title: 'Error creating project', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const updateProject = useMutation({
+    mutationFn: async ({ id, ...project }: { id: string } & typeof editProject) => {
+      const { error } = await supabase
+        .from('projects')
+        .update({
+          project_name: project.project_name,
+          client_id: project.client_id,
+          project_type: project.project_type,
+          start_date: project.start_date || null,
+          end_date: project.end_date || null,
+          status: project.status,
+        })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      setEditDialogOpen(false);
+      setSelectedProject(null);
+      toast({ title: 'Project updated successfully' });
+    },
+    onError: (error) => {
+      toast({ title: 'Error updating project', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const deleteProject = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('projects').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      setDeleteDialogOpen(false);
+      setSelectedProject(null);
+      toast({ title: 'Project deleted successfully' });
+    },
+    onError: (error) => {
+      toast({ title: 'Error deleting project', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -138,6 +201,34 @@ export default function Projects() {
       return;
     }
     createProject.mutate(newProject);
+  };
+
+  const handleEdit = (project: Project) => {
+    setSelectedProject(project);
+    setEditProject({
+      project_name: project.project_name,
+      client_id: project.client_id,
+      project_type: project.project_type as ProjectType,
+      start_date: project.start_date || '',
+      end_date: project.end_date || '',
+      status: project.status as ProjectStatus,
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleDelete = (project: Project) => {
+    setSelectedProject(project);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedProject) return;
+    if (!editProject.project_name || !editProject.client_id) {
+      toast({ title: 'Please fill in required fields', variant: 'destructive' });
+      return;
+    }
+    updateProject.mutate({ id: selectedProject.id, ...editProject });
   };
 
   if (projectsLoading) {
@@ -342,13 +433,21 @@ export default function Projects() {
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+                      <DropdownMenuContent align="end" className="bg-popover">
                         <DropdownMenuItem asChild>
                           <Link to={`/projects/${project.id}`}>View Details</Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem>Edit</DropdownMenuItem>
-                        <DropdownMenuItem>Create Proposal</DropdownMenuItem>
-                        <DropdownMenuItem>Create Contract</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEdit(project)}>
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => handleDelete(project)}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -368,6 +467,128 @@ export default function Projects() {
           onAction={() => setDialogOpen(true)}
         />
       )}
+
+      {/* Edit Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Project</DialogTitle>
+            <DialogDescription>Update project details.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-project_name">Project Name *</Label>
+              <Input
+                id="edit-project_name"
+                value={editProject.project_name}
+                onChange={(e) => setEditProject({ ...editProject, project_name: e.target.value })}
+                placeholder="Enter project name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-client">Client *</Label>
+              <Select
+                value={editProject.client_id}
+                onValueChange={(v) => setEditProject({ ...editProject, client_id: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a client" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.client_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-project_type">Project Type</Label>
+              <Select
+                value={editProject.project_type}
+                onValueChange={(v) => setEditProject({ ...editProject, project_type: v as ProjectType })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="one-time">One-time</SelectItem>
+                  <SelectItem value="amc">AMC</SelectItem>
+                  <SelectItem value="retainer">Retainer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-start_date">Start Date</Label>
+                <Input
+                  id="edit-start_date"
+                  type="date"
+                  value={editProject.start_date}
+                  onChange={(e) => setEditProject({ ...editProject, start_date: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-end_date">End Date</Label>
+                <Input
+                  id="edit-end_date"
+                  type="date"
+                  value={editProject.end_date}
+                  onChange={(e) => setEditProject({ ...editProject, end_date: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-status">Status</Label>
+              <Select
+                value={editProject.status}
+                onValueChange={(v) => setEditProject({ ...editProject, status: v as ProjectStatus })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="planned">Planned</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="on-hold">On Hold</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={updateProject.isPending}>
+                {updateProject.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Project</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this project? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => selectedProject && deleteProject.mutate(selectedProject.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteProject.isPending ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
