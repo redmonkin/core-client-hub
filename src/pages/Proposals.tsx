@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, FileText, MoreHorizontal, Download, Loader2, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Search, FileText, MoreHorizontal, Download, Loader2, Pencil, Trash2, Copy } from 'lucide-react';
 import { format } from 'date-fns';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -246,6 +246,19 @@ export default function Proposals() {
     setIsDeleteDialogOpen(true);
   };
 
+  const handleDuplicate = (proposal: Proposal) => {
+    setNewProposal({
+      title: `${proposal.title} (Copy)`,
+      clientId: proposal.client_id,
+      projectId: proposal.project_id || '',
+      scopeOfWork: proposal.scope_of_work || '',
+      costBreakdown: proposal.cost_breakdown || '',
+      validityDate: '',
+      status: 'draft',
+    });
+    setIsDialogOpen(true);
+  };
+
   const handleEditSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProposal) return;
@@ -444,6 +457,10 @@ export default function Proposals() {
                       <DropdownMenuItem onClick={() => handleEdit(proposal)}>
                         <Pencil className="mr-2 h-4 w-4" />
                         Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDuplicate(proposal)}>
+                        <Copy className="mr-2 h-4 w-4" />
+                        Duplicate
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleExportPDF(proposal.id)}>
                         <Download className="mr-2 h-4 w-4" />
