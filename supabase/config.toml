@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.generate-proposal-pdf]
 verify_jwt = false
+
+[functions.contract-renewal-reminders]
+verify_jwt = false
