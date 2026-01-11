@@ -166,6 +166,41 @@ export type Database = {
           },
         ]
       }
+      proposal_access_tokens: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          proposal_id: string
+          token: string
+          viewed_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          proposal_id: string
+          token: string
+          viewed_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          proposal_id?: string
+          token?: string
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_access_tokens_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposals: {
         Row: {
           client_id: string
