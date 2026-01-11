@@ -227,8 +227,49 @@ export default function Proposals() {
   const filteredProjects = projects.filter(p => p.client_id === newProposal.clientId);
   const editFilteredProjects = projects.filter(p => p.client_id === editProposal.clientId);
 
-  const handleExportPDF = (proposalId: string) => {
-    toast.success('PDF export started - this feature requires backend integration');
+  const handleExportPDF = async (proposal: Proposal) => {
+    const toastId = toast.loading('Generating PDF...');
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-proposal-pdf', {
+        body: {
+          proposalTitle: proposal.title,
+          clientName: getClientName(proposal.client_id),
+          projectName: getProjectName(proposal.project_id),
+          scopeOfWork: proposal.scope_of_work,
+          costBreakdown: proposal.cost_breakdown,
+          validityDate: proposal.validity_date,
+          status: proposal.status,
+        },
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Failed to generate PDF');
+
+      // Convert base64 to blob and download
+      const byteCharacters = atob(data.pdf);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'application/pdf' });
+      
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${proposal.title.replace(/[^a-z0-9]/gi, '_')}_proposal.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success('PDF downloaded successfully', { id: toastId });
+    } catch (error: any) {
+      console.error('Error generating PDF:', error);
+      toast.error('Failed to generate PDF: ' + error.message, { id: toastId });
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -537,7 +578,7 @@ export default function Proposals() {
                         <Send className="mr-2 h-4 w-4" />
                         Send to Client
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleExportPDF(proposal.id)}>
+                      <DropdownMenuItem onClick={() => handleExportPDF(proposal)}>
                         <Download className="mr-2 h-4 w-4" />
                         Export PDF
                       </DropdownMenuItem>
