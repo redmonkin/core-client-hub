@@ -13,6 +13,7 @@ import Proposals from "./pages/Proposals";
 import Contracts from "./pages/Contracts";
 import Templates from "./pages/Templates";
 import Auth from "./pages/Auth";
+import ClientPortal from "./pages/ClientPortal";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -74,6 +75,7 @@ const App = () => (
               </AuthRoute>
             }
           />
+          <Route path="/portal" element={<ClientPortal />} />
           <Route
             path="/*"
             element={

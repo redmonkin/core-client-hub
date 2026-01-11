@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, FileText, MoreHorizontal, Download, Loader2, Pencil, Trash2, Copy, Send } from 'lucide-react';
+import { Plus, Search, FileText, MoreHorizontal, Download, Loader2, Pencil, Trash2, Copy, Send, LinkIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -89,6 +89,9 @@ export default function Proposals() {
   const [newProposal, setNewProposal] = useState(emptyProposal);
   const [editProposal, setEditProposal] = useState(emptyProposal);
   const [isSending, setIsSending] = useState(false);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [shareLink, setShareLink] = useState('');
+  const [isGeneratingLink, setIsGeneratingLink] = useState(false);
 
   const { data: proposals = [], isLoading: proposalsLoading } = useQuery({
     queryKey: ['proposals'],
@@ -371,6 +374,49 @@ export default function Proposals() {
     }
   };
 
+  const handleShareLink = async (proposal: Proposal) => {
+    setSelectedProposal(proposal);
+    setShareLink('');
+    setIsShareDialogOpen(true);
+    setIsGeneratingLink(true);
+
+    try {
+      // Generate a secure random token
+      const tokenArray = new Uint8Array(32);
+      crypto.getRandomValues(tokenArray);
+      const token = Array.from(tokenArray, b => b.toString(16).padStart(2, '0')).join('');
+
+      // Set expiry to 30 days from now
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 30);
+
+      // Insert the access token
+      const { error } = await supabase
+        .from('proposal_access_tokens')
+        .insert({
+          proposal_id: proposal.id,
+          token,
+          expires_at: expiresAt.toISOString(),
+        });
+
+      if (error) throw error;
+
+      const link = `${window.location.origin}/portal?token=${token}`;
+      setShareLink(link);
+    } catch (error: any) {
+      console.error('Error generating share link:', error);
+      toast.error('Failed to generate share link');
+      setIsShareDialogOpen(false);
+    } finally {
+      setIsGeneratingLink(false);
+    }
+  };
+
+  const copyShareLink = () => {
+    navigator.clipboard.writeText(shareLink);
+    toast.success('Link copied to clipboard!');
+  };
+
   const handleEditSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProposal) return;
@@ -577,6 +623,10 @@ export default function Proposals() {
                       <DropdownMenuItem onClick={() => handleSendEmail(proposal)}>
                         <Send className="mr-2 h-4 w-4" />
                         Send to Client
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleShareLink(proposal)}>
+                        <LinkIcon className="mr-2 h-4 w-4" />
+                        Get Share Link
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleExportPDF(proposal)}>
                         <Download className="mr-2 h-4 w-4" />
@@ -801,6 +851,44 @@ export default function Proposals() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Share Link Dialog */}
+      <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Share Proposal Link</DialogTitle>
+            <DialogDescription>
+              Share this link with your client so they can view and respond to the proposal.
+            </DialogDescription>
+          </DialogHeader>
+          {isGeneratingLink ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Input
+                  value={shareLink}
+                  readOnly
+                  className="flex-1"
+                />
+                <Button onClick={copyShareLink} variant="secondary">
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                This link will expire in 30 days. The client can approve or reject the proposal directly from this link.
+              </p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setIsShareDialogOpen(false)}>
+              Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
