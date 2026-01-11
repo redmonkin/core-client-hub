@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, FileText, MoreHorizontal, Download, Loader2, Pencil, Trash2, Copy } from 'lucide-react';
+import { Plus, Search, FileText, MoreHorizontal, Download, Loader2, Pencil, Trash2, Copy, Send } from 'lucide-react';
 import { format } from 'date-fns';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -60,6 +60,12 @@ type Proposal = {
   status: string;
 };
 
+type Client = {
+  id: string;
+  client_name: string;
+  email: string | null;
+};
+
 const emptyProposal = {
   title: '',
   clientId: '',
@@ -78,9 +84,11 @@ export default function Proposals() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isSendDialogOpen, setIsSendDialogOpen] = useState(false);
   const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
   const [newProposal, setNewProposal] = useState(emptyProposal);
   const [editProposal, setEditProposal] = useState(emptyProposal);
+  const [isSending, setIsSending] = useState(false);
 
   const { data: proposals = [], isLoading: proposalsLoading } = useQuery({
     queryKey: ['proposals'],
@@ -99,10 +107,10 @@ export default function Proposals() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('clients')
-        .select('id, client_name')
+        .select('id, client_name, email')
         .order('client_name');
       if (error) throw error;
-      return data;
+      return data as Client[];
     },
   });
 
@@ -205,6 +213,11 @@ export default function Proposals() {
     return client?.client_name || 'Unknown Client';
   };
 
+  const getClientEmail = (clientId: string) => {
+    const client = clients.find(c => c.id === clientId);
+    return client?.email || null;
+  };
+
   const getProjectName = (projectId: string | null) => {
     if (!projectId) return 'No Project';
     const project = projects.find(p => p.id === projectId);
@@ -257,6 +270,64 @@ export default function Proposals() {
       status: 'draft',
     });
     setIsDialogOpen(true);
+  };
+
+  const handleSendEmail = (proposal: Proposal) => {
+    const clientEmail = getClientEmail(proposal.client_id);
+    if (!clientEmail) {
+      toast.error('This client does not have an email address configured');
+      return;
+    }
+    setSelectedProposal(proposal);
+    setIsSendDialogOpen(true);
+  };
+
+  const confirmSendEmail = async () => {
+    if (!selectedProposal) return;
+    
+    const clientEmail = getClientEmail(selectedProposal.client_id);
+    const clientName = getClientName(selectedProposal.client_id);
+    
+    if (!clientEmail) {
+      toast.error('Client email not found');
+      return;
+    }
+
+    setIsSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-proposal-email', {
+        body: {
+          proposalId: selectedProposal.id,
+          clientEmail,
+          clientName,
+          proposalTitle: selectedProposal.title,
+          scopeOfWork: selectedProposal.scope_of_work,
+          costBreakdown: selectedProposal.cost_breakdown,
+          validityDate: selectedProposal.validity_date,
+        },
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Failed to send email');
+
+      // Update proposal status to 'sent' if it was draft
+      if (selectedProposal.status === 'draft') {
+        await supabase
+          .from('proposals')
+          .update({ status: 'sent' })
+          .eq('id', selectedProposal.id);
+        queryClient.invalidateQueries({ queryKey: ['proposals'] });
+      }
+
+      toast.success(`Proposal sent to ${clientEmail}`);
+      setIsSendDialogOpen(false);
+      setSelectedProposal(null);
+    } catch (error: any) {
+      console.error('Error sending email:', error);
+      toast.error('Failed to send email: ' + error.message);
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const handleEditSubmit = (e: React.FormEvent) => {
@@ -462,6 +533,10 @@ export default function Proposals() {
                         <Copy className="mr-2 h-4 w-4" />
                         Duplicate
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleSendEmail(proposal)}>
+                        <Send className="mr-2 h-4 w-4" />
+                        Send to Client
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleExportPDF(proposal.id)}>
                         <Download className="mr-2 h-4 w-4" />
                         Export PDF
@@ -640,6 +715,47 @@ export default function Proposals() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleteProposalMutation.isPending ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Send Email Confirmation Dialog */}
+      <AlertDialog open={isSendDialogOpen} onOpenChange={setIsSendDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Send Proposal</AlertDialogTitle>
+            <AlertDialogDescription>
+              {selectedProposal && (
+                <>
+                  Send "{selectedProposal.title}" to{' '}
+                  <strong>{getClientEmail(selectedProposal.client_id)}</strong>?
+                  {selectedProposal.status === 'draft' && (
+                    <span className="block mt-2 text-muted-foreground">
+                      The proposal status will be updated to "Sent".
+                    </span>
+                  )}
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmSendEmail}
+              disabled={isSending}
+            >
+              {isSending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Send className="mr-2 h-4 w-4" />
+                  Send Email
+                </>
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
