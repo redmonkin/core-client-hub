@@ -61,6 +61,7 @@ export default function Clients() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'archived'>('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -209,11 +210,14 @@ export default function Clients() {
     },
   });
 
-  const filteredClients = clients.filter(client =>
-    client.client_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (client.company_name?.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (client.email?.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredClients = clients.filter(client => {
+    const matchesSearch = 
+      client.client_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (client.company_name?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (client.email?.toLowerCase().includes(searchQuery.toLowerCase()));
+    const matchesStatus = statusFilter === 'all' || client.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   const getProjectCount = (clientId: string) => {
     return projectCounts[clientId] || 0;
@@ -371,14 +375,26 @@ export default function Clients() {
         }
       />
 
-      <div className="relative">
-        <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Search clients by name, company, or email..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="h-12 pl-11 text-base"
-        />
+      <div className="flex flex-col gap-4 sm:flex-row">
+        <div className="relative flex-1">
+          <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search clients by name, company, or email..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="h-12 pl-11 text-base"
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as 'all' | 'active' | 'archived')}>
+          <SelectTrigger className="h-12 w-full sm:w-48">
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="archived">Archived</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {filteredClients.length > 0 ? (
