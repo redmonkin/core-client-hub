@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, MoreHorizontal, Mail, Phone, Building2, Loader2 } from 'lucide-react';
+import { Plus, Search, MoreHorizontal, Mail, Phone, Building2, Loader2, Pencil, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { EmptyState } from '@/components/shared/EmptyState';
@@ -20,8 +20,25 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -45,6 +62,9 @@ export default function Clients() {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -55,6 +75,18 @@ export default function Clients() {
     phone: '',
     address: '',
     notes: '',
+  });
+
+  // Edit form state
+  const [editFormData, setEditFormData] = useState({
+    clientName: '',
+    companyName: '',
+    contactName: '',
+    email: '',
+    phone: '',
+    address: '',
+    notes: '',
+    status: 'active',
   });
 
   // Fetch clients
@@ -126,6 +158,57 @@ export default function Clients() {
     },
   });
 
+  // Update client mutation
+  const updateClient = useMutation({
+    mutationFn: async (clientData: typeof editFormData & { id: string }) => {
+      const { error } = await supabase
+        .from('clients')
+        .update({
+          client_name: clientData.clientName,
+          company_name: clientData.companyName || null,
+          primary_contact_name: clientData.contactName || null,
+          email: clientData.email || null,
+          phone: clientData.phone || null,
+          billing_address: clientData.address || null,
+          notes: clientData.notes || null,
+          status: clientData.status,
+        })
+        .eq('id', clientData.id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      toast.success('Client updated successfully!');
+      setIsEditDialogOpen(false);
+      setSelectedClient(null);
+    },
+    onError: (error) => {
+      toast.error('Failed to update client: ' + error.message);
+    },
+  });
+
+  // Delete client mutation
+  const deleteClient = useMutation({
+    mutationFn: async (clientId: string) => {
+      const { error } = await supabase
+        .from('clients')
+        .delete()
+        .eq('id', clientId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      toast.success('Client deleted successfully!');
+      setIsDeleteDialogOpen(false);
+      setSelectedClient(null);
+    },
+    onError: (error) => {
+      toast.error('Failed to delete client: ' + error.message);
+    },
+  });
+
   const filteredClients = clients.filter(client =>
     client.client_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (client.company_name?.toLowerCase().includes(searchQuery.toLowerCase())) ||
@@ -144,6 +227,38 @@ export default function Clients() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
     setFormData(prev => ({ ...prev, [id]: value }));
+  };
+
+  const handleEdit = (client: Client) => {
+    setSelectedClient(client);
+    setEditFormData({
+      clientName: client.client_name,
+      companyName: client.company_name || '',
+      contactName: client.primary_contact_name || '',
+      email: client.email || '',
+      phone: client.phone || '',
+      address: client.billing_address || '',
+      notes: client.notes || '',
+      status: client.status,
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleDelete = (client: Client) => {
+    setSelectedClient(client);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target;
+    setEditFormData(prev => ({ ...prev, [id]: value }));
+  };
+
+  const handleUpdateClient = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (selectedClient) {
+      updateClient.mutate({ ...editFormData, id: selectedClient.id });
+    }
   };
 
   if (isLoading) {
@@ -299,8 +414,17 @@ export default function Clients() {
                       <DropdownMenuItem asChild>
                         <Link to={`/clients/${client.id}`}>View Details</Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem>Edit</DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">Archive</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleEdit(client)}>
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        className="text-destructive"
+                        onClick={() => handleDelete(client)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -344,6 +468,133 @@ export default function Clients() {
           onAction={() => setIsDialogOpen(true)}
         />
       )}
+
+      {/* Edit Client Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Client</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleUpdateClient} className="space-y-6">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="clientName">Client Name</Label>
+                <Input 
+                  id="clientName" 
+                  placeholder="Enter client name" 
+                  value={editFormData.clientName}
+                  onChange={handleEditInputChange}
+                  required 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="companyName">Company Name</Label>
+                <Input 
+                  id="companyName" 
+                  placeholder="Enter company name" 
+                  value={editFormData.companyName}
+                  onChange={handleEditInputChange}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="contactName">Primary Contact</Label>
+                <Input 
+                  id="contactName" 
+                  placeholder="Enter contact name" 
+                  value={editFormData.contactName}
+                  onChange={handleEditInputChange}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input 
+                  id="email" 
+                  type="email" 
+                  placeholder="email@example.com" 
+                  value={editFormData.email}
+                  onChange={handleEditInputChange}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone</Label>
+                <Input 
+                  id="phone" 
+                  type="tel" 
+                  placeholder="+1 (555) 000-0000" 
+                  value={editFormData.phone}
+                  onChange={handleEditInputChange}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="address">Billing Address</Label>
+                <Input 
+                  id="address" 
+                  placeholder="Enter billing address" 
+                  value={editFormData.address}
+                  onChange={handleEditInputChange}
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="status">Status</Label>
+                <Select 
+                  value={editFormData.status} 
+                  onValueChange={(value) => setEditFormData(prev => ({ ...prev, status: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="archived">Archived</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea 
+                id="notes" 
+                placeholder="Add any notes about this client..." 
+                rows={3} 
+                value={editFormData.notes}
+                onChange={handleEditInputChange}
+              />
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={updateClient.isPending}>
+                {updateClient.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Changes
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the client "{selectedClient?.client_name}". 
+              This action cannot be undone and will also delete all associated projects, contracts, and proposals.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => selectedClient && deleteClient.mutate(selectedClient.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteClient.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
