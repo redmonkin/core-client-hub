@@ -64,7 +64,7 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
 
-      // Get the proposal with client info
+      // Get the proposal with client info and user_id
       const { data: proposal, error: proposalError } = await supabase
         .from("proposals")
         .select(`
@@ -76,6 +76,7 @@ const handler = async (req: Request): Promise<Response> => {
           status,
           client_id,
           project_id,
+          user_id,
           created_at
         `)
         .eq("id", accessToken.proposal_id)
@@ -104,12 +105,24 @@ const handler = async (req: Request): Promise<Response> => {
         projectName = project?.project_name;
       }
 
-      // Update viewed_at if not already viewed
+      // Update viewed_at and create notification if not already viewed
       if (!accessToken.viewed_at) {
         await supabase
           .from("proposal_access_tokens")
           .update({ viewed_at: new Date().toISOString() })
           .eq("id", accessToken.id);
+
+        // Create notification for proposal owner
+        const clientName = client?.client_name || client?.company_name || "A client";
+        await supabase.from("notifications").insert({
+          user_id: proposal.user_id,
+          type: "proposal_viewed",
+          title: "Proposal Viewed",
+          message: `${clientName} viewed your proposal "${proposal.title}"`,
+          reference_id: proposal.id,
+          reference_type: "proposal",
+        });
+        console.log(`Created view notification for user ${proposal.user_id}`);
       }
 
       console.log(`Proposal ${proposal.id} retrieved successfully`);
@@ -180,6 +193,37 @@ const handler = async (req: Request): Promise<Response> => {
         .eq("id", tokenData.proposal_id);
 
       if (updateError) throw updateError;
+
+      // Get proposal details for notification
+      const { data: proposal } = await supabase
+        .from("proposals")
+        .select("title, user_id, client_id")
+        .eq("id", tokenData.proposal_id)
+        .single();
+
+      // Get client name
+      const { data: client } = await supabase
+        .from("clients")
+        .select("client_name, company_name")
+        .eq("id", proposal?.client_id)
+        .single();
+
+      // Create notification for proposal owner
+      if (proposal) {
+        const clientName = client?.client_name || client?.company_name || "A client";
+        const notificationType = action === "approve" ? "proposal_approved" : "proposal_rejected";
+        const emoji = action === "approve" ? "✅" : "❌";
+        
+        await supabase.from("notifications").insert({
+          user_id: proposal.user_id,
+          type: notificationType,
+          title: action === "approve" ? "Proposal Approved!" : "Proposal Rejected",
+          message: `${emoji} ${clientName} has ${action}d your proposal "${proposal.title}"`,
+          reference_id: tokenData.proposal_id,
+          reference_type: "proposal",
+        });
+        console.log(`Created ${action} notification for user ${proposal.user_id}`);
+      }
 
       console.log(`Proposal ${tokenData.proposal_id} status updated to ${newStatus}`);
 
