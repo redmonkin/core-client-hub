@@ -36,12 +36,12 @@ import { useAuth } from '@/hooks/useAuth';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 const menuItems = [
-  { title: 'Dashboard', url: '/', icon: LayoutDashboard },
-  { title: 'Clients', url: '/clients', icon: Users },
-  { title: 'Projects', url: '/projects', icon: FolderKanban },
-  { title: 'Proposals', url: '/proposals', icon: FileText },
-  { title: 'Contracts', url: '/contracts', icon: FileSignature },
-  { title: 'Templates', url: '/templates', icon: FileCode },
+  { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
+  { title: 'Clients', url: '/dashboard/clients', icon: Users },
+  { title: 'Projects', url: '/dashboard/projects', icon: FolderKanban },
+  { title: 'Proposals', url: '/dashboard/proposals', icon: FileText },
+  { title: 'Contracts', url: '/dashboard/contracts', icon: FileSignature },
+  { title: 'Templates', url: '/dashboard/templates', icon: FileCode },
 ];
 
 export function AppSidebar() {
@@ -170,7 +170,7 @@ export function AppSidebar() {
               <DropdownMenuSeparator />
               <DropdownMenuItem 
                 className="cursor-pointer"
-                onClick={() => navigate('/settings')}
+                onClick={() => navigate('/dashboard/settings')}
               >
                 <Settings className="mr-2 h-4 w-4" />
                 Settings
