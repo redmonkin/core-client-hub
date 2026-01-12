@@ -40,11 +40,11 @@ import clientraLogoDark from '@/assets/clientra-dark.svg';
 
 const menuItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
-  { title: 'Clients', url: '/dashboard/clients', icon: Users },
-  { title: 'Projects', url: '/dashboard/projects', icon: FolderKanban },
-  { title: 'Proposals', url: '/dashboard/proposals', icon: FileText },
-  { title: 'Contracts', url: '/dashboard/contracts', icon: FileSignature },
-  { title: 'Templates', url: '/dashboard/templates', icon: FileCode },
+  { title: 'Clients', url: '/clients', icon: Users },
+  { title: 'Projects', url: '/projects', icon: FolderKanban },
+  { title: 'Proposals', url: '/proposals', icon: FileText },
+  { title: 'Contracts', url: '/contracts', icon: FileSignature },
+  { title: 'Templates', url: '/templates', icon: FileCode },
 ];
 
 export function AppSidebar() {
@@ -181,14 +181,14 @@ export function AppSidebar() {
               <DropdownMenuSeparator />
               <DropdownMenuItem 
                 className="cursor-pointer"
-                onClick={() => navigate('/dashboard/profile')}
+                onClick={() => navigate('/profile')}
               >
                 <User className="mr-2 h-4 w-4" />
                 Profile
               </DropdownMenuItem>
               <DropdownMenuItem 
                 className="cursor-pointer"
-                onClick={() => navigate('/dashboard/settings')}
+                onClick={() => navigate('/settings')}
               >
                 <Settings className="mr-2 h-4 w-4" />
                 Settings
