@@ -422,7 +422,7 @@ export default function Settings() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-8">
       <PageHeader
         title="Settings"
         description="Manage your account and notification preferences"
