@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      branding_settings: {
+        Row: {
+          accent_color: string | null
+          company_logo_url: string | null
+          company_name: string | null
+          created_at: string
+          id: string
+          primary_color: string | null
+          support_email: string | null
+          tagline: string | null
+          updated_at: string
+          user_id: string
+          website_url: string | null
+        }
+        Insert: {
+          accent_color?: string | null
+          company_logo_url?: string | null
+          company_name?: string | null
+          created_at?: string
+          id?: string
+          primary_color?: string | null
+          support_email?: string | null
+          tagline?: string | null
+          updated_at?: string
+          user_id: string
+          website_url?: string | null
+        }
+        Update: {
+          accent_color?: string | null
+          company_logo_url?: string | null
+          company_name?: string | null
+          created_at?: string
+          id?: string
+          primary_color?: string | null
+          support_email?: string | null
+          tagline?: string | null
+          updated_at?: string
+          user_id?: string
+          website_url?: string | null
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           billing_address: string | null
