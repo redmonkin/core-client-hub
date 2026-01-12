@@ -103,8 +103,9 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1">
               {menuItems.map((item) => {
-                const isActive = location.pathname === item.url || 
-                  (item.url !== '/' && location.pathname.startsWith(item.url));
+                const isActive = item.url === '/dashboard' 
+                  ? location.pathname === '/dashboard'
+                  : location.pathname.startsWith(item.url);
                 
                 return (
                   <SidebarMenuItem key={item.title}>
