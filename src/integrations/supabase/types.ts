@@ -119,6 +119,39 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          contract_renewal: boolean
+          created_at: string
+          id: string
+          proposal_approved: boolean
+          proposal_rejected: boolean
+          proposal_viewed: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contract_renewal?: boolean
+          created_at?: string
+          id?: string
+          proposal_approved?: boolean
+          proposal_rejected?: boolean
+          proposal_viewed?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contract_renewal?: boolean
+          created_at?: string
+          id?: string
+          proposal_approved?: boolean
+          proposal_rejected?: boolean
+          proposal_viewed?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
