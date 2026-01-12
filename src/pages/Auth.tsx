@@ -45,7 +45,7 @@ export default function Auth() {
       }
       
       toast.success('Welcome back!');
-      navigate('/');
+      navigate('/dashboard');
     } catch (error) {
       toast.error('An unexpected error occurred');
     } finally {
@@ -69,7 +69,7 @@ export default function Auth() {
     setIsLoading(true);
     
     try {
-      const redirectUrl = `${window.location.origin}/`;
+      const redirectUrl = `${window.location.origin}/dashboard`;
       
       const { error } = await supabase.auth.signUp({
         email: signupEmail,
