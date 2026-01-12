@@ -3,9 +3,13 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Bell, Eye, CheckCircle, XCircle, Calendar, Loader2 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { Bell, Eye, CheckCircle, XCircle, Calendar, Loader2, User, Lock, Mail } from "lucide-react";
 
 interface NotificationPreferences {
   id?: string;
@@ -23,14 +27,28 @@ const defaultPreferences: NotificationPreferences = {
 };
 
 export default function Settings() {
+  const { user } = useAuth();
   const [preferences, setPreferences] = useState<NotificationPreferences>(defaultPreferences);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
+  // Profile state
+  const [fullName, setFullName] = useState("");
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  // Password state
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [savingPassword, setSavingPassword] = useState(false);
+
   useEffect(() => {
     fetchPreferences();
-  }, []);
+    if (user) {
+      setFullName(user.user_metadata?.full_name || "");
+    }
+  }, [user]);
 
   const fetchPreferences = async () => {
     try {
@@ -48,7 +66,6 @@ export default function Settings() {
       if (data) {
         setPreferences(data);
       } else {
-        // Create default preferences for new users
         const { data: newPrefs, error: insertError } = await supabase
           .from("notification_preferences")
           .insert({ user_id: user.id, ...defaultPreferences })
@@ -92,7 +109,6 @@ export default function Settings() {
       });
     } catch (error) {
       console.error("Error updating preference:", error);
-      // Revert on error
       setPreferences(preferences);
       toast({
         title: "Error",
@@ -101,6 +117,83 @@ export default function Settings() {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingProfile(true);
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        data: { full_name: fullName },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Profile Updated",
+        description: "Your profile has been updated successfully",
+      });
+    } catch (error: any) {
+      console.error("Error updating profile:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update profile",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Error",
+        description: "New passwords do not match",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 6 characters",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSavingPassword(true);
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) throw error;
+
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+
+      toast({
+        title: "Password Updated",
+        description: "Your password has been changed successfully",
+      });
+    } catch (error: any) {
+      console.error("Error updating password:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update password",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingPassword(false);
     }
   };
 
@@ -146,6 +239,121 @@ export default function Settings() {
         description="Manage your account and notification preferences"
       />
 
+      {/* Profile Settings */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <User className="h-5 w-5 text-primary" />
+            <CardTitle>Profile Settings</CardTitle>
+          </div>
+          <CardDescription>
+            Update your personal information
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleUpdateProfile} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  value={user?.email || ""}
+                  disabled
+                  className="pl-10 bg-muted"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Email cannot be changed
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Full Name</Label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="fullName"
+                  type="text"
+                  placeholder="Your full name"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <Button type="submit" disabled={savingProfile}>
+              {savingProfile ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Password Settings */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Lock className="h-5 w-5 text-primary" />
+            <CardTitle>Change Password</CardTitle>
+          </div>
+          <CardDescription>
+            Update your password to keep your account secure
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleUpdatePassword} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">New Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="newPassword"
+                  type="password"
+                  placeholder="Enter new password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="pl-10"
+                  required
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm New Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="Confirm new password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="pl-10"
+                  required
+                />
+              </div>
+            </div>
+            <Button type="submit" disabled={savingPassword}>
+              {savingPassword ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                "Update Password"
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Notification Preferences */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
