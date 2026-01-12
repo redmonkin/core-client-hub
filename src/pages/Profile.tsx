@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, User, Building2, Phone, Briefcase, Mail, Upload, Trash2, Camera } from "lucide-react";
+import { Loader2, User, Building2, Phone, Briefcase, Mail, Upload, Trash2, Camera, CheckCircle2, Circle } from "lucide-react";
 
 export default function Profile() {
   const { user } = useAuth();
@@ -38,6 +39,25 @@ export default function Profile() {
       setLoading(false);
     }
   }, [user]);
+
+  const profileFields = useMemo(() => [
+    { key: 'avatar', label: 'Profile Photo', filled: !!avatarUrl },
+    { key: 'fullName', label: 'Full Name', filled: !!fullName.trim() },
+    { key: 'company', label: 'Company', filled: !!company.trim() },
+    { key: 'jobTitle', label: 'Job Title', filled: !!jobTitle.trim() },
+    { key: 'phone', label: 'Phone Number', filled: !!phone.trim() },
+    { key: 'bio', label: 'Bio', filled: !!bio.trim() },
+  ], [avatarUrl, fullName, company, jobTitle, phone, bio]);
+
+  const completedFields = profileFields.filter(f => f.filled).length;
+  const totalFields = profileFields.length;
+  const completionPercentage = Math.round((completedFields / totalFields) * 100);
+
+  const getCompletionColor = () => {
+    if (completionPercentage >= 100) return "text-green-600";
+    if (completionPercentage >= 60) return "text-amber-600";
+    return "text-muted-foreground";
+  };
 
   const getUserInitials = () => {
     if (fullName) {
@@ -203,6 +223,43 @@ export default function Profile() {
         title="Profile"
         description="View and edit your profile information"
       />
+
+      {/* Profile Completeness */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-base">Profile Completeness</CardTitle>
+              <CardDescription>
+                Complete your profile to help others know more about you
+              </CardDescription>
+            </div>
+            <span className={`text-2xl font-bold ${getCompletionColor()}`}>
+              {completionPercentage}%
+            </span>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Progress value={completionPercentage} className="h-2" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+            {profileFields.map((field) => (
+              <div
+                key={field.key}
+                className={`flex items-center gap-1.5 text-xs ${
+                  field.filled ? 'text-green-600' : 'text-muted-foreground'
+                }`}
+              >
+                {field.filled ? (
+                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                ) : (
+                  <Circle className="h-3.5 w-3.5 shrink-0" />
+                )}
+                <span className="truncate">{field.label}</span>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 md:grid-cols-3">
         {/* Profile Card */}
