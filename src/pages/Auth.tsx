@@ -8,7 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import clientraLogo from '@/assets/clientra-logo.svg';
+import clientraLogoLight from '@/assets/clientra-light.svg';
+import clientraLogoDark from '@/assets/clientra-dark.svg';
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -104,7 +105,7 @@ export default function Auth() {
       {/* Left side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-between bg-primary p-12">
         <div className="flex items-center gap-3">
-          <img src={clientraLogo} alt="Clientra" className="h-10 w-10" />
+          <img src={clientraLogoLight} alt="Clientra" className="h-10 w-10" />
           <span className="text-2xl font-bold text-primary-foreground">Clientra</span>
         </div>
         
@@ -151,7 +152,8 @@ export default function Auth() {
         <div className="w-full max-w-md space-y-8">
           {/* Mobile logo */}
           <div className="flex items-center justify-center gap-3 lg:hidden">
-            <img src={clientraLogo} alt="Clientra" className="h-10 w-10" />
+            <img src={clientraLogoDark} alt="Clientra" className="h-10 w-10 dark:hidden" />
+            <img src={clientraLogoLight} alt="Clientra" className="h-10 w-10 hidden dark:block" />
             <span className="text-2xl font-bold text-foreground">Clientra</span>
           </div>
           
