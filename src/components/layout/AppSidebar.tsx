@@ -35,7 +35,8 @@ import {
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import clientraLogo from '@/assets/clientra-logo.svg';
+import clientraLogoLight from '@/assets/clientra-light.svg';
+import clientraLogoDark from '@/assets/clientra-dark.svg';
 
 const menuItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
@@ -83,7 +84,8 @@ export function AppSidebar() {
         <div className="flex items-center justify-between">
           {!collapsed && (
             <div className="flex items-center gap-3">
-              <img src={clientraLogo} alt="Clientra" className="h-9 w-9" />
+              <img src={clientraLogoDark} alt="Clientra" className="h-9 w-9 dark:hidden" />
+              <img src={clientraLogoLight} alt="Clientra" className="h-9 w-9 hidden dark:block" />
               <span className="text-lg font-semibold text-sidebar-foreground">Clientra</span>
             </div>
           )}

@@ -18,7 +18,8 @@ import {
   Code2,
   Heart,
 } from "lucide-react";
-import clientraLogo from "@/assets/clientra-logo.svg";
+import clientraLogoLight from "@/assets/clientra-light.svg";
+import clientraLogoDark from "@/assets/clientra-dark.svg";
 
 const features = [
   {
@@ -131,7 +132,8 @@ export default function Landing() {
       <nav className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-3">
-            <img src={clientraLogo} alt="Clientra" className="h-9 w-9" />
+            <img src={clientraLogoDark} alt="Clientra" className="h-9 w-9 dark:hidden" />
+            <img src={clientraLogoLight} alt="Clientra" className="h-9 w-9 hidden dark:block" />
             <span className="text-xl font-semibold text-foreground">Clientra</span>
           </div>
           <div className="hidden md:flex items-center gap-6">
@@ -369,7 +371,8 @@ export default function Landing() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <img src={clientraLogo} alt="Clientra" className="h-8 w-8" />
+              <img src={clientraLogoDark} alt="Clientra" className="h-8 w-8 dark:hidden" />
+              <img src={clientraLogoLight} alt="Clientra" className="h-8 w-8 hidden dark:block" />
               <span className="font-semibold text-foreground">Clientra</span>
             </div>
             <div className="flex items-center gap-6 text-sm text-muted-foreground">
