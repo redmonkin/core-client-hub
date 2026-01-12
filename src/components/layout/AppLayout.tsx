@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Settings, LogOut } from 'lucide-react';
+import { Settings, LogOut, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface AppLayoutProps {
@@ -70,6 +70,13 @@ export function AppLayout({ children }: AppLayoutProps) {
                     <p className="text-xs text-muted-foreground">{user.email}</p>
                   </div>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={() => navigate('/dashboard/profile')}
+                  >
+                    <User className="mr-2 h-4 w-4" />
+                    Profile
+                  </DropdownMenuItem>
                   <DropdownMenuItem
                     className="cursor-pointer"
                     onClick={() => navigate('/dashboard/settings')}

@@ -14,6 +14,7 @@ import Proposals from "./pages/Proposals";
 import Contracts from "./pages/Contracts";
 import Templates from "./pages/Templates";
 import Settings from "./pages/Settings";
+import Profile from "./pages/Profile";
 import Auth from "./pages/Auth";
 import ClientPortal from "./pages/ClientPortal";
 import NotFound from "./pages/NotFound";
@@ -93,6 +94,7 @@ const App = () => (
                     <Route path="/contracts" element={<Contracts />} />
                     <Route path="/templates" element={<Templates />} />
                     <Route path="/settings" element={<Settings />} />
+                    <Route path="/profile" element={<Profile />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </AppLayout>
