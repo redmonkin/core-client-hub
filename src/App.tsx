@@ -81,26 +81,96 @@ const App = () => (
           />
           <Route path="/portal" element={<ClientPortal />} />
           <Route
-            path="/dashboard/*"
+            path="/dashboard"
             element={
               <ProtectedRoute>
                 <AppLayout>
-                  <Routes>
-                    <Route path="/" element={<Dashboard />} />
-                    <Route path="/clients" element={<Clients />} />
-                    <Route path="/clients/:id" element={<ClientDetail />} />
-                    <Route path="/projects" element={<Projects />} />
-                    <Route path="/proposals" element={<Proposals />} />
-                    <Route path="/contracts" element={<Contracts />} />
-                    <Route path="/templates" element={<Templates />} />
-                    <Route path="/settings" element={<Settings />} />
-                    <Route path="/profile" element={<Profile />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
+                  <Dashboard />
                 </AppLayout>
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/clients"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <Clients />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/clients/:id"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <ClientDetail />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/projects"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <Projects />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/proposals"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <Proposals />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/contracts"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <Contracts />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/templates"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <Templates />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <Settings />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <Profile />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
