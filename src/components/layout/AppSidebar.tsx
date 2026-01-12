@@ -33,7 +33,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import clientraLogo from '@/assets/clientra-logo.svg';
 
 const menuItems = [
@@ -58,6 +58,9 @@ export function AppSidebar() {
   };
 
   const getUserInitials = () => {
+    if (user?.user_metadata?.full_name) {
+      return user.user_metadata.full_name.charAt(0).toUpperCase();
+    }
     if (!user?.email) return 'U';
     return user.email.charAt(0).toUpperCase();
   };
@@ -67,6 +70,10 @@ export function AppSidebar() {
       return user.user_metadata.full_name;
     }
     return user?.email?.split('@')[0] || 'User';
+  };
+
+  const getAvatarUrl = () => {
+    return user?.user_metadata?.avatar_url || null;
   };
 
   return (
@@ -138,6 +145,7 @@ export function AppSidebar() {
                 )}
               >
                 <Avatar className="h-9 w-9 shrink-0 ring-2 ring-primary/10">
+                  <AvatarImage src={getAvatarUrl() || undefined} alt={getUserName()} />
                   <AvatarFallback className="bg-primary text-primary-foreground text-sm font-semibold">
                     {getUserInitials()}
                   </AvatarFallback>
