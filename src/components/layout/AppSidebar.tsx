@@ -10,6 +10,7 @@ import {
   LogOut,
   Settings,
   ChevronsUpDown,
+  User,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -175,6 +176,13 @@ export function AppSidebar() {
                 <p className="text-xs text-muted-foreground">{user.email}</p>
               </div>
               <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                className="cursor-pointer"
+                onClick={() => navigate('/dashboard/profile')}
+              >
+                <User className="mr-2 h-4 w-4" />
+                Profile
+              </DropdownMenuItem>
               <DropdownMenuItem 
                 className="cursor-pointer"
                 onClick={() => navigate('/dashboard/settings')}
