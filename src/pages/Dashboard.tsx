@@ -6,6 +6,7 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { RenewalCard } from '@/components/dashboard/RenewalCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { NotificationsDropdown } from '@/components/notifications/NotificationsDropdown';
 
 export default function Dashboard() {
   // Fetch clients
@@ -82,10 +83,13 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8 p-8">
-      <PageHeader 
-        title="Dashboard" 
-        description="Overview of your clients, projects, and contracts"
-      />
+      <div className="flex items-center justify-between">
+        <PageHeader 
+          title="Dashboard" 
+          description="Overview of your clients, projects, and contracts"
+        />
+        <NotificationsDropdown />
+      </div>
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
