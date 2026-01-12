@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
-import { FileText, Check, X, Loader2, AlertCircle, Clock } from 'lucide-react';
+import { FileText, Check, X, Loader2, AlertCircle, Clock, Globe, Mail } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -20,15 +20,29 @@ type PortalProposal = {
   created_at: string;
 };
 
+type BrandingSettings = {
+  company_name: string | null;
+  company_logo_url: string | null;
+  primary_color: string | null;
+  accent_color: string | null;
+  tagline: string | null;
+  website_url: string | null;
+  support_email: string | null;
+};
+
 export default function ClientPortal() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   
   const [proposal, setProposal] = useState<PortalProposal | null>(null);
+  const [branding, setBranding] = useState<BrandingSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [responded, setResponded] = useState(false);
+
+  const primaryColor = branding?.primary_color || '#8B5CF6';
+  const accentColor = branding?.accent_color || '#F59E0B';
 
   useEffect(() => {
     if (!token) {
@@ -42,13 +56,6 @@ export default function ClientPortal() {
 
   const fetchProposal = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('client-portal', {
-        method: 'GET',
-        body: undefined,
-        headers: {},
-      });
-
-      // The invoke method doesn't support query params, so we need to call directly
       const response = await fetch(
         `https://jizouqjrdyfshhztqucd.supabase.co/functions/v1/client-portal?token=${token}`,
         { method: 'GET' }
@@ -61,6 +68,7 @@ export default function ClientPortal() {
       }
 
       setProposal(result.proposal);
+      setBranding(result.branding);
     } catch (err: any) {
       console.error('Error fetching proposal:', err);
       setError(err.message);
@@ -104,7 +112,7 @@ export default function ClientPortal() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/30">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <Loader2 className="h-10 w-10 animate-spin" style={{ color: primaryColor }} />
           <p className="text-muted-foreground">Loading proposal...</p>
         </div>
       </div>
@@ -139,12 +147,35 @@ export default function ClientPortal() {
   return (
     <div className="min-h-screen bg-muted/30 py-8 px-4">
       <div className="max-w-3xl mx-auto space-y-6">
-        {/* Header */}
+        {/* Branded Header */}
         <div className="text-center">
-          <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 mb-4">
-            <FileText className="h-8 w-8 text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold text-foreground">Proposal Review</h1>
+          {branding?.company_logo_url ? (
+            <div className="inline-flex items-center justify-center mb-4">
+              <img 
+                src={branding.company_logo_url} 
+                alt={branding.company_name || 'Company logo'} 
+                className="h-16 w-auto max-w-[200px] object-contain"
+              />
+            </div>
+          ) : (
+            <div 
+              className="inline-flex items-center justify-center h-16 w-16 rounded-full mb-4"
+              style={{ backgroundColor: `${primaryColor}20` }}
+            >
+              <FileText className="h-8 w-8" style={{ color: primaryColor }} />
+            </div>
+          )}
+          
+          {branding?.company_name && (
+            <h2 className="text-lg font-semibold" style={{ color: primaryColor }}>
+              {branding.company_name}
+            </h2>
+          )}
+          {branding?.tagline && (
+            <p className="text-sm text-muted-foreground">{branding.tagline}</p>
+          )}
+          
+          <h1 className="text-2xl font-bold text-foreground mt-4">Proposal Review</h1>
           <p className="text-muted-foreground mt-1">
             {proposal.company_name || proposal.client_name}
           </p>
@@ -245,6 +276,7 @@ export default function ClientPortal() {
               <Button
                 onClick={() => handleAction('approve')}
                 className="w-full sm:w-auto"
+                style={{ backgroundColor: primaryColor }}
                 disabled={submitting}
               >
                 {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
@@ -254,10 +286,36 @@ export default function ClientPortal() {
           )}
         </Card>
 
-        {/* Footer */}
-        <p className="text-center text-sm text-muted-foreground">
-          If you have any questions, please contact the sender directly.
-        </p>
+        {/* Branded Footer */}
+        <div className="text-center space-y-3">
+          {(branding?.support_email || branding?.website_url) && (
+            <div className="flex items-center justify-center gap-4 text-sm">
+              {branding.support_email && (
+                <a 
+                  href={`mailto:${branding.support_email}`}
+                  className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Mail className="h-4 w-4" />
+                  {branding.support_email}
+                </a>
+              )}
+              {branding.website_url && (
+                <a 
+                  href={branding.website_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Globe className="h-4 w-4" />
+                  Visit Website
+                </a>
+              )}
+            </div>
+          )}
+          <p className="text-sm text-muted-foreground">
+            If you have any questions, please contact the sender directly.
+          </p>
+        </div>
       </div>
     </div>
   );

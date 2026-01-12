@@ -105,6 +105,13 @@ const handler = async (req: Request): Promise<Response> => {
         projectName = project?.project_name;
       }
 
+      // Get branding settings for the proposal owner
+      const { data: branding } = await supabase
+        .from("branding_settings")
+        .select("company_name, company_logo_url, primary_color, accent_color, tagline, website_url, support_email")
+        .eq("user_id", proposal.user_id)
+        .maybeSingle();
+
       // Update viewed_at and create notification if not already viewed
       if (!accessToken.viewed_at) {
         await supabase
@@ -146,6 +153,7 @@ const handler = async (req: Request): Promise<Response> => {
             company_name: client?.company_name,
             project_name: projectName,
           },
+          branding: branding || null,
         }),
         { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
