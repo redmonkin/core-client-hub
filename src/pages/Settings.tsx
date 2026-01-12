@@ -1,15 +1,26 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Bell, Eye, CheckCircle, XCircle, Calendar, Loader2, User, Lock, Mail } from "lucide-react";
+import { Bell, Eye, CheckCircle, XCircle, Calendar, Loader2, User, Lock, Mail, Trash2, AlertTriangle } from "lucide-react";
 
 interface NotificationPreferences {
   id?: string;
@@ -27,6 +38,7 @@ const defaultPreferences: NotificationPreferences = {
 };
 
 export default function Settings() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [preferences, setPreferences] = useState<NotificationPreferences>(defaultPreferences);
   const [loading, setLoading] = useState(true);
@@ -38,10 +50,13 @@ export default function Settings() {
   const [savingProfile, setSavingProfile] = useState(false);
 
   // Password state
-  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
+
+  // Delete account state
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchPreferences();
@@ -177,7 +192,6 @@ export default function Settings() {
 
       if (error) throw error;
 
-      setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
 
@@ -194,6 +208,51 @@ export default function Settings() {
       });
     } finally {
       setSavingPassword(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmation !== "DELETE") {
+      toast({
+        title: "Error",
+        description: "Please type DELETE to confirm",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setDeleting(true);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await supabase.functions.invoke("delete-account", {
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || "Failed to delete account");
+      }
+
+      toast({
+        title: "Account Deleted",
+        description: "Your account has been permanently deleted",
+      });
+
+      await supabase.auth.signOut();
+      navigate("/");
+    } catch (error: any) {
+      console.error("Error deleting account:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete account",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleting(false);
+      setDeleteConfirmation("");
     }
   };
 
@@ -389,6 +448,88 @@ export default function Settings() {
               />
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      {/* Danger Zone */}
+      <Card className="border-destructive/50">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-destructive" />
+            <CardTitle className="text-destructive">Danger Zone</CardTitle>
+          </div>
+          <CardDescription>
+            Irreversible and destructive actions
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="font-medium text-foreground">Delete Account</p>
+              <p className="text-sm text-muted-foreground">
+                Permanently delete your account and all associated data. This action cannot be undone.
+              </p>
+            </div>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" className="gap-2">
+                  <Trash2 className="h-4 w-4" />
+                  Delete Account
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-destructive" />
+                    Delete Account
+                  </AlertDialogTitle>
+                  <AlertDialogDescription className="space-y-3">
+                    <p>
+                      This action is <strong>permanent and irreversible</strong>. All your data will be deleted, including:
+                    </p>
+                    <ul className="list-disc list-inside space-y-1 text-sm">
+                      <li>All clients and their information</li>
+                      <li>All projects and proposals</li>
+                      <li>All contracts and documents</li>
+                      <li>Your account and profile data</li>
+                    </ul>
+                    <div className="pt-2">
+                      <Label htmlFor="deleteConfirm" className="text-foreground">
+                        Type <strong>DELETE</strong> to confirm:
+                      </Label>
+                      <Input
+                        id="deleteConfirm"
+                        type="text"
+                        placeholder="DELETE"
+                        value={deleteConfirmation}
+                        onChange={(e) => setDeleteConfirmation(e.target.value)}
+                        className="mt-2"
+                      />
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setDeleteConfirmation("")}>
+                    Cancel
+                  </AlertDialogCancel>
+                  <Button
+                    variant="destructive"
+                    onClick={handleDeleteAccount}
+                    disabled={deleteConfirmation !== "DELETE" || deleting}
+                  >
+                    {deleting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Deleting...
+                      </>
+                    ) : (
+                      "Delete My Account"
+                    )}
+                  </Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </CardContent>
       </Card>
     </div>
