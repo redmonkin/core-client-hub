@@ -18,18 +18,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { TemplateFormDialog } from '@/components/templates/TemplateFormDialog';
 import { mockTemplates } from '@/lib/mock-data';
 import { TemplateType } from '@/lib/types';
 import { toast } from 'sonner';
@@ -37,6 +27,7 @@ import { toast } from 'sonner';
 export default function Templates() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<typeof mockTemplates[0] | null>(null);
+  const [editingTemplate, setEditingTemplate] = useState<typeof mockTemplates[0] | null>(null);
 
   const templateTypeLabels: Record<TemplateType, string> = {
     'proposal': 'Proposal',
@@ -50,14 +41,13 @@ export default function Templates() {
     'amc': 'bg-secondary/10 text-secondary-foreground',
   };
 
-  const handleCreateTemplate = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast.success('Template created successfully!');
-    setIsDialogOpen(false);
-  };
-
   const handleDuplicate = (template: typeof mockTemplates[0]) => {
     toast.success(`Template "${template.name}" duplicated!`);
+  };
+
+  const handleEdit = (template: typeof mockTemplates[0]) => {
+    setSelectedTemplate(null);
+    setEditingTemplate(template);
   };
 
   return (
@@ -66,60 +56,22 @@ export default function Templates() {
         title="Templates"
         description="Manage document templates for proposals, contracts, and AMCs"
         actions={
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="lg">
-                <Plus className="mr-2 h-4 w-4" />
-                New Template
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Create New Template</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleCreateTemplate} className="space-y-6">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="templateName">Template Name</Label>
-                    <Input id="templateName" placeholder="Enter template name" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="templateType">Template Type</Label>
-                    <Select required>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="proposal">Proposal</SelectItem>
-                        <SelectItem value="contract">Contract</SelectItem>
-                        <SelectItem value="amc">AMC</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="templateContent">Template Content</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Use placeholders like {'{{clientName}}'}, {'{{projectName}}'}, {'{{startDate}}'}, etc.
-                  </p>
-                  <Textarea 
-                    id="templateContent" 
-                    placeholder="Enter template content with placeholders..."
-                    rows={15}
-                    className="font-mono text-sm"
-                    required 
-                  />
-                </div>
-                <div className="flex justify-end gap-3">
-                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit">Create Template</Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <Button size="lg" onClick={() => setIsDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Template
+          </Button>
         }
+      />
+
+      <TemplateFormDialog 
+        open={isDialogOpen} 
+        onOpenChange={setIsDialogOpen} 
+      />
+
+      <TemplateFormDialog 
+        open={!!editingTemplate} 
+        onOpenChange={(open) => !open && setEditingTemplate(null)}
+        template={editingTemplate}
       />
 
       <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
@@ -148,7 +100,7 @@ export default function Templates() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => setSelectedTemplate(template)}>
+                    <DropdownMenuItem onClick={() => handleEdit(template)}>
                       <Pencil className="mr-2 h-4 w-4" />
                       Edit
                     </DropdownMenuItem>
@@ -204,7 +156,7 @@ export default function Templates() {
             <Button variant="outline" onClick={() => setSelectedTemplate(null)}>
               Close
             </Button>
-            <Button>
+            <Button onClick={() => selectedTemplate && handleEdit(selectedTemplate)}>
               <Pencil className="mr-2 h-4 w-4" />
               Edit Template
             </Button>
