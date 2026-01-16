@@ -105,7 +105,7 @@ export default function Auth() {
       {/* Left side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-between bg-primary p-12">
         <div className="flex items-center gap-3">
-          <img src={clientraLogoLight} alt="Clientra" className="h-10 w-10" />
+          <img src={clientraLogoDark} alt="Clientra" className="h-10 w-10" />
           <span className="text-2xl font-bold text-primary-foreground">Clientra</span>
         </div>
         
