@@ -31,7 +31,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -43,9 +42,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { ProposalFormDialog } from '@/components/proposals/ProposalFormDialog';
 
 type ProposalStatus = 'draft' | 'sent' | 'approved' | 'rejected';
 
@@ -66,14 +64,24 @@ type Client = {
   email: string | null;
 };
 
-const emptyProposal = {
+interface ProposalFormData {
+  title: string;
+  clientId: string;
+  projectId: string;
+  scopeOfWork: string;
+  costBreakdown: string;
+  validityDate: string;
+  status: ProposalStatus;
+}
+
+const emptyProposal: ProposalFormData = {
   title: '',
   clientId: '',
   projectId: '',
   scopeOfWork: '',
   costBreakdown: '',
   validityDate: '',
-  status: 'draft' as ProposalStatus,
+  status: 'draft',
 };
 
 export default function Proposals() {
@@ -227,8 +235,6 @@ export default function Proposals() {
     return project?.project_name || 'Unknown Project';
   };
 
-  const filteredProjects = projects.filter(p => p.client_id === newProposal.clientId);
-  const editFilteredProjects = projects.filter(p => p.client_id === editProposal.clientId);
 
   const handleExportPDF = async (proposal: Proposal) => {
     const toastId = toast.loading('Generating PDF...');
@@ -275,13 +281,12 @@ export default function Proposals() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newProposal.title || !newProposal.clientId) {
+  const handleSubmit = (data: ProposalFormData) => {
+    if (!data.title || !data.clientId) {
       toast.error('Please fill in required fields');
       return;
     }
-    createProposalMutation.mutate(newProposal);
+    createProposalMutation.mutate(data);
   };
 
   const handleEdit = (proposal: Proposal) => {
@@ -417,15 +422,6 @@ export default function Proposals() {
     toast.success('Link copied to clipboard!');
   };
 
-  const handleEditSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedProposal) return;
-    if (!editProposal.title || !editProposal.clientId) {
-      toast.error('Please fill in required fields');
-      return;
-    }
-    updateProposalMutation.mutate({ id: selectedProposal.id, ...editProposal });
-  };
 
   if (proposalsLoading) {
     return (
@@ -441,123 +437,10 @@ export default function Proposals() {
         title="Proposals"
         description="Create and manage client proposals"
         actions={
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="lg">
-                <Plus className="mr-2 h-4 w-4" />
-                New Proposal
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-lg">
-              <DialogHeader>
-                <DialogTitle>Create New Proposal</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title">Proposal Title *</Label>
-                  <Input
-                    id="title"
-                    value={newProposal.title}
-                    onChange={(e) => setNewProposal({ ...newProposal, title: e.target.value })}
-                    placeholder="Enter proposal title"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="client">Client *</Label>
-                  <Select
-                    value={newProposal.clientId}
-                    onValueChange={(value) => setNewProposal({ ...newProposal, clientId: value, projectId: '' })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a client" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {clients.map((client) => (
-                        <SelectItem key={client.id} value={client.id}>
-                          {client.client_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="project">Project (Optional)</Label>
-                  <Select
-                    value={newProposal.projectId}
-                    onValueChange={(value) => setNewProposal({ ...newProposal, projectId: value })}
-                    disabled={!newProposal.clientId}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a project" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {filteredProjects.map((project) => (
-                        <SelectItem key={project.id} value={project.id}>
-                          {project.project_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="scopeOfWork">Scope of Work</Label>
-                  <Textarea
-                    id="scopeOfWork"
-                    value={newProposal.scopeOfWork}
-                    onChange={(e) => setNewProposal({ ...newProposal, scopeOfWork: e.target.value })}
-                    placeholder="Describe the scope of work"
-                    rows={3}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="costBreakdown">Cost Breakdown</Label>
-                  <Textarea
-                    id="costBreakdown"
-                    value={newProposal.costBreakdown}
-                    onChange={(e) => setNewProposal({ ...newProposal, costBreakdown: e.target.value })}
-                    placeholder="Enter pricing details"
-                    rows={2}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="validityDate">Valid Until</Label>
-                    <Input
-                      id="validityDate"
-                      type="date"
-                      value={newProposal.validityDate}
-                      onChange={(e) => setNewProposal({ ...newProposal, validityDate: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="status">Status</Label>
-                    <Select
-                      value={newProposal.status}
-                      onValueChange={(value) => setNewProposal({ ...newProposal, status: value as ProposalStatus })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="draft">Draft</SelectItem>
-                        <SelectItem value="sent">Sent</SelectItem>
-                        <SelectItem value="approved">Approved</SelectItem>
-                        <SelectItem value="rejected">Rejected</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="flex justify-end gap-3 pt-4">
-                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={createProposalMutation.isPending}>
-                    {createProposalMutation.isPending ? 'Creating...' : 'Create Proposal'}
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <Button size="lg" onClick={() => setIsDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Proposal
+          </Button>
         }
       />
 
@@ -676,119 +559,32 @@ export default function Proposals() {
         />
       )}
 
-      {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Edit Proposal</DialogTitle>
-            <DialogDescription>Update proposal details.</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleEditSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-title">Proposal Title *</Label>
-              <Input
-                id="edit-title"
-                value={editProposal.title}
-                onChange={(e) => setEditProposal({ ...editProposal, title: e.target.value })}
-                placeholder="Enter proposal title"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-client">Client *</Label>
-              <Select
-                value={editProposal.clientId}
-                onValueChange={(value) => setEditProposal({ ...editProposal, clientId: value, projectId: '' })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a client" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.client_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-project">Project (Optional)</Label>
-              <Select
-                value={editProposal.projectId}
-                onValueChange={(value) => setEditProposal({ ...editProposal, projectId: value })}
-                disabled={!editProposal.clientId}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a project" />
-                </SelectTrigger>
-                <SelectContent>
-                  {editFilteredProjects.map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.project_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-scopeOfWork">Scope of Work</Label>
-              <Textarea
-                id="edit-scopeOfWork"
-                value={editProposal.scopeOfWork}
-                onChange={(e) => setEditProposal({ ...editProposal, scopeOfWork: e.target.value })}
-                placeholder="Describe the scope of work"
-                rows={3}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-costBreakdown">Cost Breakdown</Label>
-              <Textarea
-                id="edit-costBreakdown"
-                value={editProposal.costBreakdown}
-                onChange={(e) => setEditProposal({ ...editProposal, costBreakdown: e.target.value })}
-                placeholder="Enter pricing details"
-                rows={2}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-validityDate">Valid Until</Label>
-                <Input
-                  id="edit-validityDate"
-                  type="date"
-                  value={editProposal.validityDate}
-                  onChange={(e) => setEditProposal({ ...editProposal, validityDate: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-status">Status</Label>
-                <Select
-                  value={editProposal.status}
-                  onValueChange={(value) => setEditProposal({ ...editProposal, status: value as ProposalStatus })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="sent">Sent</SelectItem>
-                    <SelectItem value="approved">Approved</SelectItem>
-                    <SelectItem value="rejected">Rejected</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={updateProposalMutation.isPending}>
-                {updateProposalMutation.isPending ? 'Saving...' : 'Save Changes'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      {/* Create/Edit Proposal Dialog */}
+      <ProposalFormDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        onSubmit={handleSubmit}
+        initialData={newProposal}
+        clients={clients}
+        projects={projects}
+        isSubmitting={createProposalMutation.isPending}
+        mode="create"
+      />
+
+      <ProposalFormDialog
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        onSubmit={(data) => {
+          if (selectedProposal) {
+            updateProposalMutation.mutate({ id: selectedProposal.id, ...data });
+          }
+        }}
+        initialData={editProposal}
+        clients={clients}
+        projects={projects}
+        isSubmitting={updateProposalMutation.isPending}
+        mode="edit"
+      />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
