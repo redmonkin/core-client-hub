@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -31,11 +32,33 @@ interface TemplateFormDialogProps {
 }
 
 export function TemplateFormDialog({ open, onOpenChange, template }: TemplateFormDialogProps) {
-  const [name, setName] = useState(template?.name || '');
-  const [type, setType] = useState<TemplateType | ''>(template?.type || '');
-  const [content, setContent] = useState(template?.content || '');
+  const [name, setName] = useState('');
+  const [type, setType] = useState<TemplateType | ''>('');
+  const [content, setContent] = useState('');
 
   const isEditing = !!template;
+
+  // Sync state when template prop changes (for edit mode)
+  useEffect(() => {
+    if (template) {
+      setName(template.name);
+      setType(template.type);
+      setContent(template.content);
+    } else {
+      setName('');
+      setType('');
+      setContent('');
+    }
+  }, [template]);
+
+  // Reset form when dialog closes
+  useEffect(() => {
+    if (!open && !template) {
+      setName('');
+      setType('');
+      setContent('');
+    }
+  }, [open, template]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,11 +80,6 @@ export function TemplateFormDialog({ open, onOpenChange, template }: TemplateFor
 
     toast.success(isEditing ? 'Template updated successfully!' : 'Template created successfully!');
     onOpenChange(false);
-    
-    // Reset form
-    setName('');
-    setType('');
-    setContent('');
   };
 
   return (
@@ -69,6 +87,11 @@ export function TemplateFormDialog({ open, onOpenChange, template }: TemplateFor
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Edit Template' : 'Create New Template'}</DialogTitle>
+          <DialogDescription>
+            {isEditing 
+              ? 'Modify your template content and settings below.' 
+              : 'Create a reusable template for proposals, contracts, or AMCs.'}
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-2">
