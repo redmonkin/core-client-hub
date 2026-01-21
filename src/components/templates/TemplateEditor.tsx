@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -44,6 +45,41 @@ const PLACEHOLDERS = [
   { label: 'Your Company Name', value: '{{yourCompanyName}}' },
 ];
 
+// Convert markdown to simple HTML for the editor
+function markdownToHtml(markdown: string): string {
+  if (!markdown) return '';
+  
+  // If it already looks like HTML, return as-is
+  if (markdown.startsWith('<')) return markdown;
+  
+  return markdown
+    // Headers
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    // Bold
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    // Italic
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    // Horizontal rule
+    .replace(/^---$/gm, '<hr>')
+    // Unordered lists
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    // Ordered lists
+    .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+    // Wrap consecutive li tags in ul
+    .replace(/(<li>.*<\/li>\n?)+/g, (match) => `<ul>${match}</ul>`)
+    // Paragraphs for remaining lines
+    .split('\n')
+    .map(line => {
+      const trimmed = line.trim();
+      if (!trimmed) return '<p></p>';
+      if (trimmed.startsWith('<')) return trimmed;
+      return `<p>${trimmed}</p>`;
+    })
+    .join('');
+}
+
 export function TemplateEditor({ content = '', onChange, placeholder = 'Start writing your template...' }: TemplateEditorProps) {
   const editor = useEditor({
     extensions: [
@@ -52,7 +88,7 @@ export function TemplateEditor({ content = '', onChange, placeholder = 'Start wr
         placeholder,
       }),
     ],
-    content,
+    content: markdownToHtml(content),
     onUpdate: ({ editor }) => {
       onChange?.(editor.getHTML());
     },
@@ -62,6 +98,17 @@ export function TemplateEditor({ content = '', onChange, placeholder = 'Start wr
       },
     },
   });
+
+  // Update editor content when prop changes (for edit mode)
+  useEffect(() => {
+    if (editor && content) {
+      const htmlContent = markdownToHtml(content);
+      // Only update if content is different to avoid cursor jumping
+      if (editor.getHTML() !== htmlContent) {
+        editor.commands.setContent(htmlContent);
+      }
+    }
+  }, [editor, content]);
 
   if (!editor) {
     return null;
