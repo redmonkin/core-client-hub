@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, FileCode, MoreHorizontal, Copy, Pencil, Trash2 } from 'lucide-react';
+import { Plus, FileCode, MoreHorizontal, Copy, Pencil, Trash2, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
@@ -25,12 +25,14 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { TemplateFormDialog } from '@/components/templates/TemplateFormDialog';
+import { TemplatePreviewDialog } from '@/components/templates/TemplatePreviewDialog';
 import { useTemplates, Template, TemplateType, CreateTemplateData, UpdateTemplateData } from '@/hooks/useTemplates';
 
 export default function Templates() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [deletingTemplate, setDeletingTemplate] = useState<Template | null>(null);
+  const [previewingTemplate, setPreviewingTemplate] = useState<Template | null>(null);
 
   const { 
     templates, 
@@ -144,6 +146,16 @@ export default function Templates() {
         isSubmitting={updateTemplate.isPending}
       />
 
+      <TemplatePreviewDialog
+        open={!!previewingTemplate}
+        onOpenChange={(open) => !open && setPreviewingTemplate(null)}
+        template={previewingTemplate}
+        onEdit={(template) => {
+          setPreviewingTemplate(null);
+          setEditingTemplate(template);
+        }}
+      />
+
       <AlertDialog open={!!deletingTemplate} onOpenChange={(open) => !open && setDeletingTemplate(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -188,6 +200,10 @@ export default function Templates() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setPreviewingTemplate(template)}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        Preview
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleEdit(template)}>
                         <Pencil className="mr-2 h-4 w-4" />
                         Edit
