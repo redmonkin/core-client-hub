@@ -17,7 +17,6 @@ import {
 } from '@/components/ui/select';
 import { TemplateEditor } from './TemplateEditor';
 import { Template, TemplateType, CreateTemplateData, UpdateTemplateData } from '@/hooks/useTemplates';
-import { X } from 'lucide-react';
 
 interface TemplateFormDialogProps {
   open: boolean;
@@ -90,17 +89,7 @@ export function TemplateFormDialog({
       <DialogContent className="max-w-[95vw] w-full h-[95vh] flex flex-col p-0 gap-0">
         {/* Header */}
         <DialogHeader className="flex-shrink-0 px-6 py-4 border-b">
-          <div className="flex items-center justify-between">
-            <DialogTitle>{isEditing ? 'Edit Template' : 'Create New Template'}</DialogTitle>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-8 w-8" 
-              onClick={() => onOpenChange(false)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
+          <DialogTitle>{isEditing ? 'Edit Template' : 'Create New Template'}</DialogTitle>
         </DialogHeader>
 
         {/* Form */}
