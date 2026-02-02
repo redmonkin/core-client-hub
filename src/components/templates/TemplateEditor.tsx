@@ -1,10 +1,18 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
+import Underline from '@tiptap/extension-underline';
+import TextAlign from '@tiptap/extension-text-align';
+import { Table } from '@tiptap/extension-table';
+import { TableRow } from '@tiptap/extension-table-row';
+import { TableCell } from '@tiptap/extension-table-cell';
+import { TableHeader } from '@tiptap/extension-table-header';
+import Image from '@tiptap/extension-image';
 import { 
   Bold, 
   Italic, 
+  Underline as UnderlineIcon,
   List, 
   ListOrdered, 
   Heading1, 
@@ -12,7 +20,14 @@ import {
   Undo,
   Redo,
   Quote,
-  Minus
+  Minus,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  Table as TableIcon,
+  ImageIcon,
+  TableCellsMerge,
+  Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -21,6 +36,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { TemplateType } from '@/hooks/useTemplates';
@@ -110,6 +126,20 @@ export function TemplateEditor({
       Placeholder.configure({
         placeholder,
       }),
+      Underline,
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
+      }),
+      Table.configure({
+        resizable: true,
+      }),
+      TableRow,
+      TableHeader,
+      TableCell,
+      Image.configure({
+        inline: true,
+        allowBase64: true,
+      }),
     ],
     content: markdownToHtml(content),
     onUpdate: ({ editor }) => {
@@ -133,6 +163,13 @@ export function TemplateEditor({
     }
   }, [editor, content]);
 
+  const addImage = useCallback(() => {
+    const url = window.prompt('Enter image URL:');
+    if (url && editor) {
+      editor.chain().focus().setImage({ src: url }).run();
+    }
+  }, [editor]);
+
   if (!editor) {
     return null;
   }
@@ -150,12 +187,14 @@ export function TemplateEditor({
     <div className="flex flex-col h-full rounded-lg border border-input bg-background overflow-hidden">
       {/* Toolbar */}
       <div className="flex-shrink-0 flex flex-wrap items-center gap-1 p-2 border-b border-border bg-muted/30">
+        {/* Text formatting */}
         <Button
           type="button"
           variant="ghost"
           size="sm"
           onClick={() => editor.chain().focus().toggleBold().run()}
           className={cn('h-8 w-8 p-0', editor.isActive('bold') && 'bg-accent')}
+          title="Bold"
         >
           <Bold className="h-4 w-4" />
         </Button>
@@ -165,18 +204,31 @@ export function TemplateEditor({
           size="sm"
           onClick={() => editor.chain().focus().toggleItalic().run()}
           className={cn('h-8 w-8 p-0', editor.isActive('italic') && 'bg-accent')}
+          title="Italic"
         >
           <Italic className="h-4 w-4" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => editor.chain().focus().toggleUnderline().run()}
+          className={cn('h-8 w-8 p-0', editor.isActive('underline') && 'bg-accent')}
+          title="Underline"
+        >
+          <UnderlineIcon className="h-4 w-4" />
         </Button>
         
         <Separator orientation="vertical" className="mx-1 h-6" />
         
+        {/* Headings */}
         <Button
           type="button"
           variant="ghost"
           size="sm"
           onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
           className={cn('h-8 w-8 p-0', editor.isActive('heading', { level: 1 }) && 'bg-accent')}
+          title="Heading 1"
         >
           <Heading1 className="h-4 w-4" />
         </Button>
@@ -186,18 +238,55 @@ export function TemplateEditor({
           size="sm"
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
           className={cn('h-8 w-8 p-0', editor.isActive('heading', { level: 2 }) && 'bg-accent')}
+          title="Heading 2"
         >
           <Heading2 className="h-4 w-4" />
         </Button>
         
         <Separator orientation="vertical" className="mx-1 h-6" />
         
+        {/* Text alignment */}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => editor.chain().focus().setTextAlign('left').run()}
+          className={cn('h-8 w-8 p-0', editor.isActive({ textAlign: 'left' }) && 'bg-accent')}
+          title="Align Left"
+        >
+          <AlignLeft className="h-4 w-4" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => editor.chain().focus().setTextAlign('center').run()}
+          className={cn('h-8 w-8 p-0', editor.isActive({ textAlign: 'center' }) && 'bg-accent')}
+          title="Align Center"
+        >
+          <AlignCenter className="h-4 w-4" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => editor.chain().focus().setTextAlign('right').run()}
+          className={cn('h-8 w-8 p-0', editor.isActive({ textAlign: 'right' }) && 'bg-accent')}
+          title="Align Right"
+        >
+          <AlignRight className="h-4 w-4" />
+        </Button>
+        
+        <Separator orientation="vertical" className="mx-1 h-6" />
+        
+        {/* Lists */}
         <Button
           type="button"
           variant="ghost"
           size="sm"
           onClick={() => editor.chain().focus().toggleBulletList().run()}
           className={cn('h-8 w-8 p-0', editor.isActive('bulletList') && 'bg-accent')}
+          title="Bullet List"
         >
           <List className="h-4 w-4" />
         </Button>
@@ -207,6 +296,7 @@ export function TemplateEditor({
           size="sm"
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
           className={cn('h-8 w-8 p-0', editor.isActive('orderedList') && 'bg-accent')}
+          title="Numbered List"
         >
           <ListOrdered className="h-4 w-4" />
         </Button>
@@ -216,6 +306,7 @@ export function TemplateEditor({
           size="sm"
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
           className={cn('h-8 w-8 p-0', editor.isActive('blockquote') && 'bg-accent')}
+          title="Quote"
         >
           <Quote className="h-4 w-4" />
         </Button>
@@ -225,12 +316,106 @@ export function TemplateEditor({
           size="sm"
           onClick={() => editor.chain().focus().setHorizontalRule().run()}
           className="h-8 w-8 p-0"
+          title="Horizontal Rule"
         >
           <Minus className="h-4 w-4" />
         </Button>
         
         <Separator orientation="vertical" className="mx-1 h-6" />
         
+        {/* Table dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className={cn('h-8 w-8 p-0', editor.isActive('table') && 'bg-accent')}
+              title="Table"
+            >
+              <TableIcon className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-48">
+            <DropdownMenuItem 
+              onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+            >
+              <TableIcon className="mr-2 h-4 w-4" />
+              Insert Table (3x3)
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => editor.chain().focus().insertTable({ rows: 5, cols: 4, withHeaderRow: true }).run()}
+            >
+              <TableIcon className="mr-2 h-4 w-4" />
+              Insert Table (5x4)
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={() => editor.chain().focus().addColumnAfter().run()}
+              disabled={!editor.can().addColumnAfter()}
+            >
+              Add Column After
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => editor.chain().focus().addRowAfter().run()}
+              disabled={!editor.can().addRowAfter()}
+            >
+              Add Row After
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={() => editor.chain().focus().deleteColumn().run()}
+              disabled={!editor.can().deleteColumn()}
+            >
+              Delete Column
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => editor.chain().focus().deleteRow().run()}
+              disabled={!editor.can().deleteRow()}
+            >
+              Delete Row
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={() => editor.chain().focus().mergeCells().run()}
+              disabled={!editor.can().mergeCells()}
+            >
+              <TableCellsMerge className="mr-2 h-4 w-4" />
+              Merge Cells
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => editor.chain().focus().splitCell().run()}
+              disabled={!editor.can().splitCell()}
+            >
+              Split Cell
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={() => editor.chain().focus().deleteTable().run()}
+              disabled={!editor.can().deleteTable()}
+              className="text-destructive"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete Table
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        
+        {/* Image */}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={addImage}
+          className="h-8 w-8 p-0"
+          title="Insert Image"
+        >
+          <ImageIcon className="h-4 w-4" />
+        </Button>
+        
+        <Separator orientation="vertical" className="mx-1 h-6" />
+        
+        {/* Undo/Redo */}
         <Button
           type="button"
           variant="ghost"
@@ -238,6 +423,7 @@ export function TemplateEditor({
           onClick={() => editor.chain().focus().undo().run()}
           disabled={!editor.can().undo()}
           className="h-8 w-8 p-0"
+          title="Undo"
         >
           <Undo className="h-4 w-4" />
         </Button>
@@ -248,6 +434,7 @@ export function TemplateEditor({
           onClick={() => editor.chain().focus().redo().run()}
           disabled={!editor.can().redo()}
           className="h-8 w-8 p-0"
+          title="Redo"
         >
           <Redo className="h-4 w-4" />
         </Button>
@@ -286,7 +473,7 @@ export function TemplateEditor({
       <div className="flex-1 overflow-y-auto">
         <EditorContent 
           editor={editor} 
-          className="h-full [&_.ProseMirror]:min-h-full [&_.ProseMirror]:p-6 [&_.ProseMirror]:focus:outline-none [&_.ProseMirror_p.is-editor-empty:first-child::before]:text-muted-foreground [&_.ProseMirror_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.ProseMirror_p.is-editor-empty:first-child::before]:float-left [&_.ProseMirror_p.is-editor-empty:first-child::before]:pointer-events-none [&_.ProseMirror_p.is-editor-empty:first-child::before]:h-0" 
+          className="h-full [&_.ProseMirror]:min-h-full [&_.ProseMirror]:p-6 [&_.ProseMirror]:focus:outline-none [&_.ProseMirror_p.is-editor-empty:first-child::before]:text-muted-foreground [&_.ProseMirror_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.ProseMirror_p.is-editor-empty:first-child::before]:float-left [&_.ProseMirror_p.is-editor-empty:first-child::before]:pointer-events-none [&_.ProseMirror_p.is-editor-empty:first-child::before]:h-0 [&_.ProseMirror_table]:border-collapse [&_.ProseMirror_table]:w-full [&_.ProseMirror_table]:my-4 [&_.ProseMirror_td]:border [&_.ProseMirror_td]:border-border [&_.ProseMirror_td]:p-2 [&_.ProseMirror_td]:min-w-[100px] [&_.ProseMirror_th]:border [&_.ProseMirror_th]:border-border [&_.ProseMirror_th]:p-2 [&_.ProseMirror_th]:bg-muted [&_.ProseMirror_th]:font-semibold [&_.ProseMirror_img]:max-w-full [&_.ProseMirror_img]:h-auto [&_.ProseMirror_img]:rounded-md" 
         />
       </div>
     </div>
