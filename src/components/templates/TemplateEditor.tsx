@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -163,10 +163,28 @@ export function TemplateEditor({
     }
   }, [editor, content]);
 
-  const addImage = useCallback(() => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const addImageFromUrl = useCallback(() => {
     const url = window.prompt('Enter image URL:');
     if (url && editor) {
       editor.chain().focus().setImage({ src: url }).run();
+    }
+  }, [editor]);
+
+  const handleImageUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && editor) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = e.target?.result as string;
+        editor.chain().focus().setImage({ src: base64 }).run();
+      };
+      reader.readAsDataURL(file);
+    }
+    // Reset input so the same file can be uploaded again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   }, [editor]);
 
@@ -401,17 +419,35 @@ export function TemplateEditor({
           </DropdownMenuContent>
         </DropdownMenu>
         
-        {/* Image */}
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={addImage}
-          className="h-8 w-8 p-0"
-          title="Insert Image"
-        >
-          <ImageIcon className="h-4 w-4" />
-        </Button>
+        {/* Image dropdown */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleImageUpload}
+          accept="image/*"
+          className="hidden"
+        />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              title="Insert Image"
+            >
+              <ImageIcon className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-48">
+            <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
+              Upload Image
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={addImageFromUrl}>
+              Insert from URL
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         
         <Separator orientation="vertical" className="mx-1 h-6" />
         
