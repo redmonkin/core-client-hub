@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 
-export type TemplateType = 'proposal' | 'contract' | 'amc';
+export type TemplateType = 'proposal' | 'contract';
 
 export interface Template {
   id: string;

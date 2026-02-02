@@ -17,37 +17,48 @@ interface TemplatePreviewDialogProps {
   onEdit?: (template: Template) => void;
 }
 
-// Sample data for placeholder replacement
-const sampleData: Record<string, string> = {
+// Sample data for proposal placeholders
+const proposalSampleData: Record<string, string> = {
   '{{clientName}}': 'Acme Corporation',
-  '{{clientEmail}}': 'contact@acmecorp.com',
-  '{{clientPhone}}': '+1 (555) 123-4567',
-  '{{clientAddress}}': '123 Business Ave, Suite 100, New York, NY 10001',
   '{{projectName}}': 'Website Redesign Project',
-  '{{projectType}}': 'Web Development',
-  '{{projectStartDate}}': 'February 15, 2026',
-  '{{projectEndDate}}': 'May 30, 2026',
-  '{{proposalTitle}}': 'Website Redesign Proposal',
-  '{{proposalDate}}': 'February 1, 2026',
-  '{{validityDate}}': 'March 1, 2026',
-  '{{totalAmount}}': '$24,500.00',
-  '{{yourCompanyName}}': 'Your Company Inc.',
+  '{{proposedDate}}': 'February 1, 2026',
+  '{{proposalExpiryDate}}': 'March 1, 2026',
+  '{{scopeOfWork}}': 'Complete website redesign including UI/UX improvements, mobile optimization, and CMS integration',
+  '{{duration}}': '3 months',
+  '{{costing}}': '$24,500.00',
+};
+
+// Sample data for contract placeholders
+const contractSampleData: Record<string, string> = {
+  '{{clientName}}': 'Acme Corporation',
+  '{{clientAddress}}': '123 Business Ave, Suite 100, New York, NY 10001',
+  '{{contactPerson}}': 'John Smith',
+  '{{title}}': 'Chief Technology Officer',
+  '{{email}}': 'john.smith@acmecorp.com',
+  '{{phone}}': '+1 (555) 123-4567',
+  '{{effectiveFrom}}': 'February 15, 2026',
+  '{{effectiveFor}}': '12 months',
+};
+
+const sampleDataByType: Record<TemplateType, Record<string, string>> = {
+  proposal: proposalSampleData,
+  contract: contractSampleData,
 };
 
 const templateTypeLabels: Record<TemplateType, string> = {
   'proposal': 'Proposal',
   'contract': 'Contract',
-  'amc': 'AMC',
 };
 
 const templateTypeColors: Record<TemplateType, string> = {
   'proposal': 'bg-primary/10 text-primary',
   'contract': 'bg-accent text-accent-foreground',
-  'amc': 'bg-secondary/10 text-secondary-foreground',
 };
 
-function replacePlaceholders(content: string): string {
+function replacePlaceholders(content: string, templateType: TemplateType): string {
   let result = content;
+  const sampleData = sampleDataByType[templateType];
+  
   for (const [placeholder, value] of Object.entries(sampleData)) {
     // Replace all occurrences, escaping special regex characters
     const escapedPlaceholder = placeholder.replace(/[{}]/g, '\\$&');
@@ -64,12 +75,14 @@ export function TemplatePreviewDialog({
 }: TemplatePreviewDialogProps) {
   if (!template) return null;
 
-  const previewContent = replacePlaceholders(template.content);
+  const previewContent = replacePlaceholders(template.content, template.type);
+  const sampleData = sampleDataByType[template.type];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader className="flex-shrink-0">
+      <DialogContent className="max-w-[90vw] w-full h-[90vh] flex flex-col p-0 gap-0">
+        {/* Header */}
+        <DialogHeader className="flex-shrink-0 px-6 py-4 border-b">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Eye className="h-5 w-5 text-primary" />
@@ -86,19 +99,27 @@ export function TemplatePreviewDialog({
                 </DialogDescription>
               </div>
             </div>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8" 
+              onClick={() => onOpenChange(false)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
           </div>
         </DialogHeader>
 
         {/* Legend */}
-        <div className="flex-shrink-0 rounded-lg bg-muted/50 p-3 text-sm">
+        <div className="flex-shrink-0 mx-6 mt-4 rounded-lg bg-muted/50 p-3 text-sm">
           <p className="text-muted-foreground">
             <span className="bg-primary/20 text-primary px-1 rounded font-medium">Highlighted text</span>
             {' '}shows where placeholders will be replaced with actual data.
           </p>
         </div>
 
-        {/* Preview Content */}
-        <div className="flex-1 overflow-y-auto rounded-lg border bg-card p-6">
+        {/* Preview Content - scrollable */}
+        <div className="flex-1 overflow-y-auto mx-6 my-4 rounded-lg border bg-card p-8">
           <div 
             className="prose prose-sm max-w-none dark:prose-invert
               prose-headings:text-foreground 
@@ -110,28 +131,24 @@ export function TemplatePreviewDialog({
         </div>
 
         {/* Sample Data Reference */}
-        <div className="flex-shrink-0 space-y-2">
-          <p className="text-xs font-medium text-muted-foreground">Sample Data Used:</p>
-          <div className="grid gap-1 text-xs max-h-32 overflow-y-auto">
-            {Object.entries(sampleData).slice(0, 6).map(([placeholder, value]) => (
-              <div key={placeholder} className="flex items-center gap-2">
+        <div className="flex-shrink-0 px-6 py-4 border-t bg-muted/30">
+          <p className="text-xs font-medium text-muted-foreground mb-2">Sample Data Used:</p>
+          <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs">
+            {Object.entries(sampleData).map(([placeholder, value]) => (
+              <div key={placeholder} className="flex items-center gap-1.5">
                 <code className="bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
                   {placeholder}
                 </code>
                 <span className="text-muted-foreground">→</span>
-                <span className="text-foreground">{value}</span>
+                <span className="text-foreground truncate max-w-40">{value}</span>
               </div>
             ))}
-            {Object.keys(sampleData).length > 6 && (
-              <p className="text-muted-foreground">+ {Object.keys(sampleData).length - 6} more...</p>
-            )}
           </div>
         </div>
 
         {/* Actions */}
-        <div className="flex-shrink-0 flex justify-end gap-3 pt-2 border-t">
+        <div className="flex-shrink-0 flex justify-end gap-3 px-6 py-4 border-t">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            <X className="mr-2 h-4 w-4" />
             Close
           </Button>
           {onEdit && (

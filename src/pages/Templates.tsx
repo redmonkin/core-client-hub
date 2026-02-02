@@ -46,13 +46,11 @@ export default function Templates() {
   const templateTypeLabels: Record<TemplateType, string> = {
     'proposal': 'Proposal',
     'contract': 'Contract',
-    'amc': 'AMC',
   };
 
   const templateTypeColors: Record<TemplateType, string> = {
     'proposal': 'bg-primary/10 text-primary',
     'contract': 'bg-accent text-accent-foreground',
-    'amc': 'bg-secondary/10 text-secondary-foreground',
   };
 
   const handleDuplicate = (template: Template) => {
@@ -93,7 +91,7 @@ export default function Templates() {
       <div className="space-y-6 p-8">
         <PageHeader
           title="Templates"
-          description="Manage document templates for proposals, contracts, and AMCs"
+          description="Manage document templates for proposals and contracts"
         />
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3].map((i) => (
@@ -122,7 +120,7 @@ export default function Templates() {
     <div className="space-y-6 p-8">
       <PageHeader
         title="Templates"
-        description="Manage document templates for proposals, contracts, and AMCs"
+        description="Manage document templates for proposals and contracts"
         actions={
           <Button size="lg" onClick={() => setIsDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
@@ -241,7 +239,7 @@ export default function Templates() {
         <EmptyState
           icon={FileCode}
           title="No templates yet"
-          description="Create reusable templates for proposals, contracts, and AMCs"
+          description="Create reusable templates for proposals and contracts"
           actionLabel="New Template"
           onAction={() => setIsDialogOpen(true)}
         />
