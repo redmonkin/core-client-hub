@@ -23,27 +23,45 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { TemplateType } from '@/hooks/useTemplates';
+
+interface PlaceholderItem {
+  label: string;
+  value: string;
+}
+
+const PROPOSAL_PLACEHOLDERS: PlaceholderItem[] = [
+  { label: 'Client Name', value: '{{clientName}}' },
+  { label: 'Project Name', value: '{{projectName}}' },
+  { label: 'Proposed Date', value: '{{proposedDate}}' },
+  { label: 'Proposal Expiry Date', value: '{{proposalExpiryDate}}' },
+  { label: 'Scope of Work', value: '{{scopeOfWork}}' },
+  { label: 'Duration', value: '{{duration}}' },
+  { label: 'Costing', value: '{{costing}}' },
+];
+
+const CONTRACT_PLACEHOLDERS: PlaceholderItem[] = [
+  { label: 'Client Name', value: '{{clientName}}' },
+  { label: 'Client Address', value: '{{clientAddress}}' },
+  { label: 'Contact Person', value: '{{contactPerson}}' },
+  { label: 'Title', value: '{{title}}' },
+  { label: 'Email', value: '{{email}}' },
+  { label: 'Phone', value: '{{phone}}' },
+  { label: 'Effective From', value: '{{effectiveFrom}}' },
+  { label: 'Effective For', value: '{{effectiveFor}}' },
+];
+
+const PLACEHOLDERS_BY_TYPE: Record<TemplateType, PlaceholderItem[]> = {
+  proposal: PROPOSAL_PLACEHOLDERS,
+  contract: CONTRACT_PLACEHOLDERS,
+};
 
 interface TemplateEditorProps {
   content?: string;
   onChange?: (content: string) => void;
   placeholder?: string;
+  templateType?: TemplateType;
 }
-
-const PLACEHOLDERS = [
-  { label: 'Client Name', value: '{{clientName}}' },
-  { label: 'Company Name', value: '{{companyName}}' },
-  { label: 'Project Name', value: '{{projectName}}' },
-  { label: 'Start Date', value: '{{startDate}}' },
-  { label: 'End Date', value: '{{endDate}}' },
-  { label: 'Contract Value', value: '{{contractValue}}' },
-  { label: 'Renewal Frequency', value: '{{renewalFrequency}}' },
-  { label: 'Scope of Work', value: '{{scopeOfWork}}' },
-  { label: 'Cost Breakdown', value: '{{costBreakdown}}' },
-  { label: 'Validity Date', value: '{{validityDate}}' },
-  { label: 'Today\'s Date', value: '{{todayDate}}' },
-  { label: 'Your Company Name', value: '{{yourCompanyName}}' },
-];
 
 // Convert markdown to simple HTML for the editor
 function markdownToHtml(markdown: string): string {
@@ -80,7 +98,12 @@ function markdownToHtml(markdown: string): string {
     .join('');
 }
 
-export function TemplateEditor({ content = '', onChange, placeholder = 'Start writing your template...' }: TemplateEditorProps) {
+export function TemplateEditor({ 
+  content = '', 
+  onChange, 
+  placeholder = 'Start writing your template...',
+  templateType
+}: TemplateEditorProps) {
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -118,10 +141,15 @@ export function TemplateEditor({ content = '', onChange, placeholder = 'Start wr
     editor.chain().focus().insertContent(placeholderValue).run();
   };
 
+  // Get placeholders based on template type, or show all if type not selected
+  const availablePlaceholders = templateType 
+    ? PLACEHOLDERS_BY_TYPE[templateType] 
+    : [...PROPOSAL_PLACEHOLDERS, ...CONTRACT_PLACEHOLDERS];
+
   return (
-    <div className="rounded-lg border border-input bg-background overflow-hidden">
+    <div className="flex flex-col h-full rounded-lg border border-input bg-background overflow-hidden">
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-1 p-2 border-b border-border bg-muted/30">
+      <div className="flex-shrink-0 flex flex-wrap items-center gap-1 p-2 border-b border-border bg-muted/30">
         <Button
           type="button"
           variant="ghost"
@@ -234,8 +262,13 @@ export function TemplateEditor({ content = '', onChange, placeholder = 'Start wr
               <span className="text-xs">Insert Placeholder</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            {PLACEHOLDERS.map((placeholder) => (
+          <DropdownMenuContent align="end" className="w-56 max-h-64 overflow-y-auto">
+            {!templateType && (
+              <p className="px-2 py-1.5 text-xs text-muted-foreground">
+                Select a template type to see relevant placeholders
+              </p>
+            )}
+            {availablePlaceholders.map((placeholder) => (
               <DropdownMenuItem
                 key={placeholder.value}
                 onClick={() => insertPlaceholder(placeholder.value)}
@@ -249,8 +282,13 @@ export function TemplateEditor({ content = '', onChange, placeholder = 'Start wr
         </DropdownMenu>
       </div>
       
-      {/* Editor Content */}
-      <EditorContent editor={editor} className="[&_.ProseMirror]:min-h-[300px] [&_.ProseMirror]:p-4 [&_.ProseMirror]:focus:outline-none [&_.ProseMirror_p.is-editor-empty:first-child::before]:text-muted-foreground [&_.ProseMirror_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.ProseMirror_p.is-editor-empty:first-child::before]:float-left [&_.ProseMirror_p.is-editor-empty:first-child::before]:pointer-events-none [&_.ProseMirror_p.is-editor-empty:first-child::before]:h-0" />
+      {/* Editor Content - fills remaining space */}
+      <div className="flex-1 overflow-y-auto">
+        <EditorContent 
+          editor={editor} 
+          className="h-full [&_.ProseMirror]:min-h-full [&_.ProseMirror]:p-6 [&_.ProseMirror]:focus:outline-none [&_.ProseMirror_p.is-editor-empty:first-child::before]:text-muted-foreground [&_.ProseMirror_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.ProseMirror_p.is-editor-empty:first-child::before]:float-left [&_.ProseMirror_p.is-editor-empty:first-child::before]:pointer-events-none [&_.ProseMirror_p.is-editor-empty:first-child::before]:h-0" 
+        />
+      </div>
     </div>
   );
 }

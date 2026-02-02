@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -18,6 +17,7 @@ import {
 } from '@/components/ui/select';
 import { TemplateEditor } from './TemplateEditor';
 import { Template, TemplateType, CreateTemplateData, UpdateTemplateData } from '@/hooks/useTemplates';
+import { X } from 'lucide-react';
 
 interface TemplateFormDialogProps {
   open: boolean;
@@ -87,59 +87,72 @@ export function TemplateFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{isEditing ? 'Edit Template' : 'Create New Template'}</DialogTitle>
-          <DialogDescription>
-            {isEditing 
-              ? 'Modify your template content and settings below.' 
-              : 'Create a reusable template for proposals, contracts, or AMCs.'}
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="templateName">Template Name</Label>
-              <Input 
-                id="templateName" 
-                placeholder="Enter template name" 
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required 
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="templateType">Template Type</Label>
-              <Select value={type} onValueChange={(value) => setType(value as TemplateType)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="proposal">Proposal</SelectItem>
-                  <SelectItem value="contract">Contract</SelectItem>
-                  <SelectItem value="amc">AMC</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+      <DialogContent className="max-w-[95vw] w-full h-[95vh] flex flex-col p-0 gap-0">
+        {/* Header */}
+        <DialogHeader className="flex-shrink-0 px-6 py-4 border-b">
+          <div className="flex items-center justify-between">
+            <DialogTitle>{isEditing ? 'Edit Template' : 'Create New Template'}</DialogTitle>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8" 
+              onClick={() => onOpenChange(false)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
           </div>
-          
-          <div className="space-y-2">
-            <Label>Template Content</Label>
-            <p className="text-xs text-muted-foreground mb-2">
+        </DialogHeader>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
+          {/* Meta fields */}
+          <div className="flex-shrink-0 px-6 py-4 border-b bg-muted/30">
+            <div className="flex gap-4 items-end">
+              <div className="flex-1 space-y-1.5">
+                <Label htmlFor="templateName" className="text-xs">Template Name</Label>
+                <Input 
+                  id="templateName" 
+                  placeholder="Enter template name" 
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required 
+                  className="h-9"
+                />
+              </div>
+              <div className="w-48 space-y-1.5">
+                <Label htmlFor="templateType" className="text-xs">Template Type</Label>
+                <Select value={type} onValueChange={(value) => setType(value as TemplateType)}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="proposal">Proposal</SelectItem>
+                    <SelectItem value="contract">Contract</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
               Use the toolbar to format text and insert placeholders that will be replaced with actual values.
             </p>
+          </div>
+          
+          {/* Editor - takes remaining space */}
+          <div className="flex-1 overflow-hidden p-4">
             <TemplateEditor 
               content={content} 
               onChange={setContent}
               placeholder="Start writing your template content..."
+              templateType={type || undefined}
             />
           </div>
           
-          <div className="flex justify-end gap-3">
+          {/* Footer */}
+          <div className="flex-shrink-0 flex justify-end gap-3 px-6 py-4 border-t bg-muted/30">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting || !name.trim() || !type || !content.trim()}>
               {isSubmitting ? 'Saving...' : isEditing ? 'Save Changes' : 'Create Template'}
             </Button>
           </div>
