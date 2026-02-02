@@ -17,21 +17,23 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { TemplateEditor } from './TemplateEditor';
-import { TemplateType } from '@/lib/types';
-import { toast } from 'sonner';
+import { Template, TemplateType, CreateTemplateData, UpdateTemplateData } from '@/hooks/useTemplates';
 
 interface TemplateFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  template?: {
-    id: string;
-    name: string;
-    type: TemplateType;
-    content: string;
-  } | null;
+  template?: Template | null;
+  onSubmit: (data: CreateTemplateData | UpdateTemplateData) => void;
+  isSubmitting?: boolean;
 }
 
-export function TemplateFormDialog({ open, onOpenChange, template }: TemplateFormDialogProps) {
+export function TemplateFormDialog({ 
+  open, 
+  onOpenChange, 
+  template, 
+  onSubmit,
+  isSubmitting = false 
+}: TemplateFormDialogProps) {
   const [name, setName] = useState('');
   const [type, setType] = useState<TemplateType | ''>('');
   const [content, setContent] = useState('');
@@ -63,23 +65,24 @@ export function TemplateFormDialog({ open, onOpenChange, template }: TemplateFor
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!name.trim()) {
-      toast.error('Please enter a template name');
-      return;
-    }
-    
-    if (!type) {
-      toast.error('Please select a template type');
-      return;
-    }
-    
-    if (!content.trim()) {
-      toast.error('Please add some content to the template');
+    if (!name.trim() || !type || !content.trim()) {
       return;
     }
 
-    toast.success(isEditing ? 'Template updated successfully!' : 'Template created successfully!');
-    onOpenChange(false);
+    if (isEditing && template) {
+      onSubmit({
+        id: template.id,
+        name: name.trim(),
+        type: type as TemplateType,
+        content: content,
+      });
+    } else {
+      onSubmit({
+        name: name.trim(),
+        type: type as TemplateType,
+        content: content,
+      });
+    }
   };
 
   return (
@@ -136,7 +139,9 @@ export function TemplateFormDialog({ open, onOpenChange, template }: TemplateFor
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit">{isEditing ? 'Save Changes' : 'Create Template'}</Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Saving...' : isEditing ? 'Save Changes' : 'Create Template'}
+            </Button>
           </div>
         </form>
       </DialogContent>
