@@ -49,6 +49,7 @@ interface Client {
   client_name: string;
   company_name: string | null;
   primary_contact_name: string | null;
+  designation: string | null;
   email: string | null;
   phone: string | null;
   billing_address: string | null;
@@ -70,10 +71,10 @@ export default function Clients() {
   // Form state
   const [formData, setFormData] = useState({
     clientName: '',
-    companyName: '',
-    contactName: '',
+    designation: '',
     email: '',
     phone: '',
+    companyName: '',
     address: '',
     notes: '',
   });
@@ -81,10 +82,10 @@ export default function Clients() {
   // Edit form state
   const [editFormData, setEditFormData] = useState({
     clientName: '',
-    companyName: '',
-    contactName: '',
+    designation: '',
     email: '',
     phone: '',
+    companyName: '',
     address: '',
     notes: '',
     status: 'active',
@@ -130,10 +131,10 @@ export default function Clients() {
       const { error } = await supabase.from('clients').insert({
         user_id: user!.id,
         client_name: clientData.clientName,
-        company_name: clientData.companyName || null,
-        primary_contact_name: clientData.contactName || null,
+        designation: clientData.designation || null,
         email: clientData.email || null,
         phone: clientData.phone || null,
+        company_name: clientData.companyName || null,
         billing_address: clientData.address || null,
         notes: clientData.notes || null,
       });
@@ -146,10 +147,10 @@ export default function Clients() {
       setIsDialogOpen(false);
       setFormData({
         clientName: '',
-        companyName: '',
-        contactName: '',
+        designation: '',
         email: '',
         phone: '',
+        companyName: '',
         address: '',
         notes: '',
       });
@@ -166,10 +167,10 @@ export default function Clients() {
         .from('clients')
         .update({
           client_name: clientData.clientName,
-          company_name: clientData.companyName || null,
-          primary_contact_name: clientData.contactName || null,
+          designation: clientData.designation || null,
           email: clientData.email || null,
           phone: clientData.phone || null,
+          company_name: clientData.companyName || null,
           billing_address: clientData.address || null,
           notes: clientData.notes || null,
           status: clientData.status,
@@ -237,10 +238,10 @@ export default function Clients() {
     setSelectedClient(client);
     setEditFormData({
       clientName: client.client_name,
-      companyName: client.company_name || '',
-      contactName: client.primary_contact_name || '',
+      designation: client.designation || '',
       email: client.email || '',
       phone: client.phone || '',
+      companyName: client.company_name || '',
       address: client.billing_address || '',
       notes: client.notes || '',
       status: client.status,
@@ -293,13 +294,42 @@ export default function Clients() {
               <form onSubmit={handleCreateClient} className="space-y-6">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="clientName">Client Name</Label>
+                    <Label htmlFor="clientName">Name *</Label>
                     <Input 
                       id="clientName" 
-                      placeholder="Enter client name" 
+                      placeholder="Enter full name" 
                       value={formData.clientName}
                       onChange={handleInputChange}
                       required 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="designation">Designation</Label>
+                    <Input 
+                      id="designation" 
+                      placeholder="e.g. CEO, Manager" 
+                      value={formData.designation}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email Address</Label>
+                    <Input 
+                      id="email" 
+                      type="email" 
+                      placeholder="email@example.com" 
+                      value={formData.email}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <Input 
+                      id="phone" 
+                      type="tel" 
+                      placeholder="+1 (555) 000-0000" 
+                      value={formData.phone}
+                      onChange={handleInputChange}
                     />
                   </div>
                   <div className="space-y-2">
@@ -312,49 +342,20 @@ export default function Clients() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="contactName">Primary Contact</Label>
-                    <Input 
-                      id="contactName" 
-                      placeholder="Enter contact name" 
-                      value={formData.contactName}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input 
-                      id="email" 
-                      type="email" 
-                      placeholder="email@example.com" 
-                      value={formData.email}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone</Label>
-                    <Input 
-                      id="phone" 
-                      type="tel" 
-                      placeholder="+1 (555) 000-0000" 
-                      value={formData.phone}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="address">Billing Address</Label>
+                    <Label htmlFor="address">Company Address</Label>
                     <Input 
                       id="address" 
-                      placeholder="Enter billing address" 
+                      placeholder="Enter company address" 
                       value={formData.address}
                       onChange={handleInputChange}
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="notes">Notes</Label>
+                  <Label htmlFor="notes">Notes / Remarks</Label>
                   <Textarea 
                     id="notes" 
-                    placeholder="Add any notes about this client..." 
+                    placeholder="Add any notes or remarks about this client..." 
                     rows={3} 
                     value={formData.notes}
                     onChange={handleInputChange}
@@ -494,13 +495,42 @@ export default function Clients() {
           <form onSubmit={handleUpdateClient} className="space-y-6">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="clientName">Client Name</Label>
+                <Label htmlFor="clientName">Name *</Label>
                 <Input 
                   id="clientName" 
-                  placeholder="Enter client name" 
+                  placeholder="Enter full name" 
                   value={editFormData.clientName}
                   onChange={handleEditInputChange}
                   required 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="designation">Designation</Label>
+                <Input 
+                  id="designation" 
+                  placeholder="e.g. CEO, Manager" 
+                  value={editFormData.designation}
+                  onChange={handleEditInputChange}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address</Label>
+                <Input 
+                  id="email" 
+                  type="email" 
+                  placeholder="email@example.com" 
+                  value={editFormData.email}
+                  onChange={handleEditInputChange}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input 
+                  id="phone" 
+                  type="tel" 
+                  placeholder="+1 (555) 000-0000" 
+                  value={editFormData.phone}
+                  onChange={handleEditInputChange}
                 />
               </div>
               <div className="space-y-2">
@@ -513,39 +543,10 @@ export default function Clients() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="contactName">Primary Contact</Label>
-                <Input 
-                  id="contactName" 
-                  placeholder="Enter contact name" 
-                  value={editFormData.contactName}
-                  onChange={handleEditInputChange}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  placeholder="email@example.com" 
-                  value={editFormData.email}
-                  onChange={handleEditInputChange}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
-                <Input 
-                  id="phone" 
-                  type="tel" 
-                  placeholder="+1 (555) 000-0000" 
-                  value={editFormData.phone}
-                  onChange={handleEditInputChange}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="address">Billing Address</Label>
+                <Label htmlFor="address">Company Address</Label>
                 <Input 
                   id="address" 
-                  placeholder="Enter billing address" 
+                  placeholder="Enter company address" 
                   value={editFormData.address}
                   onChange={handleEditInputChange}
                 />
@@ -567,10 +568,10 @@ export default function Clients() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
+              <Label htmlFor="notes">Notes / Remarks</Label>
               <Textarea 
                 id="notes" 
-                placeholder="Add any notes about this client..." 
+                placeholder="Add any notes or remarks about this client..." 
                 rows={3} 
                 value={editFormData.notes}
                 onChange={handleEditInputChange}
