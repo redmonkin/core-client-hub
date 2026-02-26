@@ -1,36 +1,23 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Plus, Search, FileSignature, MoreHorizontal, Calendar, Loader2, Pencil, Trash2 } from 'lucide-react';
-import { format, differenceInDays } from 'date-fns';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { PageHeader } from '@/components/shared/PageHeader';
-import { StatusBadge } from '@/components/shared/StatusBadge';
-import { EmptyState } from '@/components/shared/EmptyState';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { Plus, Search, FileSignature, MoreHorizontal, Calendar, Loader2, Pencil, Trash2 } from "lucide-react";
+import { format, differenceInDays } from "date-fns";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { StatusBadge } from "@/components/shared/StatusBadge";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -39,7 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,11 +36,11 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
-import { ContractStatus } from '@/lib/types';
+} from "@/components/ui/alert-dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { ContractStatus } from "@/lib/types";
 
 type Contract = {
   id: string;
@@ -68,19 +55,19 @@ type Contract = {
 };
 
 const emptyContract = {
-  client_id: '',
-  project_id: '',
-  contract_type: '',
-  start_date: '',
-  end_date: '',
-  value: '',
-  renewal_frequency: '',
-  status: 'active',
+  client_id: "",
+  project_id: "",
+  contract_type: "",
+  start_date: "",
+  end_date: "",
+  value: "",
+  renewal_frequency: "",
+  status: "active",
 };
 
 export default function Contracts() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<ContractStatus | 'all'>('all');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<ContractStatus | "all">("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -93,36 +80,27 @@ export default function Contracts() {
   const queryClient = useQueryClient();
 
   const { data: contracts = [], isLoading: contractsLoading } = useQuery({
-    queryKey: ['contracts'],
+    queryKey: ["contracts"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('contracts')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const { data, error } = await supabase.from("contracts").select("*").order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
   });
 
   const { data: clients = [] } = useQuery({
-    queryKey: ['clients'],
+    queryKey: ["clients"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('clients')
-        .select('*')
-        .order('client_name', { ascending: true });
+      const { data, error } = await supabase.from("clients").select("*").order("client_name", { ascending: true });
       if (error) throw error;
       return data;
     },
   });
 
   const { data: projects = [] } = useQuery({
-    queryKey: ['projects'],
+    queryKey: ["projects"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('projects')
-        .select('*')
-        .order('project_name', { ascending: true });
+      const { data, error } = await supabase.from("projects").select("*").order("project_name", { ascending: true });
       if (error) throw error;
       return data;
     },
@@ -130,9 +108,9 @@ export default function Contracts() {
 
   const createContractMutation = useMutation({
     mutationFn: async (contractData: typeof newContract) => {
-      if (!user?.id) throw new Error('User not authenticated');
+      if (!user?.id) throw new Error("User not authenticated");
       const { data, error } = await supabase
-        .from('contracts')
+        .from("contracts")
         .insert({
           user_id: user.id,
           client_id: contractData.client_id,
@@ -150,20 +128,20 @@ export default function Contracts() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['contracts'] });
+      queryClient.invalidateQueries({ queryKey: ["contracts"] });
       setIsDialogOpen(false);
       setNewContract(emptyContract);
-      toast({ title: 'Contract created successfully' });
+      toast({ title: "Contract created successfully" });
     },
     onError: (error) => {
-      toast({ title: 'Failed to create contract', description: error.message, variant: 'destructive' });
+      toast({ title: "Failed to create contract", description: error.message, variant: "destructive" });
     },
   });
 
   const updateContractMutation = useMutation({
     mutationFn: async ({ id, ...contractData }: { id: string } & typeof editContract) => {
       const { data, error } = await supabase
-        .from('contracts')
+        .from("contracts")
         .update({
           client_id: contractData.client_id,
           project_id: contractData.project_id || null,
@@ -174,68 +152,67 @@ export default function Contracts() {
           renewal_frequency: contractData.renewal_frequency,
           status: contractData.status,
         })
-        .eq('id', id)
+        .eq("id", id)
         .select()
         .single();
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['contracts'] });
+      queryClient.invalidateQueries({ queryKey: ["contracts"] });
       setIsEditDialogOpen(false);
       setSelectedContract(null);
-      toast({ title: 'Contract updated successfully' });
+      toast({ title: "Contract updated successfully" });
     },
     onError: (error) => {
-      toast({ title: 'Failed to update contract', description: error.message, variant: 'destructive' });
+      toast({ title: "Failed to update contract", description: error.message, variant: "destructive" });
     },
   });
 
   const deleteContractMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('contracts').delete().eq('id', id);
+      const { error } = await supabase.from("contracts").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['contracts'] });
+      queryClient.invalidateQueries({ queryKey: ["contracts"] });
       setIsDeleteDialogOpen(false);
       setSelectedContract(null);
-      toast({ title: 'Contract deleted successfully' });
+      toast({ title: "Contract deleted successfully" });
     },
     onError: (error) => {
-      toast({ title: 'Failed to delete contract', description: error.message, variant: 'destructive' });
+      toast({ title: "Failed to delete contract", description: error.message, variant: "destructive" });
     },
   });
 
   const getClientName = (clientId: string) => {
-    const client = clients.find(c => c.id === clientId);
-    return client?.client_name || 'Unknown Client';
+    const client = clients.find((c) => c.id === clientId);
+    return client?.client_name || "Unknown Client";
   };
 
   const getProjectName = (projectId: string | null) => {
-    if (!projectId) return 'No Project';
-    const project = projects.find(p => p.id === projectId);
-    return project?.project_name || 'Unknown Project';
+    if (!projectId) return "No Project";
+    const project = projects.find((p) => p.id === projectId);
+    return project?.project_name || "Unknown Project";
   };
 
-  const filteredContracts = contracts.filter(contract => {
+  const filteredContracts = contracts.filter((contract) => {
     const clientName = getClientName(contract.client_id).toLowerCase();
     const projectName = getProjectName(contract.project_id).toLowerCase();
-    const matchesSearch = 
-      clientName.includes(searchQuery.toLowerCase()) ||
-      projectName.includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || contract.status === statusFilter;
+    const matchesSearch =
+      clientName.includes(searchQuery.toLowerCase()) || projectName.includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === "all" || contract.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const filteredProjects = projects.filter(p => p.client_id === newContract.client_id);
-  const editFilteredProjects = projects.filter(p => p.client_id === editContract.client_id);
+  const filteredProjects = projects.filter((p) => p.client_id === newContract.client_id);
+  const editFilteredProjects = projects.filter((p) => p.client_id === editContract.client_id);
 
   const handleEdit = (contract: Contract) => {
     setSelectedContract(contract);
     setEditContract({
       client_id: contract.client_id,
-      project_id: contract.project_id || '',
+      project_id: contract.project_id || "",
       contract_type: contract.contract_type,
       start_date: contract.start_date,
       end_date: contract.end_date,
@@ -254,29 +231,43 @@ export default function Contracts() {
   const handleEditSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedContract) return;
-    if (!editContract.client_id || !editContract.contract_type || !editContract.start_date || !editContract.end_date || !editContract.value || !editContract.renewal_frequency) {
-      toast({ title: 'Please fill in all required fields', variant: 'destructive' });
+    if (
+      !editContract.client_id ||
+      !editContract.contract_type ||
+      !editContract.start_date ||
+      !editContract.end_date ||
+      !editContract.value ||
+      !editContract.renewal_frequency
+    ) {
+      toast({ title: "Please fill in all required fields", variant: "destructive" });
       return;
     }
     updateContractMutation.mutate({ id: selectedContract.id, ...editContract });
   };
 
   const contractTypeLabels: Record<string, string> = {
-    'amc': 'AMC',
-    'fixed': 'Fixed',
-    'retainer': 'Retainer',
+    amc: "AMC",
+    fixed: "Fixed",
+    retainer: "Retainer",
   };
 
   const renewalLabels: Record<string, string> = {
-    'monthly': 'Monthly',
-    'quarterly': 'Quarterly',
-    'yearly': 'Yearly',
+    monthly: "Monthly",
+    quarterly: "Quarterly",
+    yearly: "Yearly",
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newContract.client_id || !newContract.contract_type || !newContract.start_date || !newContract.end_date || !newContract.value || !newContract.renewal_frequency) {
-      toast({ title: 'Please fill in all required fields', variant: 'destructive' });
+    if (
+      !newContract.client_id ||
+      !newContract.contract_type ||
+      !newContract.start_date ||
+      !newContract.end_date ||
+      !newContract.value ||
+      !newContract.renewal_frequency
+    ) {
+      toast({ title: "Please fill in all required fields", variant: "destructive" });
       return;
     }
     createContractMutation.mutate(newContract);
@@ -293,8 +284,8 @@ export default function Contracts() {
   return (
     <div className="space-y-6 p-8">
       <PageHeader
-        title="Contracts & AMCs"
-        description="Manage contracts and annual maintenance agreements"
+        title="Contracts"
+        description="Manage contracts, annual maintenance agreements, master service agreements, work orders"
         actions={
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
@@ -313,7 +304,7 @@ export default function Contracts() {
                   <Label htmlFor="client">Client *</Label>
                   <Select
                     value={newContract.client_id}
-                    onValueChange={(value) => setNewContract({ ...newContract, client_id: value, project_id: '' })}
+                    onValueChange={(value) => setNewContract({ ...newContract, client_id: value, project_id: "" })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select a client" />
@@ -429,7 +420,7 @@ export default function Contracts() {
                     Cancel
                   </Button>
                   <Button type="submit" disabled={createContractMutation.isPending}>
-                    {createContractMutation.isPending ? 'Creating...' : 'Create Contract'}
+                    {createContractMutation.isPending ? "Creating..." : "Create Contract"}
                   </Button>
                 </DialogFooter>
               </form>
@@ -448,7 +439,7 @@ export default function Contracts() {
             className="h-12 pl-11 text-base"
           />
         </div>
-        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as ContractStatus | 'all')}>
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as ContractStatus | "all")}>
           <SelectTrigger className="h-12 w-full sm:w-48">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
@@ -476,7 +467,7 @@ export default function Contracts() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredContracts.map(contract => {
+              {filteredContracts.map((contract) => {
                 const endDate = new Date(contract.end_date);
                 const startDate = new Date(contract.start_date);
                 const daysUntilEnd = differenceInDays(endDate, new Date());
@@ -486,15 +477,13 @@ export default function Contracts() {
                   <TableRow key={contract.id} className="group">
                     <TableCell>
                       <div>
-                        <Link 
+                        <Link
                           to={`/clients/${contract.client_id}`}
                           className="font-medium text-foreground hover:text-primary transition-colors"
                         >
                           {getClientName(contract.client_id)}
                         </Link>
-                        <p className="text-sm text-muted-foreground">
-                          {getProjectName(contract.project_id)}
-                        </p>
+                        <p className="text-sm text-muted-foreground">{getProjectName(contract.project_id)}</p>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -508,14 +497,12 @@ export default function Contracts() {
                     <TableCell>
                       <div className="flex items-center gap-1.5 text-sm">
                         <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span className={isExpiringSoon ? 'text-destructive font-medium' : 'text-muted-foreground'}>
-                          {format(startDate, 'MMM dd')} - {format(endDate, 'MMM dd, yyyy')}
+                        <span className={isExpiringSoon ? "text-destructive font-medium" : "text-muted-foreground"}>
+                          {format(startDate, "MMM dd")} - {format(endDate, "MMM dd, yyyy")}
                         </span>
                       </div>
                       {isExpiringSoon && (
-                        <p className="mt-1 text-xs font-medium text-destructive">
-                          Expires in {daysUntilEnd} days
-                        </p>
+                        <p className="mt-1 text-xs font-medium text-destructive">Expires in {daysUntilEnd} days</p>
                       )}
                     </TableCell>
                     <TableCell>
@@ -524,12 +511,16 @@ export default function Contracts() {
                       </span>
                     </TableCell>
                     <TableCell>
-                      <StatusBadge status={contract.status as 'active' | 'expired' | 'pending-renewal'} />
+                      <StatusBadge status={contract.status as "active" | "expired" | "pending-renewal"} />
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -538,7 +529,7 @@ export default function Contracts() {
                             <Pencil className="mr-2 h-4 w-4" />
                             Edit
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             onClick={() => handleDelete(contract)}
                             className="text-destructive focus:text-destructive"
                           >
@@ -558,10 +549,12 @@ export default function Contracts() {
         <EmptyState
           icon={FileSignature}
           title="No contracts found"
-          description={searchQuery || statusFilter !== 'all' 
-            ? "Try adjusting your filters" 
-            : "Create your first contract to get started"}
-          actionLabel={!searchQuery && statusFilter === 'all' ? "New Contract" : undefined}
+          description={
+            searchQuery || statusFilter !== "all"
+              ? "Try adjusting your filters"
+              : "Create your first contract to get started"
+          }
+          actionLabel={!searchQuery && statusFilter === "all" ? "New Contract" : undefined}
           onAction={() => setIsDialogOpen(true)}
         />
       )}
@@ -578,7 +571,7 @@ export default function Contracts() {
               <Label htmlFor="edit-client">Client *</Label>
               <Select
                 value={editContract.client_id}
-                onValueChange={(value) => setEditContract({ ...editContract, client_id: value, project_id: '' })}
+                onValueChange={(value) => setEditContract({ ...editContract, client_id: value, project_id: "" })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a client" />
@@ -694,7 +687,7 @@ export default function Contracts() {
                 Cancel
               </Button>
               <Button type="submit" disabled={updateContractMutation.isPending}>
-                {updateContractMutation.isPending ? 'Saving...' : 'Save Changes'}
+                {updateContractMutation.isPending ? "Saving..." : "Save Changes"}
               </Button>
             </DialogFooter>
           </form>
@@ -716,7 +709,7 @@ export default function Contracts() {
               onClick={() => selectedContract && deleteContractMutation.mutate(selectedContract.id)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleteContractMutation.isPending ? 'Deleting...' : 'Delete'}
+              {deleteContractMutation.isPending ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
