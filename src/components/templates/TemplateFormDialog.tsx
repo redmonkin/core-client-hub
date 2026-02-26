@@ -86,7 +86,12 @@ export function TemplateFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] w-full h-[95vh] flex flex-col p-0 gap-0">
+      <DialogContent 
+        className="max-w-[95vw] w-full h-[95vh] flex flex-col p-0 gap-0"
+        onEscapeKeyDown={(e) => e.preventDefault()}
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         {/* Header */}
         <DialogHeader className="flex-shrink-0 px-6 py-4 border-b">
           <DialogTitle>{isEditing ? 'Edit Template' : 'Create New Template'}</DialogTitle>
