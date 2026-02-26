@@ -313,23 +313,25 @@ export default function Clients() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email Address</Label>
+                    <Label htmlFor="email">Email Address *</Label>
                     <Input 
                       id="email" 
                       type="email" 
                       placeholder="email@example.com" 
                       value={formData.email}
                       onChange={handleInputChange}
+                      required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number</Label>
+                    <Label htmlFor="phone">Phone Number *</Label>
                     <Input 
                       id="phone" 
                       type="tel" 
                       placeholder="+1 (555) 000-0000" 
                       value={formData.phone}
                       onChange={handleInputChange}
+                      required
                     />
                   </div>
                   <div className="space-y-2">
@@ -514,23 +516,25 @@ export default function Clients() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
+                <Label htmlFor="email">Email Address *</Label>
                 <Input 
                   id="email" 
                   type="email" 
                   placeholder="email@example.com" 
                   value={editFormData.email}
                   onChange={handleEditInputChange}
+                  required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
+                <Label htmlFor="phone">Phone Number *</Label>
                 <Input 
                   id="phone" 
                   type="tel" 
                   placeholder="+1 (555) 000-0000" 
                   value={editFormData.phone}
                   onChange={handleEditInputChange}
+                  required
                 />
               </div>
               <div className="space-y-2">
