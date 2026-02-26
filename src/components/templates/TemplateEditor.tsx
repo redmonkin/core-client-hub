@@ -122,7 +122,11 @@ export function TemplateEditor({
 }: TemplateEditorProps) {
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        heading: {
+          levels: [1, 2, 3],
+        },
+      }),
       Placeholder.configure({
         placeholder,
       }),
