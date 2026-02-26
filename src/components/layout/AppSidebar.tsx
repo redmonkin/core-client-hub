@@ -79,9 +79,9 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-sidebar">
-      <SidebarHeader className="border-b border-sidebar-border p-4">
-        <div className="flex items-center justify-between">
+    <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-sidebar shadow-sm">
+      <SidebarHeader className={cn("border-b border-sidebar-border", collapsed ? "p-2" : "p-4")}>
+        <div className={cn("flex items-center", collapsed ? "justify-center" : "justify-between")}>
           {!collapsed && (
             <div className="flex items-center gap-3">
               <img src={clientraLogoDark} alt="Clientra" className="h-9 w-9 dark:hidden" />
@@ -89,16 +89,20 @@ export function AppSidebar() {
               <span className="text-lg font-semibold text-sidebar-foreground">Clientra</span>
             </div>
           )}
-          <SidebarTrigger className="h-8 w-8 text-sidebar-foreground hover:bg-sidebar-accent">
-            <ChevronLeft className={cn(
-              "h-4 w-4 transition-transform duration-200",
-              collapsed && "rotate-180"
-            )} />
-          </SidebarTrigger>
+          {collapsed ? (
+            <div className="flex items-center justify-center">
+              <img src={clientraLogoDark} alt="Clientra" className="h-7 w-7 dark:hidden" />
+              <img src={clientraLogoLight} alt="Clientra" className="h-7 w-7 hidden dark:block" />
+            </div>
+          ) : (
+            <SidebarTrigger className="h-8 w-8 text-sidebar-foreground hover:bg-sidebar-accent">
+              <ChevronLeft className="h-4 w-4 transition-transform duration-200" />
+            </SidebarTrigger>
+          )}
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-3 py-4">
+      <SidebarContent className={cn("py-4", collapsed ? "px-1" : "px-3")}>
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1">
@@ -117,7 +121,8 @@ export function AppSidebar() {
                       <NavLink
                         to={item.url}
                         className={cn(
-                          "flex items-center gap-3 rounded-lg px-3 py-2.5 font-medium transition-all duration-200",
+                          "flex items-center rounded-lg font-medium transition-all duration-200",
+                          collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2.5",
                           isActive
                             ? "bg-primary text-primary-foreground shadow-sm"
                             : "text-sidebar-foreground hover:bg-sidebar-accent/80"
