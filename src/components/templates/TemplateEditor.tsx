@@ -57,14 +57,16 @@ const PROPOSAL_PLACEHOLDERS: PlaceholderItem[] = [
 ];
 
 const CONTRACT_PLACEHOLDERS: PlaceholderItem[] = [
-  { label: 'Client Name', value: '{{clientName}}' },
-  { label: 'Client Address', value: '{{clientAddress}}' },
-  { label: 'Contact Person', value: '{{contactPerson}}' },
-  { label: 'Title', value: '{{title}}' },
-  { label: 'Email', value: '{{email}}' },
-  { label: 'Phone', value: '{{phone}}' },
-  { label: 'Effective From', value: '{{effectiveFrom}}' },
-  { label: 'Effective For', value: '{{effectiveFor}}' },
+  { label: 'Name', value: '{{name}}' },
+  { label: 'Designation', value: '{{designation}}' },
+  { label: 'Email Address', value: '{{emailAddress}}' },
+  { label: 'Phone Number', value: '{{phoneNumber}}' },
+  { label: 'Company Name', value: '{{companyName}}' },
+  { label: 'Company Address', value: '{{companyAddress}}' },
+  { label: 'Project Name', value: '{{projectName}}' },
+  { label: 'Project Website', value: '{{projectWebsite}}' },
+  { label: 'Start Date', value: '{{startDate}}' },
+  { label: 'End Date', value: '{{endDate}}' },
 ];
 
 const PLACEHOLDERS_BY_TYPE: Record<TemplateType, PlaceholderItem[]> = {
