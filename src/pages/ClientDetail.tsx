@@ -137,13 +137,22 @@ export default function ClientDetail() {
               {client.phone && (
                 <div className="flex items-center gap-2 text-sm">
                   <Phone className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-foreground">{client.phone}</span>
+                  <a href={`tel:${client.phone}`} className="text-primary hover:underline">
+                    {client.phone}
+                  </a>
                 </div>
               )}
               {client.billing_address && (
                 <div className="flex items-center gap-2 text-sm">
                   <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-foreground">{client.billing_address}</span>
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(client.billing_address)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    {client.billing_address}
+                  </a>
                 </div>
               )}
             </div>
