@@ -97,14 +97,6 @@ export default function ClientDetail() {
 
   return (
     <div className="space-y-6 p-6">
-      {/* Back button */}
-      <Link to="/clients">
-        <Button variant="ghost" size="sm" className="gap-2">
-          <ArrowLeft className="h-4 w-4" />
-          Back to Clients
-        </Button>
-      </Link>
-
       {/* Client Info Card - Full Width */}
       <Card>
         <CardContent className="p-6">
