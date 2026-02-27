@@ -145,14 +145,13 @@ export default function ClientDetail() {
               {client.billing_address && (
                 <div className="flex items-center gap-2 text-sm">
                   <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(client.billing_address)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline"
+                  <button
+                    type="button"
+                    onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(client.billing_address)}`, '_blank', 'noopener,noreferrer')}
+                    className="text-primary hover:underline text-left"
                   >
                     {client.billing_address}
-                  </a>
+                  </button>
                 </div>
               )}
             </div>
