@@ -30,14 +30,16 @@ const proposalSampleData: Record<string, string> = {
 
 // Sample data for contract placeholders
 const contractSampleData: Record<string, string> = {
-  '{{clientName}}': 'Acme Corporation',
-  '{{clientAddress}}': '123 Business Ave, Suite 100, New York, NY 10001',
-  '{{contactPerson}}': 'John Smith',
-  '{{title}}': 'Chief Technology Officer',
-  '{{email}}': 'john.smith@acmecorp.com',
-  '{{phone}}': '+1 (555) 123-4567',
-  '{{effectiveFrom}}': 'February 15, 2026',
-  '{{effectiveFor}}': '12 months',
+  '{{name}}': 'John Smith',
+  '{{designation}}': 'Chief Technology Officer',
+  '{{emailAddress}}': 'john.smith@acmecorp.com',
+  '{{phoneNumber}}': '+1 (555) 123-4567',
+  '{{companyName}}': 'Acme Corporation',
+  '{{companyAddress}}': '123 Business Ave, Suite 100, New York, NY 10001',
+  '{{projectName}}': 'Website Redesign Project',
+  '{{projectWebsite}}': 'www.acmecorp.com',
+  '{{startDate}}': 'February 15, 2026',
+  '{{endDate}}': 'February 15, 2027',
 };
 
 const sampleDataByType: Record<TemplateType, Record<string, string>> = {
@@ -80,7 +82,7 @@ export function TemplatePreviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[90vw] w-full h-[90vh] flex flex-col p-0 gap-0">
+      <DialogContent className="max-w-[90vw] w-full h-[90vh] flex flex-col p-0 gap-0 [&>button]:hidden">
         {/* Header */}
         <DialogHeader className="flex-shrink-0 px-6 py-4 border-b">
           <div className="flex items-center justify-between">
