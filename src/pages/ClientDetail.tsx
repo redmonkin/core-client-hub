@@ -1,16 +1,77 @@
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Mail, Phone, MapPin, FileText, FolderKanban, FileSignature } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, MapPin, FileText, FolderKanban, FileSignature, Briefcase } from 'lucide-react';
 import { format } from 'date-fns';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { mockClients, mockProjects, mockProposals, mockContracts } from '@/lib/mock-data';
 
 export default function ClientDetail() {
   const { id } = useParams();
-  const client = mockClients.find(c => c.id === id);
+
+  const { data: client, isLoading } = useQuery({
+    queryKey: ['client', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('id', id!)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id,
+  });
+
+  const { data: clientProjects = [] } = useQuery({
+    queryKey: ['client-projects', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('client_id', id!);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id,
+  });
+
+  const { data: clientProposals = [] } = useQuery({
+    queryKey: ['client-proposals', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('proposals')
+        .select('*')
+        .eq('client_id', id!);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id,
+  });
+
+  const { data: clientContracts = [] } = useQuery({
+    queryKey: ['client-contracts', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('contracts')
+        .select('*')
+        .eq('client_id', id!);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   if (!client) {
     return (
@@ -25,10 +86,6 @@ export default function ClientDetail() {
     );
   }
 
-  const clientProjects = mockProjects.filter(p => p.clientId === id);
-  const clientProposals = mockProposals.filter(p => p.clientId === id);
-  const clientContracts = mockContracts.filter(c => c.clientId === id);
-
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center gap-4">
@@ -38,8 +95,8 @@ export default function ClientDetail() {
           </Button>
         </Link>
         <PageHeader
-          title={client.clientName}
-          description={client.companyName}
+          title={client.client_name}
+          description={client.company_name || ''}
         />
       </div>
 
@@ -49,27 +106,35 @@ export default function ClientDetail() {
             <CardTitle>Contact Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Primary Contact</p>
-              <p className="text-foreground">{client.primaryContactName}</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Mail className="h-4 w-4 text-muted-foreground" />
-              <a href={`mailto:${client.email}`} className="text-primary hover:underline">
-                {client.email}
-              </a>
-            </div>
-            <div className="flex items-center gap-2">
-              <Phone className="h-4 w-4 text-muted-foreground" />
-              <span>{client.phone}</span>
-            </div>
-            <div className="flex items-start gap-2">
-              <MapPin className="mt-0.5 h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">{client.billingAddress}</span>
-            </div>
+            {client.designation && (
+              <div className="flex items-center gap-2">
+                <Briefcase className="h-4 w-4 text-muted-foreground" />
+                <span>{client.designation}</span>
+              </div>
+            )}
+            {client.email && (
+              <div className="flex items-center gap-2">
+                <Mail className="h-4 w-4 text-muted-foreground" />
+                <a href={`mailto:${client.email}`} className="text-primary hover:underline">
+                  {client.email}
+                </a>
+              </div>
+            )}
+            {client.phone && (
+              <div className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-muted-foreground" />
+                <span>{client.phone}</span>
+              </div>
+            )}
+            {client.billing_address && (
+              <div className="flex items-start gap-2">
+                <MapPin className="mt-0.5 h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">{client.billing_address}</span>
+              </div>
+            )}
             {client.notes && (
               <div className="border-t border-border pt-4">
-                <p className="text-sm font-medium text-muted-foreground">Notes</p>
+                <p className="text-sm font-medium text-muted-foreground">Notes / Remarks</p>
                 <p className="mt-1 text-sm text-foreground">{client.notes}</p>
               </div>
             )}
@@ -99,23 +164,22 @@ export default function ClientDetail() {
                   <Card key={project.id}>
                     <CardContent className="flex items-center justify-between p-4">
                       <div>
-                        <Link 
-                          to={`/projects/${project.id}`}
-                          className="font-medium text-foreground hover:text-primary"
-                        >
-                          {project.projectName}
-                        </Link>
+                        <p className="font-medium text-foreground">{project.project_name}</p>
                         <div className="mt-1 flex items-center gap-2">
                           <span className="text-sm text-muted-foreground capitalize">
-                            {project.projectType}
+                            {project.project_type}
                           </span>
-                          <span className="text-muted-foreground">•</span>
-                          <span className="text-sm text-muted-foreground">
-                            {format(project.startDate, 'MMM dd, yyyy')}
-                          </span>
+                          {project.start_date && (
+                            <>
+                              <span className="text-muted-foreground">•</span>
+                              <span className="text-sm text-muted-foreground">
+                                {format(new Date(project.start_date), 'MMM dd, yyyy')}
+                              </span>
+                            </>
+                          )}
                         </div>
                       </div>
-                      <StatusBadge status={project.status} />
+                      <StatusBadge status={project.status as any} />
                     </CardContent>
                   </Card>
                 ))}
@@ -132,11 +196,13 @@ export default function ClientDetail() {
                     <CardContent className="flex items-center justify-between p-4">
                       <div>
                         <p className="font-medium text-foreground">{proposal.title}</p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          Valid until {format(proposal.validityDate, 'MMM dd, yyyy')}
-                        </p>
+                        {proposal.validity_date && (
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            Valid until {format(new Date(proposal.validity_date), 'MMM dd, yyyy')}
+                          </p>
+                        )}
                       </div>
-                      <StatusBadge status={proposal.status} />
+                      <StatusBadge status={proposal.status as any} />
                     </CardContent>
                   </Card>
                 ))}
@@ -153,17 +219,17 @@ export default function ClientDetail() {
                     <CardContent className="flex items-center justify-between p-4">
                       <div>
                         <p className="font-medium capitalize text-foreground">
-                          {contract.contractType} Contract
+                          {contract.contract_type} Contract
                         </p>
                         <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
-                          <span>${contract.value.toLocaleString()}</span>
+                          <span>${Number(contract.value).toLocaleString()}</span>
                           <span>•</span>
                           <span>
-                            {format(contract.startDate, 'MMM dd')} - {format(contract.endDate, 'MMM dd, yyyy')}
+                            {format(new Date(contract.start_date), 'MMM dd')} - {format(new Date(contract.end_date), 'MMM dd, yyyy')}
                           </span>
                         </div>
                       </div>
-                      <StatusBadge status={contract.status} />
+                      <StatusBadge status={contract.status as any} />
                     </CardContent>
                   </Card>
                 ))}
