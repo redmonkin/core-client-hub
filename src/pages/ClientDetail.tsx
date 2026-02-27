@@ -147,7 +147,7 @@ export default function ClientDetail() {
                   <MapPin className="h-4 w-4 text-muted-foreground" />
                   <button
                     type="button"
-                    onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(client.billing_address)}`, '_blank', 'noopener,noreferrer')}
+                    onClick={() => (window.top || window).open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(client.billing_address)}`, '_blank')}
                     className="text-primary hover:underline text-left"
                   >
                     {client.billing_address}
