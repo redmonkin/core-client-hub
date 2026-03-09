@@ -142,10 +142,14 @@ export default function ProjectDetail() {
 
       {/* Tabs */}
       <Tabs defaultValue="timesheets" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="timesheets" className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
             Timesheets
+          </TabsTrigger>
+          <TabsTrigger value="notes" className="flex items-center gap-2">
+            <StickyNote className="h-4 w-4" />
+            Notes
           </TabsTrigger>
           <TabsTrigger value="proposals" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
@@ -159,6 +163,10 @@ export default function ProjectDetail() {
 
         <TabsContent value="timesheets" className="mt-4">
           <ProjectTimesheets projectId={id!} />
+        </TabsContent>
+
+        <TabsContent value="notes" className="mt-4">
+          <ProjectNotes projectId={id!} />
         </TabsContent>
 
         <TabsContent value="proposals" className="mt-4">
