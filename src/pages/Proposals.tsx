@@ -110,6 +110,7 @@ export default function Proposals() {
   const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
   const [newProposal, setNewProposal] = useState(emptyProposal);
   const [editProposal, setEditProposal] = useState(emptyProposal);
+  const [editDialogKey, setEditDialogKey] = useState(0);
   const [isSending, setIsSending] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [shareLink, setShareLink] = useState('');
