@@ -165,9 +165,10 @@ export default function ProjectDetail() {
                       </p>
                     )}
                   </div>
-                  <StatusBadge status={proposal.status as any} />
-                </CardContent>
-              </Card>
+                    <StatusBadge status={proposal.status as any} />
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
             {projectProposals.length === 0 && (
               <p className="py-8 text-center text-muted-foreground">No proposals linked to this project</p>
