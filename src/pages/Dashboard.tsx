@@ -167,12 +167,17 @@ export default function Dashboard() {
 
         <Card className="overflow-hidden">
           <CardHeader className="border-b border-border bg-muted/30">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                <FileText className="h-4 w-4 text-primary" />
-              </div>
-              Recent Proposals
-            </CardTitle>
+            <div className="flex items-center justify-between w-full">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                  <FileText className="h-4 w-4 text-primary" />
+                </div>
+                Recent Proposals
+              </CardTitle>
+              <Link to="/proposals" className="flex items-center gap-1 text-sm text-primary hover:underline">
+                View All <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
           </CardHeader>
           <CardContent className="p-4">
             <div className="space-y-3">
