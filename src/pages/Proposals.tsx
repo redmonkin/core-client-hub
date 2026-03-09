@@ -512,25 +512,71 @@ export default function Proposals() {
       </div>
 
       {filteredProposals.length > 0 ? (
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {filteredProposals.map(proposal => (
-            <Card key={proposal.id} className="group overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="truncate font-semibold text-foreground">{proposal.title}</h3>
-                    <div className="mt-1.5 space-y-1">
-                      <Link 
-                        to={`/clients/${proposal.client_id}`}
-                        className="block truncate text-sm text-muted-foreground hover:text-primary transition-colors"
-                      >
-                        {getClientName(proposal.client_id)}
-                      </Link>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {getProjectName(proposal.project_id)}
-                      </p>
-                    </div>
-                  </div>
+        <div className="rounded-xl border border-border overflow-hidden">
+          {/* Table Header */}
+          <div className="hidden md:grid md:grid-cols-[1fr_180px_140px_140px_120px_48px] items-center gap-4 border-b border-border bg-muted/40 px-6 py-3">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Proposal</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Client</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Project</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Valid Until</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</span>
+            <span />
+          </div>
+
+          {/* Table Rows */}
+          <div className="divide-y divide-border">
+            {filteredProposals.map(proposal => (
+              <div
+                key={proposal.id}
+                className="group grid grid-cols-1 md:grid-cols-[1fr_180px_140px_140px_120px_48px] items-center gap-3 md:gap-4 px-6 py-4 transition-colors hover:bg-muted/30"
+              >
+                {/* Proposal Title */}
+                <div className="min-w-0">
+                  <h3 className="truncate font-medium text-foreground group-hover:text-primary transition-colors">
+                    {proposal.title}
+                  </h3>
+                  {proposal.duration && (
+                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                      Duration: {proposal.duration}
+                    </p>
+                  )}
+                </div>
+
+                {/* Client */}
+                <div className="min-w-0">
+                  <Link
+                    to={`/clients/${proposal.client_id}`}
+                    className="flex items-center gap-1.5 truncate text-sm text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    <User className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">{getClientName(proposal.client_id)}</span>
+                  </Link>
+                </div>
+
+                {/* Project */}
+                <div className="min-w-0">
+                  <p className="truncate text-sm text-muted-foreground">
+                    {getProjectName(proposal.project_id)}
+                  </p>
+                </div>
+
+                {/* Validity Date */}
+                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Calendar className="h-3.5 w-3.5 shrink-0 hidden md:block" />
+                  <span className="truncate">
+                    {proposal.validity_date
+                      ? format(new Date(proposal.validity_date), 'MMM dd, yyyy')
+                      : '—'}
+                  </span>
+                </div>
+
+                {/* Status */}
+                <div>
+                  <StatusBadge status={proposal.status as ProposalStatus} />
+                </div>
+
+                {/* Actions */}
+                <div className="flex justify-end">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -562,7 +608,7 @@ export default function Proposals() {
                         <Download className="mr-2 h-4 w-4" />
                         Export PDF
                       </DropdownMenuItem>
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         onClick={() => handleDelete(proposal)}
                         className="text-destructive focus:text-destructive"
                       >
@@ -572,27 +618,9 @@ export default function Proposals() {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
-
-                {proposal.scope_of_work && (
-                  <div className="mt-5 rounded-xl bg-muted/50 p-4">
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Scope of Work</p>
-                    <p className="mt-2 line-clamp-2 text-sm text-foreground">
-                      {proposal.scope_of_work}
-                    </p>
-                  </div>
-                )}
-
-                <div className="mt-5 flex items-center justify-between">
-                  <div className="text-sm text-muted-foreground">
-                    {proposal.validity_date 
-                      ? `Valid until ${format(new Date(proposal.validity_date), 'MMM dd, yyyy')}`
-                      : 'No expiry date'}
-                  </div>
-                  <StatusBadge status={proposal.status as ProposalStatus} />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+              </div>
+            ))}
+          </div>
         </div>
       ) : (
         <EmptyState
