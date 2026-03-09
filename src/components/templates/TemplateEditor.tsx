@@ -46,16 +46,21 @@ interface PlaceholderItem {
   value: string;
 }
 
-const PROPOSAL_PLACEHOLDERS: PlaceholderItem[] = [
-  { label: 'Proposal Title', value: '{{proposalTitle}}' },
-  { label: 'Client Name', value: '{{clientName}}' },
-  { label: 'Company Name', value: '{{companyName}}' },
-  { label: 'Contact Name', value: '{{contactName}}' },
+// Shared client/project placeholders used by both proposal and contract templates
+const COMMON_PLACEHOLDERS: PlaceholderItem[] = [
+  { label: 'Name', value: '{{name}}' },
   { label: 'Designation', value: '{{designation}}' },
   { label: 'Email Address', value: '{{emailAddress}}' },
   { label: 'Phone Number', value: '{{phoneNumber}}' },
+  { label: 'Company Name', value: '{{companyName}}' },
   { label: 'Company Address', value: '{{companyAddress}}' },
   { label: 'Project Name', value: '{{projectName}}' },
+  { label: 'Project Website', value: '{{projectWebsite}}' },
+];
+
+const PROPOSAL_PLACEHOLDERS: PlaceholderItem[] = [
+  ...COMMON_PLACEHOLDERS,
+  { label: 'Proposal Title', value: '{{proposalTitle}}' },
   { label: 'Proposal Date', value: '{{proposalDate}}' },
   { label: 'Proposal Expiry Date', value: '{{proposalExpiryDate}}' },
   { label: 'Customer Goals', value: '{{customerGoals}}' },
@@ -66,14 +71,7 @@ const PROPOSAL_PLACEHOLDERS: PlaceholderItem[] = [
 ];
 
 const CONTRACT_PLACEHOLDERS: PlaceholderItem[] = [
-  { label: 'Name', value: '{{name}}' },
-  { label: 'Designation', value: '{{designation}}' },
-  { label: 'Email Address', value: '{{emailAddress}}' },
-  { label: 'Phone Number', value: '{{phoneNumber}}' },
-  { label: 'Company Name', value: '{{companyName}}' },
-  { label: 'Company Address', value: '{{companyAddress}}' },
-  { label: 'Project Name', value: '{{projectName}}' },
-  { label: 'Project Website', value: '{{projectWebsite}}' },
+  ...COMMON_PLACEHOLDERS,
   { label: 'Start Date', value: '{{startDate}}' },
   { label: 'End Date', value: '{{endDate}}' },
 ];
