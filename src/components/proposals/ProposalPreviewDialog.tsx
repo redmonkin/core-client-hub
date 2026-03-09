@@ -26,20 +26,119 @@ async function exportToPdf(html: string, filename: string) {
     import('html2canvas'),
   ]);
 
-  // Create an off-screen container with the rendered HTML
+  // Create an off-screen container with fully inlined styles (no Tailwind dependency)
   const container = document.createElement('div');
   container.style.position = 'absolute';
   container.style.left = '-9999px';
   container.style.top = '0';
   container.style.width = '794px'; // A4 width at 96 DPI
-  container.style.padding = '40px';
   container.style.background = '#ffffff';
-  container.style.color = '#1a1a1a';
-  container.style.fontFamily = 'system-ui, -apple-system, sans-serif';
-  container.style.fontSize = '14px';
-  container.style.lineHeight = '1.6';
-  container.innerHTML = `<div class="prose prose-sm max-w-none" style="color:#1a1a1a;">${html}</div>`;
   document.body.appendChild(container);
+
+  // Build a self-contained HTML document with embedded styles
+  container.innerHTML = `
+    <style>
+      .pdf-content {
+        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        font-size: 14px;
+        line-height: 1.7;
+        color: #1a1a1a;
+        padding: 50px 55px;
+        max-width: 100%;
+        word-wrap: break-word;
+      }
+      .pdf-content h1 {
+        font-size: 26px;
+        font-weight: 700;
+        margin: 28px 0 12px 0;
+        color: #111827;
+        line-height: 1.3;
+      }
+      .pdf-content h2 {
+        font-size: 21px;
+        font-weight: 700;
+        margin: 24px 0 10px 0;
+        color: #111827;
+        line-height: 1.3;
+      }
+      .pdf-content h3 {
+        font-size: 17px;
+        font-weight: 600;
+        margin: 20px 0 8px 0;
+        color: #111827;
+        line-height: 1.4;
+      }
+      .pdf-content p {
+        margin: 0 0 12px 0;
+        color: #374151;
+      }
+      .pdf-content strong, .pdf-content b {
+        font-weight: 700;
+        color: #111827;
+      }
+      .pdf-content em, .pdf-content i {
+        font-style: italic;
+      }
+      .pdf-content ul {
+        list-style-type: disc;
+        margin: 8px 0 12px 0;
+        padding-left: 24px;
+      }
+      .pdf-content ol {
+        list-style-type: decimal;
+        margin: 8px 0 12px 0;
+        padding-left: 24px;
+      }
+      .pdf-content li {
+        margin: 4px 0;
+        padding-left: 4px;
+        color: #374151;
+      }
+      .pdf-content li > ul,
+      .pdf-content li > ol {
+        margin: 4px 0 4px 0;
+      }
+      .pdf-content blockquote {
+        border-left: 3px solid #d1d5db;
+        margin: 12px 0;
+        padding: 8px 16px;
+        color: #6b7280;
+        font-style: italic;
+      }
+      .pdf-content hr {
+        border: none;
+        border-top: 1px solid #e5e7eb;
+        margin: 20px 0;
+      }
+      .pdf-content table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 16px 0;
+        font-size: 13px;
+      }
+      .pdf-content table th {
+        background: #f3f4f6;
+        border-bottom: 2px solid #e5e7eb;
+        padding: 8px 12px;
+        text-align: left;
+        font-weight: 600;
+        color: #374151;
+      }
+      .pdf-content table td {
+        padding: 8px 12px;
+        border-bottom: 1px solid #e5e7eb;
+        color: #374151;
+      }
+      .pdf-content table tfoot td {
+        font-weight: 600;
+      }
+      .pdf-content img {
+        max-width: 100%;
+        height: auto;
+      }
+    </style>
+    <div class="pdf-content">${html}</div>
+  `;
 
   try {
     const canvas = await html2canvas(container, {
