@@ -110,6 +110,7 @@ export default function Proposals() {
   const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
   const [newProposal, setNewProposal] = useState(emptyProposal);
   const [editProposal, setEditProposal] = useState(emptyProposal);
+  const [editDialogKey, setEditDialogKey] = useState(0);
   const [isSending, setIsSending] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [shareLink, setShareLink] = useState('');
@@ -311,6 +312,7 @@ export default function Proposals() {
       duration: proposal.duration || '',
       status: proposal.status as ProposalStatus,
     });
+    setEditDialogKey(prev => prev + 1);
     setIsEditDialogOpen(true);
   };
 
@@ -648,7 +650,7 @@ export default function Proposals() {
       />
 
       <ProposalFormDialog
-        key={selectedProposal?.id || 'edit'}
+        key={editDialogKey}
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
         onSubmit={({ templateId, ...data }) => {
