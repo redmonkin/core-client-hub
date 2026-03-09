@@ -177,6 +177,16 @@ export default function Proposals() {
         .select()
         .single();
       if (error) throw error;
+
+      // Log initial status in history
+      await supabase.from('proposal_status_history').insert({
+        proposal_id: data.id,
+        user_id: user?.id,
+        from_status: null,
+        to_status: proposal.status,
+        note: 'Proposal created',
+      });
+
       return data;
     },
     onSuccess: () => {
