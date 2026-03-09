@@ -112,6 +112,7 @@ export default function Proposals() {
   const [editProposal, setEditProposal] = useState(emptyProposal);
   const [editDialogKey, setEditDialogKey] = useState(0);
   const [isSending, setIsSending] = useState(false);
+  const [proposalTemplateSelections, setProposalTemplateSelections] = useState<Record<string, string>>({});
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [shareLink, setShareLink] = useState('');
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
@@ -655,10 +656,15 @@ export default function Proposals() {
         onOpenChange={setIsEditDialogOpen}
         onSubmit={({ templateId, ...data }) => {
           if (selectedProposal) {
+            setProposalTemplateSelections(prev => ({
+              ...prev,
+              [selectedProposal.id]: templateId || '',
+            }));
             updateProposalMutation.mutate({ id: selectedProposal.id, ...data });
           }
         }}
         initialData={editProposal}
+        initialTemplateId={selectedProposal ? proposalTemplateSelections[selectedProposal.id] : ''}
         clients={clients}
         projects={projects}
         templates={templates}
