@@ -710,6 +710,14 @@ export default function Proposals() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Proposal Preview Dialog */}
+      <ProposalPreviewDialog
+        open={isPreviewOpen}
+        onOpenChange={setIsPreviewOpen}
+        template={previewTemplate}
+        proposalData={previewProposalData!}
+      />
     </div>
   );
 }
