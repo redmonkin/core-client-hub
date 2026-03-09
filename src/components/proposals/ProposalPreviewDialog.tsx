@@ -26,6 +26,7 @@ interface ProposalData {
   scopeOfWork: string;
   costBreakdown: string;
   validityDate: string;
+  duration: string;
   createdAt: string;
 }
 
