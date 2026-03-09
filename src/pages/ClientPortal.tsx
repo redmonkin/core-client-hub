@@ -53,6 +53,7 @@ export default function ClientPortal() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [responded, setResponded] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const primaryColor = branding?.primary_color || '#8B5CF6';
 
