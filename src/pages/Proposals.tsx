@@ -201,7 +201,7 @@ export default function Proposals() {
   });
 
   const updateProposalMutation = useMutation({
-    mutationFn: async ({ id, ...proposal }: { id: string } & typeof editProposal) => {
+    mutationFn: async ({ id, previousStatus, ...proposal }: { id: string; previousStatus?: string } & typeof editProposal) => {
       const { data, error } = await supabase
         .from('proposals')
         .update({
@@ -219,10 +219,23 @@ export default function Proposals() {
         .select()
         .single();
       if (error) throw error;
+
+      // Log status change if it changed
+      if (previousStatus && previousStatus !== proposal.status) {
+        await supabase.from('proposal_status_history').insert({
+          proposal_id: id,
+          user_id: user?.id,
+          from_status: previousStatus,
+          to_status: proposal.status,
+          note: null,
+        });
+      }
+
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['proposals'] });
+      queryClient.invalidateQueries({ queryKey: ['proposal-status-history'] });
       setIsEditDialogOpen(false);
       setSelectedProposal(null);
       toast.success('Proposal updated successfully');
