@@ -428,7 +428,7 @@ export default function Projects() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <StatusBadge status={project.status as 'active' | 'planned' | 'on-hold' | 'completed' | 'cancelled'} />
+                    <StatusBadge status={project.status as 'proposal' | 'active' | 'planned' | 'on-hold' | 'completed' | 'cancelled' | 'maintenance'} />
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
