@@ -65,7 +65,8 @@ export default function ClientPortal() {
   const [submitting, setSubmitting] = useState(false);
   const [responded, setResponded] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [confirmAction, setConfirmAction] = useState<'approve' | 'reject' | null>(null);
+  const [confirmAction, setConfirmAction] = useState<'approve' | 'reject' | 'request_changes' | null>(null);
+  const [changeNotes, setChangeNotes] = useState('');
 
   const primaryColor = branding?.primary_color || '#0284C7';
   const accentColor = branding?.accent_color || '#0EA5E9';
