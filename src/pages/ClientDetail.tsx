@@ -97,6 +97,16 @@ export default function ClientDetail() {
 
   return (
     <div className="space-y-6 p-6">
+      {/* Back Button + Header */}
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" asChild>
+          <Link to="/clients">
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+        </Button>
+        <h1 className="text-2xl font-semibold text-foreground">{client.client_name}</h1>
+      </div>
+
       {/* Client Info Card - Full Width */}
       <Card>
         <CardContent className="p-6">
