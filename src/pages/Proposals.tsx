@@ -312,6 +312,7 @@ export default function Proposals() {
       duration: proposal.duration || '',
       status: proposal.status as ProposalStatus,
     });
+    setEditDialogKey(prev => prev + 1);
     setIsEditDialogOpen(true);
   };
 
