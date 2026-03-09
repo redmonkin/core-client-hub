@@ -204,7 +204,7 @@ export default function Dashboard() {
                     }`}>
                       {proposal.status.charAt(0).toUpperCase() + proposal.status.slice(1)}
                     </span>
-                  </div>
+                  </Link>
                 ))
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 text-center">

@@ -194,9 +194,10 @@ export default function ProjectDetail() {
                       </span>
                     </div>
                   </div>
-                  <StatusBadge status={contract.status as any} />
-                </CardContent>
-              </Card>
+                    <StatusBadge status={contract.status as any} />
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
             {projectContracts.length === 0 && (
               <p className="py-8 text-center text-muted-foreground">No contracts linked to this project</p>

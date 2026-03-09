@@ -279,9 +279,10 @@ export default function ClientDetail() {
                       </span>
                     </div>
                   </div>
-                  <StatusBadge status={contract.status as any} />
-                </CardContent>
-              </Card>
+                    <StatusBadge status={contract.status as any} />
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
             {clientContracts.length === 0 && (
               <p className="py-8 text-center text-muted-foreground">No contracts yet</p>

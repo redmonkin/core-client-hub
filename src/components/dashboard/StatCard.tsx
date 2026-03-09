@@ -1,4 +1,5 @@
 import { LucideIcon } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
@@ -9,12 +10,14 @@ interface StatCardProps {
   description?: string;
   trend?: 'up' | 'down' | 'neutral';
   className?: string;
+  href?: string;
 }
 
-export function StatCard({ title, value, icon: Icon, description, className }: StatCardProps) {
-  return (
+export function StatCard({ title, value, icon: Icon, description, className, href }: StatCardProps) {
+  const card = (
     <Card className={cn(
       "group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5",
+      href && "cursor-pointer",
       className
     )}>
       <CardContent className="p-6">
@@ -34,4 +37,10 @@ export function StatCard({ title, value, icon: Icon, description, className }: S
       <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-primary/50 to-primary opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
     </Card>
   );
+
+  if (href) {
+    return <Link to={href}>{card}</Link>;
+  }
+
+  return card;
 }
