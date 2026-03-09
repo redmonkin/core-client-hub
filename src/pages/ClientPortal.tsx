@@ -234,16 +234,74 @@ export default function ClientPortal() {
               </div>
             )}
 
-            {proposal.cost_breakdown && (
-              <div>
-                <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground mb-2">
-                  Cost Breakdown
-                </h3>
-                <div className="bg-muted/50 rounded-lg p-4">
-                  <p className="text-foreground whitespace-pre-wrap">{proposal.cost_breakdown}</p>
-                </div>
-              </div>
-            )}
+            {proposal.cost_breakdown && (() => {
+              try {
+                const costData = JSON.parse(proposal.cost_breakdown);
+                const items = costData.items || [];
+                const taxRate = costData.taxRate || 0;
+                const additionalDiscount = costData.additionalDiscount || 0;
+                const subtotal = items.reduce((sum: number, item: any) => {
+                  const lineTotal = (item.quantity * item.unitPrice) - (item.discount || 0);
+                  return sum + lineTotal;
+                }, 0);
+                const afterDiscount = subtotal - additionalDiscount;
+                const tax = afterDiscount * (taxRate / 100);
+                const total = afterDiscount + tax;
+
+                return (
+                  <div>
+                    <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground mb-2">
+                      Cost Breakdown
+                    </h3>
+                    <div className="bg-muted/50 rounded-lg p-4 overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left py-2 font-medium text-muted-foreground">Description</th>
+                            <th className="text-right py-2 font-medium text-muted-foreground">Qty</th>
+                            <th className="text-right py-2 font-medium text-muted-foreground">Rate</th>
+                            <th className="text-right py-2 font-medium text-muted-foreground">Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {items.map((item: any, idx: number) => (
+                            <tr key={idx} className="border-b border-border/50">
+                              <td className="py-2">{item.description}</td>
+                              <td className="text-right py-2">{item.quantity}</td>
+                              <td className="text-right py-2">₹{item.unitPrice?.toLocaleString('en-IN')}</td>
+                              <td className="text-right py-2">₹{((item.quantity * item.unitPrice) - (item.discount || 0)).toLocaleString('en-IN')}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot>
+                          {additionalDiscount > 0 && (
+                            <tr className="border-b border-border/50">
+                              <td colSpan={3} className="text-right py-2 text-muted-foreground">Discount</td>
+                              <td className="text-right py-2">-₹{additionalDiscount.toLocaleString('en-IN')}</td>
+                            </tr>
+                          )}
+                          {taxRate > 0 && (
+                            <tr className="border-b border-border/50">
+                              <td colSpan={3} className="text-right py-2 text-muted-foreground">Tax ({taxRate}%)</td>
+                              <td className="text-right py-2">₹{tax.toLocaleString('en-IN')}</td>
+                            </tr>
+                          )}
+                          <tr>
+                            <td colSpan={3} className="text-right py-2 font-semibold">Total</td>
+                            <td className="text-right py-2 font-semibold">₹{total.toLocaleString('en-IN')}</td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                      {costData.notes && (
+                        <p className="text-xs text-muted-foreground mt-3">{costData.notes}</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              } catch {
+                return null;
+              }
+            })()}
 
             <div className="flex flex-wrap gap-4 pt-4 border-t">
               {proposal.validity_date && (
