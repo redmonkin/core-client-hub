@@ -120,11 +120,13 @@ export function ProposalPreviewDialog({
               <Eye className="h-5 w-5 text-primary" />
               <div>
                 <DialogTitle>{proposalData.title}</DialogTitle>
-                <DialogDescription className="flex items-center gap-2 mt-1">
-                  Preview using template:{' '}
-                  <Badge variant="secondary" className="bg-primary/10 text-primary text-xs">
-                    {template.name}
-                  </Badge>
+                <DialogDescription asChild>
+                  <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+                    Preview using template:{' '}
+                    <Badge variant="secondary" className="bg-primary/10 text-primary text-xs">
+                      {template.name}
+                    </Badge>
+                  </div>
                 </DialogDescription>
               </div>
             </div>
