@@ -222,7 +222,7 @@ const handler = async (req: Request): Promise<Response> => {
       }
 
       // Update proposal status
-      const newStatus = action === "approve" ? "approved" : "rejected";
+      const newStatus = action === "approve" ? "approved" : action === "request_changes" ? "revision_requested" : "rejected";
       const { error: updateError } = await supabase
         .from("proposals")
         .update({ status: newStatus })
