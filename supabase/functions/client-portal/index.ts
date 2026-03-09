@@ -89,10 +89,10 @@ const handler = async (req: Request): Promise<Response> => {
         throw proposalError;
       }
 
-      // Get client name
+      // Get client details
       const { data: client } = await supabase
         .from("clients")
-        .select("client_name, company_name")
+        .select("client_name, company_name, email, phone, designation, billing_address")
         .eq("id", proposal.client_id)
         .single();
 
