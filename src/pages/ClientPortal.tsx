@@ -231,6 +231,22 @@ export default function ClientPortal() {
           {branding?.tagline && (
             <p className="text-sm text-muted-foreground">{branding.tagline}</p>
           )}
+          {renderedContent && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportPdf}
+              disabled={isExporting}
+              className="mt-4"
+            >
+              {isExporting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
+              Download PDF
+            </Button>
+          )}
         </div>
 
         {/* Status Banner */}
