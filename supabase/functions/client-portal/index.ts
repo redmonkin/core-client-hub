@@ -9,7 +9,8 @@ const corsHeaders = {
 
 interface UpdateProposalRequest {
   token: string;
-  action: "approve" | "reject";
+  action: "approve" | "reject" | "request_changes";
+  notes?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
