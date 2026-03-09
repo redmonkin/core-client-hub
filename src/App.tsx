@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
 import ClientDetail from "./pages/ClientDetail";
 import Projects from "./pages/Projects";
+import ProjectDetail from "./pages/ProjectDetail";
 import Proposals from "./pages/Proposals";
 import Contracts from "./pages/Contracts";
 import Templates from "./pages/Templates";
@@ -116,6 +117,16 @@ const App = () => (
               <ProtectedRoute>
                 <AppLayout>
                   <Projects />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/projects/:id"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <ProjectDetail />
                 </AppLayout>
               </ProtectedRoute>
             }
