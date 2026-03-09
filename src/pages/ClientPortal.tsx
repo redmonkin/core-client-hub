@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { replacePlaceholders, ProposalData } from '@/lib/proposal-utils';
 import { exportToPdf } from '@/lib/pdf-export';
+import { Textarea } from '@/components/ui/textarea';
 import {
   AlertDialog,
   AlertDialogAction,
