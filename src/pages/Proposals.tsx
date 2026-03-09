@@ -302,6 +302,7 @@ export default function Proposals() {
       projectId: proposal.project_id || '',
       scopeOfWork: proposal.scope_of_work || '',
       costBreakdown: proposal.cost_breakdown || '',
+      customerGoals: proposal.customer_goals || '',
       validityDate: proposal.validity_date || '',
       status: proposal.status as ProposalStatus,
     });
