@@ -154,10 +154,11 @@ export default function ProjectDetail() {
         <TabsContent value="proposals" className="mt-4">
           <div className="space-y-3">
             {projectProposals.map(proposal => (
-              <Card key={proposal.id}>
-                <CardContent className="flex items-center justify-between p-4">
-                  <div>
-                    <p className="font-medium text-foreground">{proposal.title}</p>
+              <Link key={proposal.id} to="/proposals" className="block">
+                <Card className="transition-all hover:border-primary/20 hover:shadow-sm">
+                  <CardContent className="flex items-center justify-between p-4">
+                    <div>
+                      <p className="font-medium text-foreground hover:text-primary transition-colors">{proposal.title}</p>
                     {proposal.validity_date && (
                       <p className="mt-1 text-sm text-muted-foreground">
                         Valid until {format(new Date(proposal.validity_date), 'MMM dd, yyyy')}
