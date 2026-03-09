@@ -12,6 +12,7 @@ import ClientDetail from "./pages/ClientDetail";
 import Projects from "./pages/Projects";
 import ProjectDetail from "./pages/ProjectDetail";
 import Proposals from "./pages/Proposals";
+import ProposalDetail from "./pages/ProposalDetail";
 import Contracts from "./pages/Contracts";
 import Templates from "./pages/Templates";
 import Settings from "./pages/Settings";
