@@ -329,6 +329,7 @@ export type Database = {
           created_at: string
           expires_at: string
           id: string
+          password_hash: string | null
           proposal_id: string
           token: string
           viewed_at: string | null
@@ -337,6 +338,7 @@ export type Database = {
           created_at?: string
           expires_at: string
           id?: string
+          password_hash?: string | null
           proposal_id: string
           token: string
           viewed_at?: string | null
@@ -345,6 +347,7 @@ export type Database = {
           created_at?: string
           expires_at?: string
           id?: string
+          password_hash?: string | null
           proposal_id?: string
           token?: string
           viewed_at?: string | null
