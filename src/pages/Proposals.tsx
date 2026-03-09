@@ -319,6 +319,7 @@ export default function Proposals() {
       costBreakdown: proposal.cost_breakdown || '',
       customerGoals: proposal.customer_goals || '',
       validityDate: proposal.validity_date || '',
+      duration: proposal.duration || '',
       status: proposal.status as ProposalStatus,
     });
     setIsEditDialogOpen(true);
