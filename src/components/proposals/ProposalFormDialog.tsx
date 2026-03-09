@@ -79,6 +79,7 @@ export function ProposalFormDialog({
   onOpenChange,
   onSubmit,
   initialData,
+  initialTemplateId = '',
   clients,
   projects,
   templates = [],
@@ -87,7 +88,7 @@ export function ProposalFormDialog({
 }: ProposalFormDialogProps) {
   const [formData, setFormData] = useState<ProposalFormData>(initialData || emptyFormData);
   const [activeTab, setActiveTab] = useState('details');
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>(initialTemplateId);
 
   const proposalTemplates = templates.filter(t => t.type === 'proposal');
 
@@ -95,9 +96,9 @@ export function ProposalFormDialog({
     if (open) {
       setFormData(initialData || emptyFormData);
       setActiveTab('details');
-      setSelectedTemplateId('');
+      setSelectedTemplateId(initialTemplateId || '');
     }
-  }, [open, initialData]);
+  }, [open, initialData, initialTemplateId]);
 
   const filteredProjects = projects.filter(p => p.client_id === formData.clientId);
 

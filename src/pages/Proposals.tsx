@@ -656,10 +656,15 @@ export default function Proposals() {
         onOpenChange={setIsEditDialogOpen}
         onSubmit={({ templateId, ...data }) => {
           if (selectedProposal) {
+            setProposalTemplateSelections(prev => ({
+              ...prev,
+              [selectedProposal.id]: templateId || '',
+            }));
             updateProposalMutation.mutate({ id: selectedProposal.id, ...data });
           }
         }}
         initialData={editProposal}
+        initialTemplateId={selectedProposal ? proposalTemplateSelections[selectedProposal.id] : ''}
         clients={clients}
         projects={projects}
         templates={templates}
