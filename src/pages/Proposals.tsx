@@ -514,6 +514,10 @@ export default function Proposals() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="bg-popover">
+                      <DropdownMenuItem onClick={() => handlePreview(proposal)}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        Preview
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleEdit(proposal)}>
                         <Pencil className="mr-2 h-4 w-4" />
                         Edit
