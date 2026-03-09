@@ -54,6 +54,7 @@ type Proposal = {
   project_id: string | null;
   scope_of_work: string | null;
   cost_breakdown: string | null;
+  customer_goals: string | null;
   validity_date: string | null;
   status: string;
 };
