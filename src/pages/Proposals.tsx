@@ -634,7 +634,7 @@ export default function Proposals() {
       <ProposalFormDialog
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
-        onSubmit={(data) => {
+        onSubmit={({ templateId, ...data }) => {
           if (selectedProposal) {
             updateProposalMutation.mutate({ id: selectedProposal.id, ...data });
           }
