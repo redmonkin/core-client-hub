@@ -273,7 +273,7 @@ export default function ClientPortal() {
                 <ShieldCheck className="h-5 w-5" />
                 <span>This proposal has been approved</span>
               </>
-            ) : proposal.status === 'revision_requested' ? (
+            ) : proposal.status === 'change_requested' ? (
               <>
                 <Clock className="h-5 w-5" />
                 <span>Changes have been requested for this proposal</span>
