@@ -794,18 +794,34 @@ export default function Proposals() {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Input
-                  value={shareLink}
-                  readOnly
-                  className="flex-1"
-                />
-                <Button onClick={copyShareLink} variant="secondary">
-                  <Copy className="h-4 w-4" />
-                </Button>
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">Link</label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={shareLink}
+                    readOnly
+                    className="flex-1"
+                  />
+                  <Button onClick={copyShareLink} variant="secondary">
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">Password</label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={sharePassword}
+                    readOnly
+                    className="flex-1 font-mono tracking-widest text-lg"
+                  />
+                  <Button onClick={() => { navigator.clipboard.writeText(sharePassword); toast.success('Password copied!'); }} variant="secondary">
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
               <p className="text-sm text-muted-foreground">
-                This link will expire in 30 days. The client can approve or reject the proposal directly from this link.
+                Share both the link and password with your client. The link expires in 30 days.
               </p>
             </div>
           )}

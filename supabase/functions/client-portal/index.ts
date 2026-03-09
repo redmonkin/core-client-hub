@@ -65,6 +65,25 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
 
+      // Check if password verification is needed
+      const passwordHash = (accessToken as any).password_hash;
+      const providedPasswordHash = url.searchParams.get("ph");
+
+      if (passwordHash && !providedPasswordHash) {
+        // Return that password is required (don't send proposal data)
+        return new Response(
+          JSON.stringify({ password_required: true }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      if (passwordHash && providedPasswordHash !== passwordHash) {
+        return new Response(
+          JSON.stringify({ error: "Incorrect password" }),
+          { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
       // Get the proposal with client info and user_id
       const { data: proposal, error: proposalError } = await supabase
         .from("proposals")
