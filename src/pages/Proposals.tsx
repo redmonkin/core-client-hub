@@ -48,7 +48,7 @@ import { ProposalPreviewDialog } from '@/components/proposals/ProposalPreviewDia
 import { ProposalData } from '@/lib/proposal-utils';
 import { useTemplates, Template } from '@/hooks/useTemplates';
 
-type ProposalStatus = 'draft' | 'sent' | 'approved' | 'rejected';
+type ProposalStatus = 'draft' | 'sent' | 'approved' | 'rejected' | 'change_requested';
 
 type Proposal = {
   id: string;
