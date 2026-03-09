@@ -170,7 +170,7 @@ export default function ClientPortal() {
 
   const isExpired = proposal.validity_date && new Date(proposal.validity_date) < new Date();
   const canRespond = ['sent', 'draft'].includes(proposal.status) && !isExpired && !responded;
-  const hasResponded = ['approved', 'rejected', 'revision_requested'].includes(proposal.status) || responded;
+  const hasResponded = ['approved', 'rejected', 'change_requested'].includes(proposal.status) || responded;
 
   const getRenderedContent = () => {
     if (!template?.content) return null;
@@ -263,9 +263,9 @@ export default function ClientPortal() {
           <div
             className="rounded-xl p-4 flex items-center justify-center gap-3 text-sm font-medium shadow-sm"
             style={{
-              backgroundColor: proposal.status === 'approved' ? '#f0fdf4' : proposal.status === 'revision_requested' ? '#fffbeb' : '#fef2f2',
-              border: `1px solid ${proposal.status === 'approved' ? '#bbf7d0' : proposal.status === 'revision_requested' ? '#fde68a' : '#fecaca'}`,
-              color: proposal.status === 'approved' ? '#166534' : proposal.status === 'revision_requested' ? '#92400e' : '#991b1b',
+              backgroundColor: proposal.status === 'approved' ? '#f0fdf4' : proposal.status === 'change_requested' ? '#fffbeb' : '#fef2f2',
+              border: `1px solid ${proposal.status === 'approved' ? '#bbf7d0' : proposal.status === 'change_requested' ? '#fde68a' : '#fecaca'}`,
+              color: proposal.status === 'approved' ? '#166534' : proposal.status === 'change_requested' ? '#92400e' : '#991b1b',
             }}
           >
             {proposal.status === 'approved' ? (
@@ -273,7 +273,7 @@ export default function ClientPortal() {
                 <ShieldCheck className="h-5 w-5" />
                 <span>This proposal has been approved</span>
               </>
-            ) : proposal.status === 'revision_requested' ? (
+            ) : proposal.status === 'change_requested' ? (
               <>
                 <Clock className="h-5 w-5" />
                 <span>Changes have been requested for this proposal</span>

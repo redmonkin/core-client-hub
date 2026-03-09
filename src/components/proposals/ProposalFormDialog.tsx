@@ -23,7 +23,7 @@ import { CostBreakdownTable } from './CostBreakdownTable';
 import { FileText, DollarSign, Settings, LayoutTemplate } from 'lucide-react';
 import { Template } from '@/hooks/useTemplates';
 
-type ProposalStatus = 'draft' | 'sent' | 'approved' | 'rejected';
+type ProposalStatus = 'draft' | 'sent' | 'approved' | 'rejected' | 'change_requested';
 
 interface ProposalFormData {
   title: string;
@@ -255,6 +255,7 @@ export function ProposalFormDialog({
                         <SelectItem value="sent">Sent</SelectItem>
                         <SelectItem value="approved">Approved</SelectItem>
                         <SelectItem value="rejected">Rejected</SelectItem>
+                        <SelectItem value="change_requested">Change Requested</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

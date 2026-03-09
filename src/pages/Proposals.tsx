@@ -48,7 +48,7 @@ import { ProposalPreviewDialog } from '@/components/proposals/ProposalPreviewDia
 import { ProposalData } from '@/lib/proposal-utils';
 import { useTemplates, Template } from '@/hooks/useTemplates';
 
-type ProposalStatus = 'draft' | 'sent' | 'approved' | 'rejected';
+type ProposalStatus = 'draft' | 'sent' | 'approved' | 'rejected' | 'change_requested';
 
 type Proposal = {
   id: string;
@@ -177,6 +177,16 @@ export default function Proposals() {
         .select()
         .single();
       if (error) throw error;
+
+      // Log initial status in history
+      await supabase.from('proposal_status_history').insert({
+        proposal_id: data.id,
+        user_id: user?.id,
+        from_status: null,
+        to_status: proposal.status,
+        note: 'Proposal created',
+      });
+
       return data;
     },
     onSuccess: () => {
@@ -191,7 +201,7 @@ export default function Proposals() {
   });
 
   const updateProposalMutation = useMutation({
-    mutationFn: async ({ id, ...proposal }: { id: string } & typeof editProposal) => {
+    mutationFn: async ({ id, previousStatus, ...proposal }: { id: string; previousStatus?: string } & typeof editProposal) => {
       const { data, error } = await supabase
         .from('proposals')
         .update({
@@ -209,10 +219,23 @@ export default function Proposals() {
         .select()
         .single();
       if (error) throw error;
+
+      // Log status change if it changed
+      if (previousStatus && previousStatus !== proposal.status) {
+        await supabase.from('proposal_status_history').insert({
+          proposal_id: id,
+          user_id: user?.id,
+          from_status: previousStatus,
+          to_status: proposal.status,
+          note: null,
+        });
+      }
+
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['proposals'] });
+      queryClient.invalidateQueries({ queryKey: ['proposal-status-history'] });
       setIsEditDialogOpen(false);
       setSelectedProposal(null);
       toast.success('Proposal updated successfully');
@@ -510,6 +533,7 @@ export default function Proposals() {
             <SelectItem value="sent">Sent</SelectItem>
             <SelectItem value="approved">Approved</SelectItem>
             <SelectItem value="rejected">Rejected</SelectItem>
+            <SelectItem value="change_requested">Change Requested</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -535,9 +559,14 @@ export default function Proposals() {
               >
                 {/* Proposal Title */}
                 <div className="min-w-0">
-                  <h3 className="truncate font-medium text-foreground group-hover:text-primary transition-colors">
-                    {proposal.title}
-                  </h3>
+                  <Link
+                    to={`/proposals/${proposal.id}`}
+                    className="block"
+                  >
+                    <h3 className="truncate font-medium text-foreground group-hover:text-primary transition-colors">
+                      {proposal.title}
+                    </h3>
+                  </Link>
                   {proposal.duration && (
                     <p className="mt-0.5 truncate text-xs text-muted-foreground">
                       Duration: {proposal.duration}
@@ -660,7 +689,7 @@ export default function Proposals() {
               ...prev,
               [selectedProposal.id]: templateId || '',
             }));
-            updateProposalMutation.mutate({ id: selectedProposal.id, ...data });
+            updateProposalMutation.mutate({ id: selectedProposal.id, previousStatus: selectedProposal.status, ...data });
           }
         }}
         initialData={editProposal}
