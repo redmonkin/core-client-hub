@@ -1,4 +1,5 @@
 import { format, differenceInDays } from 'date-fns';
+import { Link } from 'react-router-dom';
 import { AlertCircle, Calendar } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -28,37 +29,39 @@ export function RenewalCard({ clientName, projectName, endDate, value, contractT
   };
 
   return (
-    <Card className={cn("transition-all hover:shadow-md", getUrgencyColor())}>
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1 space-y-1">
-            <div className="flex items-center gap-2">
-              <h4 className="font-semibold text-foreground">{clientName}</h4>
-              <Badge variant={getUrgencyBadge()} className="text-xs">
-                {daysUntilRenewal} days
-              </Badge>
-            </div>
-            <p className="text-sm text-muted-foreground">{projectName}</p>
-            <div className="flex items-center gap-4 pt-2">
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Calendar className="h-3 w-3" />
-                <span>{format(endDate, 'MMM dd, yyyy')}</span>
+    <Link to="/contracts" className="block">
+      <Card className={cn("transition-all hover:shadow-md cursor-pointer", getUrgencyColor())}>
+        <CardContent className="p-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 space-y-1">
+              <div className="flex items-center gap-2">
+                <h4 className="font-semibold text-foreground">{clientName}</h4>
+                <Badge variant={getUrgencyBadge()} className="text-xs">
+                  {daysUntilRenewal} days
+                </Badge>
               </div>
-              <Badge variant="outline" className="text-xs">
-                {contractType.toUpperCase()}
-              </Badge>
+              <p className="text-sm text-muted-foreground">{projectName}</p>
+              <div className="flex items-center gap-4 pt-2">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Calendar className="h-3 w-3" />
+                  <span>{format(endDate, 'MMM dd, yyyy')}</span>
+                </div>
+                <Badge variant="outline" className="text-xs">
+                  {contractType.toUpperCase()}
+                </Badge>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-lg font-bold text-foreground">
+                ${value.toLocaleString()}
+              </p>
+              {daysUntilRenewal <= 30 && (
+                <AlertCircle className="ml-auto mt-1 h-4 w-4 text-destructive" />
+              )}
             </div>
           </div>
-          <div className="text-right">
-            <p className="text-lg font-bold text-foreground">
-              ${value.toLocaleString()}
-            </p>
-            {daysUntilRenewal <= 30 && (
-              <AlertCircle className="ml-auto mt-1 h-4 w-4 text-destructive" />
-            )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }

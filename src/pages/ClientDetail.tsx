@@ -1,5 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Mail, Phone, MapPin, FileText, FolderKanban, FileSignature, Briefcase, Building2, User } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, MapPin, FileText, FolderKanban, FileSignature, Building2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -97,6 +97,16 @@ export default function ClientDetail() {
 
   return (
     <div className="space-y-6 p-6">
+      {/* Back Button + Header */}
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" asChild>
+          <Link to="/clients">
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+        </Button>
+        <h1 className="text-2xl font-semibold text-foreground">{client.client_name}</h1>
+      </div>
+
       {/* Client Info Card - Full Width */}
       <Card>
         <CardContent className="p-6">
@@ -196,10 +206,11 @@ export default function ClientDetail() {
         <TabsContent value="projects" className="mt-4">
           <div className="space-y-3">
             {clientProjects.map(project => (
-              <Card key={project.id}>
-                <CardContent className="flex items-center justify-between p-4">
-                  <div>
-                    <p className="font-medium text-foreground">{project.project_name}</p>
+              <Link key={project.id} to={`/projects/${project.id}`} className="block">
+                <Card className="transition-all hover:border-primary/20 hover:shadow-sm">
+                  <CardContent className="flex items-center justify-between p-4">
+                    <div>
+                      <p className="font-medium text-foreground hover:text-primary transition-colors">{project.project_name}</p>
                     <div className="mt-1 flex items-center gap-2">
                       <span className="text-sm text-muted-foreground capitalize">
                         {project.project_type}
@@ -214,9 +225,10 @@ export default function ClientDetail() {
                       )}
                     </div>
                   </div>
-                  <StatusBadge status={project.status as any} />
-                </CardContent>
-              </Card>
+                    <StatusBadge status={project.status as any} />
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
             {clientProjects.length === 0 && (
               <p className="py-8 text-center text-muted-foreground">No projects yet</p>
@@ -227,19 +239,21 @@ export default function ClientDetail() {
         <TabsContent value="proposals" className="mt-4">
           <div className="space-y-3">
             {clientProposals.map(proposal => (
-              <Card key={proposal.id}>
-                <CardContent className="flex items-center justify-between p-4">
-                  <div>
-                    <p className="font-medium text-foreground">{proposal.title}</p>
+              <Link key={proposal.id} to="/proposals" className="block">
+                <Card className="transition-all hover:border-primary/20 hover:shadow-sm">
+                  <CardContent className="flex items-center justify-between p-4">
+                    <div>
+                      <p className="font-medium text-foreground hover:text-primary transition-colors">{proposal.title}</p>
                     {proposal.validity_date && (
                       <p className="mt-1 text-sm text-muted-foreground">
                         Valid until {format(new Date(proposal.validity_date), 'MMM dd, yyyy')}
                       </p>
                     )}
                   </div>
-                  <StatusBadge status={proposal.status as any} />
-                </CardContent>
-              </Card>
+                    <StatusBadge status={proposal.status as any} />
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
             {clientProposals.length === 0 && (
               <p className="py-8 text-center text-muted-foreground">No proposals yet</p>
@@ -250,12 +264,13 @@ export default function ClientDetail() {
         <TabsContent value="contracts" className="mt-4">
           <div className="space-y-3">
             {clientContracts.map(contract => (
-              <Card key={contract.id}>
-                <CardContent className="flex items-center justify-between p-4">
-                  <div>
-                    <p className="font-medium capitalize text-foreground">
-                      {contract.contract_type} Contract
-                    </p>
+              <Link key={contract.id} to="/contracts" className="block">
+                <Card className="transition-all hover:border-primary/20 hover:shadow-sm">
+                  <CardContent className="flex items-center justify-between p-4">
+                    <div>
+                      <p className="font-medium capitalize text-foreground hover:text-primary transition-colors">
+                        {contract.contract_type} Contract
+                      </p>
                     <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
                       <span>${Number(contract.value).toLocaleString()}</span>
                       <span>•</span>
@@ -264,9 +279,10 @@ export default function ClientDetail() {
                       </span>
                     </div>
                   </div>
-                  <StatusBadge status={contract.status as any} />
-                </CardContent>
-              </Card>
+                    <StatusBadge status={contract.status as any} />
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
             {clientContracts.length === 0 && (
               <p className="py-8 text-center text-muted-foreground">No contracts yet</p>
