@@ -65,6 +65,11 @@ type Client = {
   id: string;
   client_name: string;
   email: string | null;
+  designation: string | null;
+  phone: string | null;
+  company_name: string | null;
+  billing_address: string | null;
+  primary_contact_name: string | null;
 };
 
 interface ProposalFormData {
