@@ -64,6 +64,7 @@ const emptyFormData: ProposalFormData = {
   projectId: '',
   scopeOfWork: '',
   costBreakdown: '',
+  customerGoals: '',
   validityDate: '',
   status: 'draft',
 };
