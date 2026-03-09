@@ -98,24 +98,28 @@ export default function Dashboard() {
           value={activeClients}
           icon={Users}
           description={`${clients.length} total clients`}
+          href="/clients"
         />
         <StatCard
           title="Active Projects"
           value={activeProjects}
           icon={FolderKanban}
           description={`${projects.length} total projects`}
+          href="/projects"
         />
         <StatCard
           title="Pending Proposals"
           value={pendingProposals}
           icon={FileText}
           description="Awaiting approval"
+          href="/proposals"
         />
         <StatCard
           title="Upcoming Renewals"
           value={upcomingRenewals.length}
           icon={FileSignature}
           description="Within 90 days"
+          href="/contracts"
         />
       </div>
 
