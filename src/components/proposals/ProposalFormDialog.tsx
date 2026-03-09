@@ -218,7 +218,7 @@ export function ProposalFormDialog({
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="validityDate">Valid Until</Label>
                     <Input
@@ -226,6 +226,16 @@ export function ProposalFormDialog({
                       type="date"
                       value={formData.validityDate}
                       onChange={(e) => setFormData({ ...formData, validityDate: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="duration">Project Duration</Label>
+                    <Input
+                      id="duration"
+                      value={formData.duration}
+                      onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+                      placeholder="e.g., 3 months"
                     />
                   </div>
 
