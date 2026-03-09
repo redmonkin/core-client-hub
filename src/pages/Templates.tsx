@@ -50,7 +50,7 @@ export default function Templates() {
 
   const templateTypeColors: Record<TemplateType, string> = {
     'proposal': 'bg-primary/10 text-primary',
-    'contract': 'bg-accent text-accent-foreground',
+    'contract': 'bg-secondary text-secondary-foreground',
   };
 
   const handleDuplicate = (template: Template) => {
