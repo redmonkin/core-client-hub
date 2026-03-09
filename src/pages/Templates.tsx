@@ -217,13 +217,8 @@ export default function Templates() {
                   </DropdownMenu>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="rounded-xl bg-muted/50 p-4">
-                  <p className="line-clamp-4 text-sm text-muted-foreground">
-                    {stripHtml(template.content) || 'No content'}
-                  </p>
-                </div>
-                <p className="mt-4 text-xs text-muted-foreground">
+              <CardContent className="pt-0">
+                <p className="text-xs text-muted-foreground">
                   Created {format(new Date(template.created_at), 'MMM dd, yyyy')}
                 </p>
               </CardContent>
