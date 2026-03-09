@@ -170,21 +170,16 @@ export default function Templates() {
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {templates.map(template => (
             <Card key={template.id} className="group overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5">
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 transition-transform duration-300 group-hover:scale-110">
-                      <FileCode className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-base">{template.name}</CardTitle>
-                      <Badge 
-                        variant="secondary" 
-                        className={`mt-1.5 text-xs ${templateTypeColors[template.type]}`}
-                      >
-                        {templateTypeLabels[template.type]}
-                      </Badge>
-                    </div>
+                  <div className="flex-1">
+                    <CardTitle className="text-base leading-snug">{template.name}</CardTitle>
+                    <Badge 
+                      variant="secondary" 
+                      className={`mt-2 text-xs ${templateTypeColors[template.type]}`}
+                    >
+                      {templateTypeLabels[template.type]}
+                    </Badge>
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
