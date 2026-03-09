@@ -78,11 +78,15 @@ export function ProposalFormDialog({
   initialData,
   clients,
   projects,
+  templates = [],
   isSubmitting = false,
   mode = 'create',
 }: ProposalFormDialogProps) {
   const [formData, setFormData] = useState<ProposalFormData>(initialData || emptyFormData);
   const [activeTab, setActiveTab] = useState('details');
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+
+  const proposalTemplates = templates.filter(t => t.type === 'proposal');
 
   useEffect(() => {
     if (open) {
