@@ -100,7 +100,7 @@ export function ProposalFormDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    onSubmit({ ...formData, templateId: selectedTemplateId || undefined });
   };
 
   const isValid = formData.title.trim() && formData.clientId;
