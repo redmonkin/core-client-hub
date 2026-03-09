@@ -185,6 +185,22 @@ export default function ClientPortal() {
 
   const renderedContent = getRenderedContent();
 
+  const handleExportPdf = async () => {
+    if (!renderedContent) return;
+    setIsExporting(true);
+    const toastId = toast.loading('Generating PDF...');
+    try {
+      const filename = `${proposal.title.replace(/[^a-z0-9]/gi, '_')}_proposal.pdf`;
+      await exportToPdf(renderedContent, filename);
+      toast.success('PDF downloaded successfully', { id: toastId });
+    } catch (error: any) {
+      console.error('Error generating PDF:', error);
+      toast.error('Failed to generate PDF', { id: toastId });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-muted/30 py-8 px-4">
       <div className="max-w-3xl mx-auto space-y-6">
