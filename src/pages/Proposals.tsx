@@ -54,6 +54,7 @@ type Proposal = {
   project_id: string | null;
   scope_of_work: string | null;
   cost_breakdown: string | null;
+  customer_goals: string | null;
   validity_date: string | null;
   status: string;
 };
@@ -70,6 +71,7 @@ interface ProposalFormData {
   projectId: string;
   scopeOfWork: string;
   costBreakdown: string;
+  customerGoals: string;
   validityDate: string;
   status: ProposalStatus;
 }
@@ -80,6 +82,7 @@ const emptyProposal: ProposalFormData = {
   projectId: '',
   scopeOfWork: '',
   costBreakdown: '',
+  customerGoals: '',
   validityDate: '',
   status: 'draft',
 };
@@ -147,6 +150,7 @@ export default function Proposals() {
           project_id: proposal.projectId || null,
           scope_of_work: proposal.scopeOfWork || null,
           cost_breakdown: proposal.costBreakdown || null,
+          customer_goals: proposal.customerGoals || null,
           validity_date: proposal.validityDate || null,
           status: proposal.status,
           user_id: user?.id,
@@ -177,6 +181,7 @@ export default function Proposals() {
           project_id: proposal.projectId || null,
           scope_of_work: proposal.scopeOfWork || null,
           cost_breakdown: proposal.costBreakdown || null,
+          customer_goals: proposal.customerGoals || null,
           validity_date: proposal.validityDate || null,
           status: proposal.status,
         })
@@ -297,6 +302,7 @@ export default function Proposals() {
       projectId: proposal.project_id || '',
       scopeOfWork: proposal.scope_of_work || '',
       costBreakdown: proposal.cost_breakdown || '',
+      customerGoals: proposal.customer_goals || '',
       validityDate: proposal.validity_date || '',
       status: proposal.status as ProposalStatus,
     });
@@ -315,6 +321,7 @@ export default function Proposals() {
       projectId: proposal.project_id || '',
       scopeOfWork: proposal.scope_of_work || '',
       costBreakdown: proposal.cost_breakdown || '',
+      customerGoals: proposal.customer_goals || '',
       validityDate: '',
       status: 'draft',
     });
