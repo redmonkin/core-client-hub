@@ -77,7 +77,9 @@ const handler = async (req: Request): Promise<Response> => {
           client_id,
           project_id,
           user_id,
-          created_at
+          created_at,
+          customer_goals,
+          duration
         `)
         .eq("id", accessToken.proposal_id)
         .single();
@@ -87,10 +89,10 @@ const handler = async (req: Request): Promise<Response> => {
         throw proposalError;
       }
 
-      // Get client name
+      // Get client details
       const { data: client } = await supabase
         .from("clients")
-        .select("client_name, company_name")
+        .select("client_name, company_name, email, phone, designation, billing_address")
         .eq("id", proposal.client_id)
         .single();
 
@@ -110,6 +112,16 @@ const handler = async (req: Request): Promise<Response> => {
         .from("branding_settings")
         .select("company_name, company_logo_url, primary_color, accent_color, tagline, website_url, support_email")
         .eq("user_id", proposal.user_id)
+        .maybeSingle();
+
+      // Get the user's proposal template
+      const { data: template } = await supabase
+        .from("templates")
+        .select("content, name")
+        .eq("user_id", proposal.user_id)
+        .eq("type", "proposal")
+        .order("updated_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       // Update viewed_at and create notification if not already viewed
@@ -151,9 +163,14 @@ const handler = async (req: Request): Promise<Response> => {
             ...proposal,
             client_name: client?.client_name,
             company_name: client?.company_name,
+            client_email: client?.email,
+            client_phone: client?.phone,
+            client_designation: client?.designation,
+            client_address: client?.billing_address,
             project_name: projectName,
           },
           branding: branding || null,
+          template: template || null,
         }),
         { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );

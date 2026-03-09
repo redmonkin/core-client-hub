@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { FileText, Check, X, Loader2, AlertCircle, Clock, Globe, Mail } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { replacePlaceholders, ProposalData } from '@/lib/proposal-utils';
 
 type PortalProposal = {
   id: string;
@@ -16,7 +16,13 @@ type PortalProposal = {
   status: string;
   client_name: string | null;
   company_name: string | null;
+  client_email: string | null;
+  client_phone: string | null;
+  client_designation: string | null;
+  client_address: string | null;
   project_name: string | null;
+  customer_goals: string | null;
+  duration: string | null;
   created_at: string;
 };
 
@@ -30,19 +36,24 @@ type BrandingSettings = {
   support_email: string | null;
 };
 
+type TemplateData = {
+  content: string;
+  name: string;
+} | null;
+
 export default function ClientPortal() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   
   const [proposal, setProposal] = useState<PortalProposal | null>(null);
   const [branding, setBranding] = useState<BrandingSettings | null>(null);
+  const [template, setTemplate] = useState<TemplateData>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [responded, setResponded] = useState(false);
 
   const primaryColor = branding?.primary_color || '#8B5CF6';
-  const accentColor = branding?.accent_color || '#F59E0B';
 
   useEffect(() => {
     if (!token) {
@@ -69,6 +80,7 @@ export default function ClientPortal() {
 
       setProposal(result.proposal);
       setBranding(result.branding);
+      setTemplate(result.template);
     } catch (err: any) {
       console.error('Error fetching proposal:', err);
       setError(err.message);
@@ -144,6 +156,33 @@ export default function ClientPortal() {
   const isExpired = proposal.validity_date && new Date(proposal.validity_date) < new Date();
   const canRespond = proposal.status === 'sent' && !isExpired && !responded;
 
+  // Build the rendered template content
+  const getRenderedContent = () => {
+    if (!template?.content) return null;
+
+    const proposalData: ProposalData = {
+      title: proposal.title,
+      clientName: proposal.client_name || '',
+      clientDesignation: proposal.client_designation || '',
+      clientEmail: proposal.client_email || '',
+      clientPhone: proposal.client_phone || '',
+      companyName: proposal.company_name || '',
+      companyAddress: proposal.client_address || '',
+      projectName: proposal.project_name || '',
+      projectWebsite: '',
+      customerGoals: proposal.customer_goals || '',
+      scopeOfWork: proposal.scope_of_work || '',
+      costBreakdown: proposal.cost_breakdown || '',
+      validityDate: proposal.validity_date || '',
+      duration: proposal.duration || '',
+      createdAt: proposal.created_at,
+    };
+
+    return replacePlaceholders(template.content, proposalData, false);
+  };
+
+  const renderedContent = getRenderedContent();
+
   return (
     <div className="min-h-screen bg-muted/30 py-8 px-4">
       <div className="max-w-3xl mx-auto space-y-6">
@@ -174,11 +213,6 @@ export default function ClientPortal() {
           {branding?.tagline && (
             <p className="text-sm text-muted-foreground">{branding.tagline}</p>
           )}
-          
-          <h1 className="text-2xl font-bold text-foreground mt-4">Proposal Review</h1>
-          <p className="text-muted-foreground mt-1">
-            {proposal.company_name || proposal.client_name}
-          </p>
         </div>
 
         {/* Status Banner */}
@@ -213,112 +247,59 @@ export default function ClientPortal() {
           </Card>
         )}
 
-        {/* Proposal Details */}
+        {/* Proposal Content */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-xl">{proposal.title}</CardTitle>
-            {proposal.project_name && (
-              <CardDescription>Project: {proposal.project_name}</CardDescription>
-            )}
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {proposal.scope_of_work && (
-              <div>
-                <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground mb-2">
-                  Scope of Work
-                </h3>
-                <div 
-                  className="bg-muted/50 rounded-lg p-4 prose prose-sm max-w-none text-foreground [&_h1]:text-foreground [&_h2]:text-foreground [&_h3]:text-foreground [&_strong]:text-foreground [&_li]:text-foreground"
-                  dangerouslySetInnerHTML={{ __html: proposal.scope_of_work }}
-                />
-              </div>
-            )}
-
-            {proposal.cost_breakdown && (() => {
-              try {
-                const costData = JSON.parse(proposal.cost_breakdown);
-                const items = costData.items || [];
-                const taxRate = costData.taxRate || 0;
-                const additionalDiscount = costData.additionalDiscount || 0;
-                const subtotal = items.reduce((sum: number, item: any) => {
-                  const lineTotal = (item.quantity * item.unitPrice) - (item.discount || 0);
-                  return sum + lineTotal;
-                }, 0);
-                const afterDiscount = subtotal - additionalDiscount;
-                const tax = afterDiscount * (taxRate / 100);
-                const total = afterDiscount + tax;
-
-                return (
+          <CardContent className="p-8">
+            {renderedContent ? (
+              <div
+                className="prose prose-sm max-w-none text-foreground
+                  prose-headings:text-foreground
+                  prose-p:text-foreground
+                  prose-strong:text-foreground
+                  prose-li:text-foreground
+                  prose-td:text-foreground
+                  prose-th:text-foreground
+                  [&_table]:w-full [&_table]:border-collapse
+                  [&_th]:bg-muted/50 [&_th]:border-b-2 [&_th]:border-border
+                  [&_td]:border-b [&_td]:border-border/50"
+                dangerouslySetInnerHTML={{ __html: renderedContent }}
+              />
+            ) : (
+              /* Fallback: show raw fields if no template */
+              <div className="space-y-6">
+                <h2 className="text-xl font-bold">{proposal.title}</h2>
+                {proposal.project_name && (
+                  <p className="text-muted-foreground">Project: {proposal.project_name}</p>
+                )}
+                {proposal.scope_of_work && (
                   <div>
                     <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground mb-2">
-                      Cost Breakdown
+                      Scope of Work
                     </h3>
-                    <div className="bg-muted/50 rounded-lg p-4 overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b">
-                            <th className="text-left py-2 font-medium text-muted-foreground">Description</th>
-                            <th className="text-right py-2 font-medium text-muted-foreground">Qty</th>
-                            <th className="text-right py-2 font-medium text-muted-foreground">Rate</th>
-                            <th className="text-right py-2 font-medium text-muted-foreground">Amount</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {items.map((item: any, idx: number) => (
-                            <tr key={idx} className="border-b border-border/50">
-                              <td className="py-2">{item.description}</td>
-                              <td className="text-right py-2">{item.quantity}</td>
-                              <td className="text-right py-2">₹{item.unitPrice?.toLocaleString('en-IN')}</td>
-                              <td className="text-right py-2">₹{((item.quantity * item.unitPrice) - (item.discount || 0)).toLocaleString('en-IN')}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                        <tfoot>
-                          {additionalDiscount > 0 && (
-                            <tr className="border-b border-border/50">
-                              <td colSpan={3} className="text-right py-2 text-muted-foreground">Discount</td>
-                              <td className="text-right py-2">-₹{additionalDiscount.toLocaleString('en-IN')}</td>
-                            </tr>
-                          )}
-                          {taxRate > 0 && (
-                            <tr className="border-b border-border/50">
-                              <td colSpan={3} className="text-right py-2 text-muted-foreground">Tax ({taxRate}%)</td>
-                              <td className="text-right py-2">₹{tax.toLocaleString('en-IN')}</td>
-                            </tr>
-                          )}
-                          <tr>
-                            <td colSpan={3} className="text-right py-2 font-semibold">Total</td>
-                            <td className="text-right py-2 font-semibold">₹{total.toLocaleString('en-IN')}</td>
-                          </tr>
-                        </tfoot>
-                      </table>
-                      {costData.notes && (
-                        <p className="text-xs text-muted-foreground mt-3">{costData.notes}</p>
-                      )}
-                    </div>
+                    <div 
+                      className="bg-muted/50 rounded-lg p-4 prose prose-sm max-w-none text-foreground"
+                      dangerouslySetInnerHTML={{ __html: proposal.scope_of_work }}
+                    />
                   </div>
-                );
-              } catch {
-                return null;
-              }
-            })()}
-
-            <div className="flex flex-wrap gap-4 pt-4 border-t">
-              {proposal.validity_date && (
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Valid Until</p>
-                  <p className="text-sm font-medium mt-1">
-                    {format(new Date(proposal.validity_date), 'MMMM dd, yyyy')}
-                  </p>
+                )}
+                <div className="flex flex-wrap gap-4 pt-4 border-t">
+                  {proposal.validity_date && (
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Valid Until</p>
+                      <p className="text-sm font-medium mt-1">
+                        {format(new Date(proposal.validity_date), 'MMMM dd, yyyy')}
+                      </p>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Sent On</p>
+                    <p className="text-sm font-medium mt-1">
+                      {format(new Date(proposal.created_at), 'MMMM dd, yyyy')}
+                    </p>
+                  </div>
                 </div>
-              )}
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Sent On</p>
-                <p className="text-sm font-medium mt-1">
-                  {format(new Date(proposal.created_at), 'MMMM dd, yyyy')}
-                </p>
               </div>
-            </div>
+            )}
           </CardContent>
 
           {canRespond && (
