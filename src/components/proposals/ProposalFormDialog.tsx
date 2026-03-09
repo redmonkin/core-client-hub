@@ -33,6 +33,7 @@ interface ProposalFormData {
   costBreakdown: string;
   customerGoals: string;
   validityDate: string;
+  duration: string;
   status: ProposalStatus;
 }
 
