@@ -28,17 +28,17 @@ async function exportToPdf(html: string, filename: string) {
 
   const A4_WIDTH_MM = 210;
   const A4_HEIGHT_MM = 297;
-  const MARGIN_MM = 10;
+  const MARGIN_MM = 15;
   const CONTENT_WIDTH_MM = A4_WIDTH_MM - MARGIN_MM * 2;
   const CONTENT_HEIGHT_MM = A4_HEIGHT_MM - MARGIN_MM * 2;
-  const SECTION_GAP_MM = 3;
 
-  // Create an off-screen container with fully inlined styles
+  // Create off-screen container with inlined styles
   const container = document.createElement('div');
   container.style.position = 'absolute';
   container.style.left = '-9999px';
   container.style.top = '0';
-  container.style.width = '794px';
+  // Set width to match A4 content area at 2x scale for sharp rendering
+  container.style.width = '680px';
   container.style.background = '#ffffff';
   document.body.appendChild(container);
 
@@ -49,7 +49,7 @@ async function exportToPdf(html: string, filename: string) {
         font-size: 14px;
         line-height: 1.7;
         color: #1a1a1a;
-        padding: 50px 55px;
+        padding: 10px 0;
         max-width: 100%;
         word-wrap: break-word;
       }
@@ -70,119 +70,67 @@ async function exportToPdf(html: string, filename: string) {
       .pdf-content table td { padding: 8px 12px; border-bottom: 1px solid #e5e7eb; color: #374151; }
       .pdf-content table tfoot td { font-weight: 600; }
       .pdf-content img { max-width: 100%; height: auto; }
-      [data-pdf-section] { break-inside: avoid; page-break-inside: avoid; }
     </style>
     <div class="pdf-content">${html}</div>
   `;
 
   try {
-    const content = container.querySelector('.pdf-content') as HTMLElement | null;
-    if (!content) throw new Error('Unable to prepare PDF content');
-
-    // Build logical sections to improve page breaks (heading + related content)
-    const originalNodes = Array.from(content.childNodes);
-    content.innerHTML = '';
-
-    const createSection = () => {
-      const section = document.createElement('section');
-      section.setAttribute('data-pdf-section', 'true');
-      return section;
-    };
-
-    let currentSection = createSection();
-
-    for (const node of originalNodes) {
-      const isWhitespaceText = node.nodeType === Node.TEXT_NODE && !node.textContent?.trim();
-      if (isWhitespaceText) continue;
-
-      const element = node.nodeType === Node.ELEMENT_NODE ? (node as HTMLElement) : null;
-      const isHeading = !!element?.matches('h1, h2, h3');
-
-      if (isHeading && currentSection.childNodes.length > 0) {
-        content.appendChild(currentSection);
-        currentSection = createSection();
-      }
-
-      currentSection.appendChild(node);
-    }
-
-    if (currentSection.childNodes.length > 0) {
-      content.appendChild(currentSection);
-    }
-
-    const sections = Array.from(content.querySelectorAll('[data-pdf-section]')) as HTMLElement[];
-    if (sections.length === 0) throw new Error('No PDF sections found');
+    // Render the full content as a single canvas
+    const canvas = await html2canvas(container.querySelector('.pdf-content') as HTMLElement, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      backgroundColor: '#ffffff',
+    });
 
     const pdf = new jsPDF('p', 'mm', 'a4');
-    let currentY = MARGIN_MM;
 
-    for (let i = 0; i < sections.length; i++) {
-      const section = sections[i];
-      const canvas = await html2canvas(section, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-      });
+    // Calculate how many pixels correspond to one page of content
+    const pxPerMm = canvas.width / CONTENT_WIDTH_MM;
+    const pageHeightPx = Math.floor(CONTENT_HEIGHT_MM * pxPerMm);
+    const totalPages = Math.ceil(canvas.height / pageHeightPx);
 
-      const sectionHeightMm = (canvas.height * CONTENT_WIDTH_MM) / canvas.width;
+    for (let page = 0; page < totalPages; page++) {
+      if (page > 0) pdf.addPage();
 
-      // If section fits, keep it together on one page
-      if (sectionHeightMm <= CONTENT_HEIGHT_MM) {
-        if (currentY + sectionHeightMm > A4_HEIGHT_MM - MARGIN_MM && currentY > MARGIN_MM) {
-          pdf.addPage();
-          currentY = MARGIN_MM;
-        }
+      const srcY = page * pageHeightPx;
+      const sliceHeight = Math.min(pageHeightPx, canvas.height - srcY);
 
-        pdf.addImage(
-          canvas.toDataURL('image/png'),
-          'PNG',
-          MARGIN_MM,
-          currentY,
-          CONTENT_WIDTH_MM,
-          sectionHeightMm
-        );
+      // Create a canvas slice for this page
+      const pageCanvas = document.createElement('canvas');
+      pageCanvas.width = canvas.width;
+      pageCanvas.height = sliceHeight;
 
-        currentY += sectionHeightMm + SECTION_GAP_MM;
-        continue;
-      }
+      const ctx = pageCanvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas context failed');
 
-      // Fallback for very tall sections: split only this section into slices
-      const pxPerMm = canvas.width / CONTENT_WIDTH_MM;
-      const maxSlicePx = Math.floor(CONTENT_HEIGHT_MM * pxPerMm);
-      let offsetPx = 0;
+      // Fill white background first
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
 
-      while (offsetPx < canvas.height) {
-        if (currentY > MARGIN_MM + 0.1) {
-          pdf.addPage();
-          currentY = MARGIN_MM;
-        }
+      // Draw the slice from the full canvas
+      ctx.drawImage(
+        canvas,
+        0, srcY, canvas.width, sliceHeight,
+        0, 0, canvas.width, sliceHeight
+      );
 
-        const sliceHeightPx = Math.min(maxSlicePx, canvas.height - offsetPx);
-        const sliceCanvas = document.createElement('canvas');
-        sliceCanvas.width = canvas.width;
-        sliceCanvas.height = sliceHeightPx;
+      const sliceHeightMm = sliceHeight / pxPerMm;
+      pdf.addImage(
+        pageCanvas.toDataURL('image/png'),
+        'PNG',
+        MARGIN_MM,
+        MARGIN_MM,
+        CONTENT_WIDTH_MM,
+        sliceHeightMm
+      );
+    }
 
-        const ctx = sliceCanvas.getContext('2d');
-        if (!ctx) throw new Error('Failed to create canvas context for PDF slice');
-
-        ctx.drawImage(
-          canvas,
-          0,
-          offsetPx,
-          canvas.width,
-          sliceHeightPx,
-          0,
-          0,
-          canvas.width,
-          sliceHeightPx
-        );
-
-        const sliceHeightMm = sliceHeightPx / pxPerMm;
-        pdf.addImage(
-          sliceCanvas.toDataURL('image/png'),
-          'PNG',
-          MARGIN_MM,
+    pdf.save(filename);
+  } finally {
+    document.body.removeChild(container);
+  }
+}
           currentY,
           CONTENT_WIDTH_MM,
           sliceHeightMm
