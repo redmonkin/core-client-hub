@@ -44,7 +44,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { ProposalFormDialog } from '@/components/proposals/ProposalFormDialog';
-import { ProposalPreviewDialog, ProposalData } from '@/components/proposals/ProposalPreviewDialog';
+import { ProposalPreviewDialog } from '@/components/proposals/ProposalPreviewDialog';
+import { ProposalData } from '@/lib/proposal-utils';
 import { useTemplates, Template } from '@/hooks/useTemplates';
 
 type ProposalStatus = 'draft' | 'sent' | 'approved' | 'rejected';
@@ -258,49 +259,35 @@ export default function Proposals() {
   };
 
 
-  const handleExportPDF = async (proposal: Proposal) => {
-    const toastId = toast.loading('Generating PDF...');
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-proposal-pdf', {
-        body: {
-          proposalTitle: proposal.title,
-          clientName: getClientName(proposal.client_id),
-          projectName: getProjectName(proposal.project_id),
-          scopeOfWork: proposal.scope_of_work,
-          costBreakdown: proposal.cost_breakdown,
-          validityDate: proposal.validity_date,
-          status: proposal.status,
-        },
-      });
-
-      if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || 'Failed to generate PDF');
-
-      // Convert base64 to blob and download
-      const byteCharacters = atob(data.pdf);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], { type: 'application/pdf' });
-      
-      // Create download link
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${proposal.title.replace(/[^a-z0-9]/gi, '_')}_proposal.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      toast.success('PDF downloaded successfully', { id: toastId });
-    } catch (error: any) {
-      console.error('Error generating PDF:', error);
-      toast.error('Failed to generate PDF: ' + error.message, { id: toastId });
+  const handleExportPDF = (proposal: Proposal) => {
+    const proposalTemplates = templates.filter(t => t.type === 'proposal');
+    if (proposalTemplates.length === 0) {
+      toast.error('No proposal templates found. Create a template first to export PDF.');
+      return;
     }
+    // Open preview dialog — user can export PDF from there
+    const client = clients.find(c => c.id === proposal.client_id);
+    const project = projects.find(p => p.id === proposal.project_id);
+    
+    setPreviewProposalData({
+      title: proposal.title,
+      clientName: client?.primary_contact_name || client?.client_name || '',
+      clientDesignation: client?.designation || '',
+      clientEmail: client?.email || '',
+      clientPhone: client?.phone || '',
+      companyName: client?.company_name || client?.client_name || '',
+      companyAddress: client?.billing_address || '',
+      projectName: project?.project_name || '',
+      projectWebsite: '',
+      customerGoals: proposal.customer_goals || '',
+      scopeOfWork: proposal.scope_of_work || '',
+      costBreakdown: proposal.cost_breakdown || '',
+      validityDate: proposal.validity_date || '',
+      duration: proposal.duration || '',
+      createdAt: new Date().toISOString(),
+    });
+    setPreviewTemplate(proposalTemplates[0]);
+    setIsPreviewOpen(true);
   };
 
   const handleSubmit = ({ templateId, ...data }: ProposalFormData & { templateId?: string }) => {
