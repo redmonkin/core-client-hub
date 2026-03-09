@@ -1,0 +1,1 @@
+ALTER TABLE public.proposals ADD COLUMN customer_goals text NULL;

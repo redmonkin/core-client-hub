@@ -320,6 +320,7 @@ export type Database = {
           client_id: string
           cost_breakdown: string | null
           created_at: string
+          customer_goals: string | null
           id: string
           project_id: string | null
           scope_of_work: string | null
@@ -333,6 +334,7 @@ export type Database = {
           client_id: string
           cost_breakdown?: string | null
           created_at?: string
+          customer_goals?: string | null
           id?: string
           project_id?: string | null
           scope_of_work?: string | null
@@ -346,6 +348,7 @@ export type Database = {
           client_id?: string
           cost_breakdown?: string | null
           created_at?: string
+          customer_goals?: string | null
           id?: string
           project_id?: string | null
           scope_of_work?: string | null
