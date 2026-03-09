@@ -187,6 +187,35 @@ export function ProposalFormDialog({
                   </div>
                 </div>
 
+                {proposalTemplates.length > 0 && (
+                  <div className="space-y-2">
+                    <Label htmlFor="template">
+                      <span className="flex items-center gap-1.5">
+                        <LayoutTemplate className="h-3.5 w-3.5" />
+                        Template (Optional)
+                      </span>
+                    </Label>
+                    <Select
+                      value={selectedTemplateId}
+                      onValueChange={setSelectedTemplateId}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a template for preview" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {proposalTemplates.map((tmpl) => (
+                          <SelectItem key={tmpl.id} value={tmpl.id}>
+                            {tmpl.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Choose a template to preview the final proposal with your data filled in.
+                    </p>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="validityDate">Valid Until</Label>
