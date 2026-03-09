@@ -163,9 +163,14 @@ const handler = async (req: Request): Promise<Response> => {
             ...proposal,
             client_name: client?.client_name,
             company_name: client?.company_name,
+            client_email: client?.email,
+            client_phone: client?.phone,
+            client_designation: client?.designation,
+            client_address: client?.billing_address,
             project_name: projectName,
           },
           branding: branding || null,
+          template: template || null,
         }),
         { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
