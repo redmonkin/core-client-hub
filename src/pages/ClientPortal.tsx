@@ -209,6 +209,51 @@ export default function ClientPortal() {
     );
   }
 
+  if (passwordRequired && !authenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="max-w-sm w-full shadow-lg">
+          <CardContent className="pt-8 pb-8">
+            <form onSubmit={handlePasswordSubmit} className="flex flex-col items-center text-center gap-5">
+              <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+                <Lock className="h-8 w-8 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-foreground">Password Required</h2>
+                <p className="text-muted-foreground mt-2 text-sm">
+                  Enter the password provided by the sender to view this proposal.
+                </p>
+              </div>
+              <div className="w-full space-y-3">
+                <Input
+                  type="text"
+                  placeholder="Enter password"
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); setPasswordError(''); }}
+                  className="text-center font-mono tracking-widest text-lg uppercase"
+                  autoFocus
+                />
+                {passwordError && (
+                  <p className="text-sm text-destructive">{passwordError}</p>
+                )}
+                <Button type="submit" className="w-full" disabled={verifyingPassword || !password.trim()}>
+                  {verifyingPassword ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Verifying...
+                    </>
+                  ) : (
+                    'Access Proposal'
+                  )}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (!proposal) return null;
 
   const isExpired = proposal.validity_date && new Date(proposal.validity_date) < new Date();
