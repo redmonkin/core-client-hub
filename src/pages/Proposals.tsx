@@ -105,6 +105,11 @@ export default function Proposals() {
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [shareLink, setShareLink] = useState('');
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null);
+  const [previewProposalData, setPreviewProposalData] = useState<ProposalData | null>(null);
+
+  const { templates } = useTemplates();
 
   const { data: proposals = [], isLoading: proposalsLoading } = useQuery({
     queryKey: ['proposals'],
