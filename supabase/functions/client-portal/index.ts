@@ -114,6 +114,16 @@ const handler = async (req: Request): Promise<Response> => {
         .eq("user_id", proposal.user_id)
         .maybeSingle();
 
+      // Get the user's proposal template
+      const { data: template } = await supabase
+        .from("templates")
+        .select("content, name")
+        .eq("user_id", proposal.user_id)
+        .eq("type", "proposal")
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
       // Update viewed_at and create notification if not already viewed
       if (!accessToken.viewed_at) {
         await supabase
