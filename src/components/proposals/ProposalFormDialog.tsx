@@ -51,10 +51,11 @@ interface Project {
 interface ProposalFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: ProposalFormData) => void;
+  onSubmit: (data: ProposalFormData & { templateId?: string }) => void;
   initialData?: ProposalFormData;
   clients: Client[];
   projects: Project[];
+  templates?: Template[];
   isSubmitting?: boolean;
   mode?: 'create' | 'edit';
 }
