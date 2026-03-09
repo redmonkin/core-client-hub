@@ -338,6 +338,7 @@ export default function Proposals() {
       scopeOfWork: proposal.scope_of_work || '',
       costBreakdown: proposal.cost_breakdown || '',
       customerGoals: proposal.customer_goals || '',
+      duration: proposal.duration || '',
       validityDate: '',
       status: 'draft',
     });
