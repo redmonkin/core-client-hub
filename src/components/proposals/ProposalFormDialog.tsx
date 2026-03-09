@@ -217,11 +217,10 @@ export function ProposalFormDialog({
                   <p className="text-sm text-muted-foreground">
                     Describe the client's objectives and desired outcomes for this project.
                   </p>
-                  <textarea
-                    className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  <ScopeOfWorkEditor
+                    content={formData.customerGoals}
+                    onChange={(content) => setFormData({ ...formData, customerGoals: content })}
                     placeholder="e.g., Increase online conversions by 30%, improve mobile experience..."
-                    value={formData.customerGoals}
-                    onChange={(e) => setFormData({ ...formData, customerGoals: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
