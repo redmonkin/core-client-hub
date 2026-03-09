@@ -17,6 +17,57 @@ interface TemplatePreviewDialogProps {
   onEdit?: (template: Template) => void;
 }
 
+// Sample cost breakdown for preview
+const sampleCostBreakdownHtml = `
+<table style="width:100%; border-collapse:collapse; margin:1em 0;">
+  <thead>
+    <tr style="background:hsl(var(--muted)); border-bottom:2px solid hsl(var(--border));">
+      <th style="padding:8px 12px; text-align:left;">Description</th>
+      <th style="padding:8px 12px; text-align:right;">Qty</th>
+      <th style="padding:8px 12px; text-align:right;">Unit Price</th>
+      <th style="padding:8px 12px; text-align:right;">Disc %</th>
+      <th style="padding:8px 12px; text-align:right;">Total</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr style="border-bottom:1px solid hsl(var(--border));">
+      <td style="padding:8px 12px;">UI/UX Design</td>
+      <td style="padding:8px 12px; text-align:right;">1</td>
+      <td style="padding:8px 12px; text-align:right;">₹8,000</td>
+      <td style="padding:8px 12px; text-align:right;">0%</td>
+      <td style="padding:8px 12px; text-align:right;">₹8,000</td>
+    </tr>
+    <tr style="border-bottom:1px solid hsl(var(--border));">
+      <td style="padding:8px 12px;">Frontend Development</td>
+      <td style="padding:8px 12px; text-align:right;">1</td>
+      <td style="padding:8px 12px; text-align:right;">₹12,000</td>
+      <td style="padding:8px 12px; text-align:right;">0%</td>
+      <td style="padding:8px 12px; text-align:right;">₹12,000</td>
+    </tr>
+    <tr style="border-bottom:1px solid hsl(var(--border));">
+      <td style="padding:8px 12px;">CMS Integration</td>
+      <td style="padding:8px 12px; text-align:right;">1</td>
+      <td style="padding:8px 12px; text-align:right;">₹5,000</td>
+      <td style="padding:8px 12px; text-align:right;">10%</td>
+      <td style="padding:8px 12px; text-align:right;">₹4,500</td>
+    </tr>
+  </tbody>
+  <tfoot>
+    <tr style="border-top:2px solid hsl(var(--border));">
+      <td colspan="4" style="padding:8px 12px; text-align:right; font-weight:600;">Subtotal</td>
+      <td style="padding:8px 12px; text-align:right;">₹24,500</td>
+    </tr>
+    <tr>
+      <td colspan="4" style="padding:8px 12px; text-align:right; font-weight:600;">Tax (18%)</td>
+      <td style="padding:8px 12px; text-align:right;">₹4,410</td>
+    </tr>
+    <tr style="border-top:2px solid hsl(var(--border)); font-size:1.1em;">
+      <td colspan="4" style="padding:8px 12px; text-align:right; font-weight:700;">Total</td>
+      <td style="padding:8px 12px; text-align:right; font-weight:700;">₹28,910</td>
+    </tr>
+  </tfoot>
+</table>`;
+
 // Sample data for proposal placeholders
 const proposalSampleData: Record<string, string> = {
   '{{proposalTitle}}': 'Website Redesign Proposal',
@@ -33,7 +84,8 @@ const proposalSampleData: Record<string, string> = {
   '{{scopeOfWork}}': 'Complete website redesign including UI/UX improvements, mobile optimization, and CMS integration',
   '{{customerGoals}}': 'Increase online conversions by 30%, improve mobile user experience, and modernize brand presence',
   '{{duration}}': '3 months',
-  '{{costing}}': '$24,500.00',
+  '{{costing}}': sampleCostBreakdownHtml,
+  '{{totalAmount}}': '₹28,910',
 };
 
 // Sample data for contract placeholders
@@ -65,14 +117,21 @@ const templateTypeColors: Record<TemplateType, string> = {
   'contract': 'bg-accent text-accent-foreground',
 };
 
+// Placeholders that contain raw HTML and should not be wrapped in a highlight span
+const HTML_PLACEHOLDERS = new Set(['{{costing}}']);
+
 function replacePlaceholders(content: string, templateType: TemplateType): string {
   let result = content;
   const sampleData = sampleDataByType[templateType];
   
   for (const [placeholder, value] of Object.entries(sampleData)) {
-    // Replace all occurrences, escaping special regex characters
     const escapedPlaceholder = placeholder.replace(/[{}]/g, '\\$&');
-    result = result.replace(new RegExp(escapedPlaceholder, 'g'), `<span class="bg-primary/20 text-primary px-1 rounded font-medium">${value}</span>`);
+    if (HTML_PLACEHOLDERS.has(placeholder)) {
+      // Insert HTML directly (e.g., pricing table)
+      result = result.replace(new RegExp(escapedPlaceholder, 'g'), value);
+    } else {
+      result = result.replace(new RegExp(escapedPlaceholder, 'g'), `<span class="bg-primary/20 text-primary px-1 rounded font-medium">${value}</span>`);
+    }
   }
   return result;
 }

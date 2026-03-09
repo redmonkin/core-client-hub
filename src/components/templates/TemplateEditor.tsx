@@ -47,13 +47,22 @@ interface PlaceholderItem {
 }
 
 const PROPOSAL_PLACEHOLDERS: PlaceholderItem[] = [
+  { label: 'Proposal Title', value: '{{proposalTitle}}' },
   { label: 'Client Name', value: '{{clientName}}' },
+  { label: 'Company Name', value: '{{companyName}}' },
+  { label: 'Contact Name', value: '{{contactName}}' },
+  { label: 'Designation', value: '{{designation}}' },
+  { label: 'Email Address', value: '{{emailAddress}}' },
+  { label: 'Phone Number', value: '{{phoneNumber}}' },
+  { label: 'Company Address', value: '{{companyAddress}}' },
   { label: 'Project Name', value: '{{projectName}}' },
   { label: 'Proposed Date', value: '{{proposedDate}}' },
   { label: 'Proposal Expiry Date', value: '{{proposalExpiryDate}}' },
+  { label: 'Customer Goals', value: '{{customerGoals}}' },
   { label: 'Scope of Work', value: '{{scopeOfWork}}' },
   { label: 'Duration', value: '{{duration}}' },
-  { label: 'Costing', value: '{{costing}}' },
+  { label: 'Costing (Full Table)', value: '{{costing}}' },
+  { label: 'Total Amount', value: '{{totalAmount}}' },
 ];
 
 const CONTRACT_PLACEHOLDERS: PlaceholderItem[] = [
