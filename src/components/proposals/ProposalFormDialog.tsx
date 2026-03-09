@@ -23,7 +23,7 @@ import { CostBreakdownTable } from './CostBreakdownTable';
 import { FileText, DollarSign, Settings, LayoutTemplate } from 'lucide-react';
 import { Template } from '@/hooks/useTemplates';
 
-type ProposalStatus = 'draft' | 'sent' | 'approved' | 'rejected';
+type ProposalStatus = 'draft' | 'sent' | 'approved' | 'rejected' | 'change_requested';
 
 interface ProposalFormData {
   title: string;
