@@ -689,7 +689,7 @@ export default function Proposals() {
               ...prev,
               [selectedProposal.id]: templateId || '',
             }));
-            updateProposalMutation.mutate({ id: selectedProposal.id, ...data });
+            updateProposalMutation.mutate({ id: selectedProposal.id, previousStatus: selectedProposal.status, ...data });
           }
         }}
         initialData={editProposal}
