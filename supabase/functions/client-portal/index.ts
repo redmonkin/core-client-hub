@@ -221,14 +221,32 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
 
+      // Get current proposal status before update
+      const { data: currentProposal } = await supabase
+        .from("proposals")
+        .select("status, user_id")
+        .eq("id", tokenData.proposal_id)
+        .single();
+
+      const previousStatus = currentProposal?.status || 'sent';
+
       // Update proposal status
-      const newStatus = action === "approve" ? "approved" : action === "request_changes" ? "revision_requested" : "rejected";
+      const newStatus = action === "approve" ? "approved" : action === "request_changes" ? "change_requested" : "rejected";
       const { error: updateError } = await supabase
         .from("proposals")
         .update({ status: newStatus })
         .eq("id", tokenData.proposal_id);
 
       if (updateError) throw updateError;
+
+      // Log status change in history
+      await supabase.from("proposal_status_history").insert({
+        proposal_id: tokenData.proposal_id,
+        user_id: currentProposal?.user_id || '00000000-0000-0000-0000-000000000000',
+        from_status: previousStatus,
+        to_status: newStatus,
+        note: action === "request_changes" && notes ? notes : action === "approve" ? "Approved via client portal" : "Rejected via client portal",
+      });
 
       // Get proposal details for notification
       const { data: proposal } = await supabase
