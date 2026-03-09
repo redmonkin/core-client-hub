@@ -364,24 +364,33 @@ export default function ClientPortal() {
               <p className="text-sm text-muted-foreground text-center sm:text-left">
                 Please review the proposal above and approve or decline.
               </p>
-              <div className="flex items-center gap-3 w-full sm:w-auto">
+              <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
                 <Button
                   onClick={() => setConfirmAction('reject')}
                   variant="outline"
-                  className="flex-1 sm:flex-none sm:px-6"
+                  className="flex-1 sm:flex-none"
                   disabled={submitting}
                 >
-                  {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4" />}
+                  <X className="mr-1.5 h-4 w-4" />
                   Decline
                 </Button>
                 <Button
+                  onClick={() => setConfirmAction('request_changes')}
+                  variant="outline"
+                  className="flex-1 sm:flex-none"
+                  disabled={submitting}
+                >
+                  <Clock className="mr-1.5 h-4 w-4" />
+                  Request Changes
+                </Button>
+                <Button
                   onClick={() => setConfirmAction('approve')}
-                  className="flex-1 sm:flex-none sm:px-8 text-white font-semibold shadow-md hover:shadow-lg transition-shadow"
+                  className="flex-1 sm:flex-none sm:px-6 text-white font-semibold shadow-md hover:shadow-lg transition-shadow"
                   style={{ backgroundColor: primaryColor }}
                   disabled={submitting}
                 >
-                  {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
-                  Approve Proposal
+                  <Check className="mr-1.5 h-4 w-4" />
+                  Approve
                 </Button>
               </div>
             </div>
