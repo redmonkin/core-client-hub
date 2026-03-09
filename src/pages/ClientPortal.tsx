@@ -434,24 +434,38 @@ export default function ClientPortal() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {confirmAction === 'approve' ? 'Approve this proposal?' : 'Decline this proposal?'}
+              {confirmAction === 'approve' ? 'Approve this proposal?' : confirmAction === 'request_changes' ? 'Request changes to this proposal?' : 'Decline this proposal?'}
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              {confirmAction === 'approve'
-                ? 'By approving, you agree to the terms and pricing outlined in this proposal. This action cannot be undone.'
-                : 'Are you sure you want to decline this proposal? The sender will be notified of your decision.'}
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  {confirmAction === 'approve'
+                    ? 'By approving, you agree to the terms and pricing outlined in this proposal. This action cannot be undone.'
+                    : confirmAction === 'request_changes'
+                    ? 'Please describe what changes you would like. The sender will be notified.'
+                    : 'Are you sure you want to decline this proposal? The sender will be notified of your decision.'}
+                </p>
+                {confirmAction === 'request_changes' && (
+                  <Textarea
+                    placeholder="Describe the changes you'd like..."
+                    value={changeNotes}
+                    onChange={(e) => setChangeNotes(e.target.value)}
+                    className="min-h-[100px]"
+                  />
+                )}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={submitting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={submitting} onClick={() => setChangeNotes('')}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => confirmAction && handleAction(confirmAction)}
-              disabled={submitting}
+              disabled={submitting || (confirmAction === 'request_changes' && !changeNotes.trim())}
               style={confirmAction === 'approve' ? { backgroundColor: primaryColor } : undefined}
               className={confirmAction === 'reject' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}
             >
               {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {confirmAction === 'approve' ? 'Yes, Approve' : 'Yes, Decline'}
+              {confirmAction === 'approve' ? 'Yes, Approve' : confirmAction === 'request_changes' ? 'Send Request' : 'Yes, Decline'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
