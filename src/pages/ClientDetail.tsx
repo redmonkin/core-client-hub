@@ -225,9 +225,10 @@ export default function ClientDetail() {
                       )}
                     </div>
                   </div>
-                  <StatusBadge status={project.status as any} />
-                </CardContent>
-              </Card>
+                    <StatusBadge status={project.status as any} />
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
             {clientProjects.length === 0 && (
               <p className="py-8 text-center text-muted-foreground">No projects yet</p>
