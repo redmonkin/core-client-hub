@@ -77,7 +77,9 @@ const handler = async (req: Request): Promise<Response> => {
           client_id,
           project_id,
           user_id,
-          created_at
+          created_at,
+          customer_goals,
+          duration
         `)
         .eq("id", accessToken.proposal_id)
         .single();
