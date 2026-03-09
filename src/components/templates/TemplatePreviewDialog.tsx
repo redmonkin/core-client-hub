@@ -117,14 +117,21 @@ const templateTypeColors: Record<TemplateType, string> = {
   'contract': 'bg-accent text-accent-foreground',
 };
 
+// Placeholders that contain raw HTML and should not be wrapped in a highlight span
+const HTML_PLACEHOLDERS = new Set(['{{costing}}']);
+
 function replacePlaceholders(content: string, templateType: TemplateType): string {
   let result = content;
   const sampleData = sampleDataByType[templateType];
   
   for (const [placeholder, value] of Object.entries(sampleData)) {
-    // Replace all occurrences, escaping special regex characters
     const escapedPlaceholder = placeholder.replace(/[{}]/g, '\\$&');
-    result = result.replace(new RegExp(escapedPlaceholder, 'g'), `<span class="bg-primary/20 text-primary px-1 rounded font-medium">${value}</span>`);
+    if (HTML_PLACEHOLDERS.has(placeholder)) {
+      // Insert HTML directly (e.g., pricing table)
+      result = result.replace(new RegExp(escapedPlaceholder, 'g'), value);
+    } else {
+      result = result.replace(new RegExp(escapedPlaceholder, 'g'), `<span class="bg-primary/20 text-primary px-1 rounded font-medium">${value}</span>`);
+    }
   }
   return result;
 }
