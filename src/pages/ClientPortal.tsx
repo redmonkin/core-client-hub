@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { replacePlaceholders, ProposalData } from '@/lib/proposal-utils';
+import { exportToPdf } from '@/lib/pdf-export';
 
 type PortalProposal = {
   id: string;

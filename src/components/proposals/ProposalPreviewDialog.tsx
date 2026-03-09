@@ -13,6 +13,14 @@ import { Template } from '@/hooks/useTemplates';
 import { ProposalData, replacePlaceholders } from '@/lib/proposal-utils';
 import { exportToPdf } from '@/lib/pdf-export';
 import { toast } from 'sonner';
+
+interface ProposalPreviewDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  template: Template | null;
+  proposalData: ProposalData;
+}
+
 export function ProposalPreviewDialog({
   open,
   onOpenChange,
