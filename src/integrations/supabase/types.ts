@@ -408,6 +408,53 @@ export type Database = {
         }
         Relationships: []
       }
+      timesheets: {
+        Row: {
+          created_at: string
+          date: string
+          duration: number
+          id: string
+          notes: string | null
+          owner: string
+          project_id: string
+          task: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          duration?: number
+          id?: string
+          notes?: string | null
+          owner: string
+          project_id: string
+          task: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          duration?: number
+          id?: string
+          notes?: string | null
+          owner?: string
+          project_id?: string
+          task?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timesheets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

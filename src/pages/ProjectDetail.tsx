@@ -1,5 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Calendar, FolderKanban, FileText, FileSignature, Building2 } from 'lucide-react';
+import { ArrowLeft, Calendar, FolderKanban, FileText, FileSignature, Building2, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
+import { ProjectTimesheets } from '@/components/timesheets/ProjectTimesheets';
 
 export default function ProjectDetail() {
   const { id } = useParams();
@@ -139,8 +140,12 @@ export default function ProjectDetail() {
       </Card>
 
       {/* Tabs */}
-      <Tabs defaultValue="proposals" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+      <Tabs defaultValue="timesheets" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="timesheets" className="flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            Timesheets
+          </TabsTrigger>
           <TabsTrigger value="proposals" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
             Proposals ({projectProposals.length})
@@ -150,6 +155,10 @@ export default function ProjectDetail() {
             Contracts ({projectContracts.length})
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="timesheets" className="mt-4">
+          <ProjectTimesheets projectId={id!} />
+        </TabsContent>
 
         <TabsContent value="proposals" className="mt-4">
           <div className="space-y-3">
