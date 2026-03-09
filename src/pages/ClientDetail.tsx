@@ -1,5 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Mail, Phone, MapPin, FileText, FolderKanban, FileSignature, Briefcase, Building2, User } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, MapPin, FileText, FolderKanban, FileSignature, Building2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
