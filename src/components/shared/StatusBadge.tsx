@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 
 type StatusType = 
   | 'active' | 'archived' 
-  | 'planned' | 'on-hold' | 'completed' | 'cancelled'
+  | 'proposal' | 'planned' | 'on-hold' | 'completed' | 'cancelled' | 'maintenance'
   | 'draft' | 'sent' | 'approved' | 'rejected'
   | 'expired' | 'pending-renewal';
 
