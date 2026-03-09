@@ -183,8 +183,9 @@ export default function Dashboard() {
             <div className="space-y-3">
               {proposals.length > 0 ? (
                 proposals.slice(0, 5).map(proposal => (
-                  <div 
+                  <Link
                     key={proposal.id}
+                    to="/proposals"
                     className="group flex items-center justify-between rounded-xl border border-border bg-card p-4 transition-all duration-200 hover:border-primary/20 hover:shadow-sm"
                   >
                     <div className="min-w-0 flex-1">
