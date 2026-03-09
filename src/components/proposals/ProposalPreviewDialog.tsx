@@ -131,22 +131,8 @@ async function exportToPdf(html: string, filename: string) {
     document.body.removeChild(container);
   }
 }
-          currentY,
-          CONTENT_WIDTH_MM,
-          sliceHeightMm
-        );
 
-        offsetPx += sliceHeightPx;
-      }
 
-      currentY = MARGIN_MM + SECTION_GAP_MM;
-    }
-
-    pdf.save(filename);
-  } finally {
-    document.body.removeChild(container);
-  }
-}
 
 export function ProposalPreviewDialog({
   open,
