@@ -1,4 +1,5 @@
-import { Users, FolderKanban, FileText, FileSignature, AlertTriangle, Loader2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Users, FolderKanban, FileText, FileSignature, AlertTriangle, Loader2, ArrowRight } from 'lucide-react';
 import { differenceInDays } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
