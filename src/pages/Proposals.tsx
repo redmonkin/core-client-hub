@@ -199,6 +199,7 @@ export default function Proposals() {
           cost_breakdown: proposal.costBreakdown || null,
           customer_goals: proposal.customerGoals || null,
           validity_date: proposal.validityDate || null,
+          duration: proposal.duration || null,
           status: proposal.status,
         })
         .eq('id', id)
