@@ -54,7 +54,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 
-type ProjectStatus = 'planned' | 'active' | 'on-hold' | 'completed' | 'cancelled';
+type ProjectStatus = 'proposal' | 'planned' | 'active' | 'on-hold' | 'completed' | 'cancelled' | 'maintenance';
 type ProjectType = 'one-time' | 'amc' | 'retainer';
 
 type Project = {
@@ -330,10 +330,12 @@ export default function Projects() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="proposal">Proposal</SelectItem>
                       <SelectItem value="planned">Planned</SelectItem>
                       <SelectItem value="active">Active</SelectItem>
                       <SelectItem value="on-hold">On Hold</SelectItem>
                       <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="maintenance">Maintenance</SelectItem>
                       <SelectItem value="cancelled">Cancelled</SelectItem>
                     </SelectContent>
                   </Select>
@@ -368,10 +370,12 @@ export default function Projects() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="proposal">Proposal</SelectItem>
             <SelectItem value="planned">Planned</SelectItem>
             <SelectItem value="active">Active</SelectItem>
             <SelectItem value="on-hold">On Hold</SelectItem>
             <SelectItem value="completed">Completed</SelectItem>
+            <SelectItem value="maintenance">Maintenance</SelectItem>
             <SelectItem value="cancelled">Cancelled</SelectItem>
           </SelectContent>
         </Select>
@@ -424,7 +428,7 @@ export default function Projects() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <StatusBadge status={project.status as 'active' | 'planned' | 'on-hold' | 'completed' | 'cancelled'} />
+                    <StatusBadge status={project.status as 'proposal' | 'active' | 'planned' | 'on-hold' | 'completed' | 'cancelled' | 'maintenance'} />
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
@@ -549,10 +553,12 @@ export default function Projects() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="proposal">Proposal</SelectItem>
                   <SelectItem value="planned">Planned</SelectItem>
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="on-hold">On Hold</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="maintenance">Maintenance</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
               </Select>

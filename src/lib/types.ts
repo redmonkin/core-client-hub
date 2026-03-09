@@ -14,7 +14,7 @@ export interface Client {
 }
 
 export type ProjectType = 'one-time' | 'amc' | 'retainer';
-export type ProjectStatus = 'planned' | 'active' | 'on-hold' | 'completed' | 'cancelled';
+export type ProjectStatus = 'proposal' | 'planned' | 'active' | 'on-hold' | 'completed' | 'cancelled' | 'maintenance';
 
 export interface Project {
   id: string;

@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 
 type StatusType = 
   | 'active' | 'archived' 
-  | 'planned' | 'on-hold' | 'completed' | 'cancelled'
+  | 'proposal' | 'planned' | 'on-hold' | 'completed' | 'cancelled' | 'maintenance'
   | 'draft' | 'sent' | 'approved' | 'rejected'
   | 'expired' | 'pending-renewal';
 
@@ -15,10 +15,12 @@ interface StatusBadgeProps {
 const statusConfig: Record<StatusType, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   active: { label: 'Active', variant: 'default' },
   archived: { label: 'Archived', variant: 'secondary' },
+  proposal: { label: 'Proposal', variant: 'outline' },
   planned: { label: 'Planned', variant: 'outline' },
   'on-hold': { label: 'On Hold', variant: 'secondary' },
   completed: { label: 'Completed', variant: 'default' },
   cancelled: { label: 'Cancelled', variant: 'destructive' },
+  maintenance: { label: 'Maintenance', variant: 'secondary' },
   draft: { label: 'Draft', variant: 'outline' },
   sent: { label: 'Sent', variant: 'secondary' },
   approved: { label: 'Approved', variant: 'default' },
