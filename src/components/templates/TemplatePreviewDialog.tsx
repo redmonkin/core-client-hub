@@ -19,11 +19,19 @@ interface TemplatePreviewDialogProps {
 
 // Sample data for proposal placeholders
 const proposalSampleData: Record<string, string> = {
+  '{{proposalTitle}}': 'Website Redesign Proposal',
   '{{clientName}}': 'Acme Corporation',
+  '{{companyName}}': 'Acme Corporation Ltd.',
+  '{{contactName}}': 'John Smith',
+  '{{designation}}': 'Chief Technology Officer',
+  '{{emailAddress}}': 'john.smith@acmecorp.com',
+  '{{phoneNumber}}': '+1 (555) 123-4567',
+  '{{companyAddress}}': '123 Business Ave, Suite 100, New York, NY 10001',
   '{{projectName}}': 'Website Redesign Project',
   '{{proposedDate}}': 'February 1, 2026',
   '{{proposalExpiryDate}}': 'March 1, 2026',
   '{{scopeOfWork}}': 'Complete website redesign including UI/UX improvements, mobile optimization, and CMS integration',
+  '{{customerGoals}}': 'Increase online conversions by 30%, improve mobile user experience, and modernize brand presence',
   '{{duration}}': '3 months',
   '{{costing}}': '$24,500.00',
 };
