@@ -206,10 +206,11 @@ export default function ClientDetail() {
         <TabsContent value="projects" className="mt-4">
           <div className="space-y-3">
             {clientProjects.map(project => (
-              <Card key={project.id}>
-                <CardContent className="flex items-center justify-between p-4">
-                  <div>
-                    <p className="font-medium text-foreground">{project.project_name}</p>
+              <Link key={project.id} to={`/projects/${project.id}`} className="block">
+                <Card className="transition-all hover:border-primary/20 hover:shadow-sm">
+                  <CardContent className="flex items-center justify-between p-4">
+                    <div>
+                      <p className="font-medium text-foreground hover:text-primary transition-colors">{project.project_name}</p>
                     <div className="mt-1 flex items-center gap-2">
                       <span className="text-sm text-muted-foreground capitalize">
                         {project.project_type}
