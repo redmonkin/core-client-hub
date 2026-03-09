@@ -44,6 +44,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { ProposalFormDialog } from '@/components/proposals/ProposalFormDialog';
+import { ProposalPreviewDialog, ProposalData } from '@/components/proposals/ProposalPreviewDialog';
+import { useTemplates, Template } from '@/hooks/useTemplates';
 
 type ProposalStatus = 'draft' | 'sent' | 'approved' | 'rejected';
 
