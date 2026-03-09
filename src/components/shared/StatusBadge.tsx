@@ -25,6 +25,7 @@ const statusConfig: Record<StatusType, { label: string; variant: 'default' | 'se
   sent: { label: 'Sent', variant: 'secondary' },
   approved: { label: 'Approved', variant: 'default' },
   rejected: { label: 'Rejected', variant: 'destructive' },
+  change_requested: { label: 'Change Requested', variant: 'secondary' },
   expired: { label: 'Expired', variant: 'destructive' },
   'pending-renewal': { label: 'Pending Renewal', variant: 'secondary' },
 };

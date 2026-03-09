@@ -255,6 +255,7 @@ export function ProposalFormDialog({
                         <SelectItem value="sent">Sent</SelectItem>
                         <SelectItem value="approved">Approved</SelectItem>
                         <SelectItem value="rejected">Rejected</SelectItem>
+                        <SelectItem value="change_requested">Change Requested</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

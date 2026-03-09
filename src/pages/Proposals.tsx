@@ -536,9 +536,14 @@ export default function Proposals() {
               >
                 {/* Proposal Title */}
                 <div className="min-w-0">
-                  <h3 className="truncate font-medium text-foreground group-hover:text-primary transition-colors">
-                    {proposal.title}
-                  </h3>
+                  <Link
+                    to={`/proposals/${proposal.id}`}
+                    className="block"
+                  >
+                    <h3 className="truncate font-medium text-foreground group-hover:text-primary transition-colors">
+                      {proposal.title}
+                    </h3>
+                  </Link>
                   {proposal.duration && (
                     <p className="mt-0.5 truncate text-xs text-muted-foreground">
                       Duration: {proposal.duration}
