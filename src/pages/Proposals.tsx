@@ -93,6 +93,7 @@ const emptyProposal: ProposalFormData = {
   costBreakdown: '',
   customerGoals: '',
   validityDate: '',
+  duration: '',
   status: 'draft',
 };
 
