@@ -1,12 +1,22 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
-import { FileText, Check, X, Loader2, AlertCircle, Clock, Globe, Mail, Download } from 'lucide-react';
+import { FileText, Check, X, Loader2, AlertCircle, Clock, Globe, Mail, Download, ShieldCheck, ShieldX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { replacePlaceholders, ProposalData } from '@/lib/proposal-utils';
 import { exportToPdf } from '@/lib/pdf-export';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 type PortalProposal = {
   id: string;
@@ -54,8 +64,10 @@ export default function ClientPortal() {
   const [submitting, setSubmitting] = useState(false);
   const [responded, setResponded] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<'approve' | 'reject' | null>(null);
 
-  const primaryColor = branding?.primary_color || '#8B5CF6';
+  const primaryColor = branding?.primary_color || '#0284C7';
+  const accentColor = branding?.accent_color || '#0EA5E9';
 
   useEffect(() => {
     if (!token) {
@@ -63,7 +75,6 @@ export default function ClientPortal() {
       setLoading(false);
       return;
     }
-
     fetchProposal();
   }, [token]);
 
@@ -73,13 +84,8 @@ export default function ClientPortal() {
         `https://jizouqjrdyfshhztqucd.supabase.co/functions/v1/client-portal?token=${token}`,
         { method: 'GET' }
       );
-
       const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to load proposal');
-      }
-
+      if (!response.ok) throw new Error(result.error || 'Failed to load proposal');
       setProposal(result.proposal);
       setBranding(result.branding);
       setTemplate(result.template);
@@ -93,8 +99,8 @@ export default function ClientPortal() {
 
   const handleAction = async (action: 'approve' | 'reject') => {
     if (!token) return;
-    
     setSubmitting(true);
+    setConfirmAction(null);
     try {
       const response = await fetch(
         `https://jizouqjrdyfshhztqucd.supabase.co/functions/v1/client-portal`,
@@ -104,16 +110,11 @@ export default function ClientPortal() {
           body: JSON.stringify({ token, action }),
         }
       );
-
       const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to update proposal');
-      }
-
+      if (!response.ok) throw new Error(result.error || 'Failed to update proposal');
       setResponded(true);
       setProposal(prev => prev ? { ...prev, status: result.status } : null);
-      toast.success(action === 'approve' ? 'Proposal approved!' : 'Proposal rejected');
+      toast.success(action === 'approve' ? 'Proposal approved successfully!' : 'Proposal declined');
     } catch (err: any) {
       console.error('Error updating proposal:', err);
       toast.error(err.message);
@@ -124,10 +125,10 @@ export default function ClientPortal() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/30">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${primaryColor}08, ${accentColor}05)` }}>
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-10 w-10 animate-spin" style={{ color: primaryColor }} />
-          <p className="text-muted-foreground">Loading proposal...</p>
+          <p className="text-muted-foreground text-sm">Loading proposal...</p>
         </div>
       </div>
     );
@@ -135,16 +136,16 @@ export default function ClientPortal() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
-        <Card className="max-w-md w-full">
-          <CardContent className="pt-6">
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="max-w-md w-full shadow-lg">
+          <CardContent className="pt-8 pb-8">
             <div className="flex flex-col items-center text-center gap-4">
               <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center">
                 <AlertCircle className="h-8 w-8 text-destructive" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold">Unable to Load Proposal</h2>
-                <p className="text-muted-foreground mt-2">{error}</p>
+                <h2 className="text-xl font-semibold text-foreground">Unable to Load Proposal</h2>
+                <p className="text-muted-foreground mt-2 text-sm">{error}</p>
               </div>
             </div>
           </CardContent>
@@ -157,11 +158,10 @@ export default function ClientPortal() {
 
   const isExpired = proposal.validity_date && new Date(proposal.validity_date) < new Date();
   const canRespond = proposal.status === 'sent' && !isExpired && !responded;
+  const hasResponded = proposal.status === 'approved' || proposal.status === 'rejected' || responded;
 
-  // Build the rendered template content
   const getRenderedContent = () => {
     if (!template?.content) return null;
-
     const proposalData: ProposalData = {
       title: proposal.title,
       clientName: proposal.client_name || '',
@@ -179,7 +179,6 @@ export default function ClientPortal() {
       duration: proposal.duration || '',
       createdAt: proposal.created_at,
     };
-
     return replacePlaceholders(template.content, proposalData, false);
   };
 
@@ -202,195 +201,235 @@ export default function ClientPortal() {
   };
 
   return (
-    <div className="min-h-screen bg-muted/30 py-8 px-4">
-      <div className="max-w-3xl mx-auto space-y-6">
-        {/* Branded Header */}
-        <div className="text-center">
-          {branding?.company_logo_url ? (
-            <div className="inline-flex items-center justify-center mb-4">
-              <img 
-                src={branding.company_logo_url} 
-                alt={branding.company_name || 'Company logo'} 
-                className="h-16 w-auto max-w-[200px] object-contain"
+    <div className="min-h-screen" style={{ background: `linear-gradient(180deg, ${primaryColor}06 0%, #ffffff 40%)` }}>
+      {/* Top branded bar */}
+      <div className="w-full py-4 px-6 border-b border-border/40 bg-card/80 backdrop-blur-sm sticky top-0 z-10">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {branding?.company_logo_url ? (
+              <img
+                src={branding.company_logo_url}
+                alt={branding.company_name || 'Company logo'}
+                className="h-8 w-auto max-w-[160px] object-contain"
               />
-            </div>
-          ) : (
-            <div 
-              className="inline-flex items-center justify-center h-16 w-16 rounded-full mb-4"
-              style={{ backgroundColor: `${primaryColor}20` }}
-            >
-              <FileText className="h-8 w-8" style={{ color: primaryColor }} />
-            </div>
-          )}
-          
-          {branding?.company_name && (
-            <h2 className="text-lg font-semibold" style={{ color: primaryColor }}>
-              {branding.company_name}
-            </h2>
-          )}
-          {branding?.tagline && (
-            <p className="text-sm text-muted-foreground">{branding.tagline}</p>
-          )}
-          {renderedContent && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExportPdf}
-              disabled={isExporting}
-              className="mt-4"
-            >
-              {isExporting ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Download className="mr-2 h-4 w-4" />
-              )}
-              Download PDF
-            </Button>
-          )}
-        </div>
-
-        {/* Status Banner */}
-        {(proposal.status === 'approved' || proposal.status === 'rejected' || responded) && (
-          <Card className={proposal.status === 'approved' ? 'border-green-500 bg-green-50 dark:bg-green-950/20' : 'border-red-500 bg-red-50 dark:bg-red-950/20'}>
-            <CardContent className="py-4">
-              <div className="flex items-center justify-center gap-2">
-                {proposal.status === 'approved' ? (
-                  <>
-                    <Check className="h-5 w-5 text-green-600" />
-                    <span className="font-medium text-green-700 dark:text-green-400">This proposal has been approved</span>
-                  </>
-                ) : (
-                  <>
-                    <X className="h-5 w-5 text-red-600" />
-                    <span className="font-medium text-red-700 dark:text-red-400">This proposal has been rejected</span>
-                  </>
-                )}
+            ) : branding?.company_name ? (
+              <span className="text-lg font-semibold text-foreground">{branding.company_name}</span>
+            ) : (
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5" style={{ color: primaryColor }} />
+                <span className="text-lg font-semibold text-foreground">Proposal</span>
               </div>
-            </CardContent>
-          </Card>
+            )}
+            {branding?.tagline && (
+              <span className="hidden sm:inline text-xs text-muted-foreground border-l border-border pl-3 ml-1">{branding.tagline}</span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {renderedContent && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportPdf}
+                disabled={isExporting}
+                className="text-xs"
+              >
+                {isExporting ? (
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Download className="mr-1.5 h-3.5 w-3.5" />
+                )}
+                Download PDF
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+        {/* Status Banners */}
+        {hasResponded && (
+          <div
+            className="rounded-xl p-4 flex items-center justify-center gap-3 text-sm font-medium shadow-sm"
+            style={{
+              backgroundColor: proposal.status === 'approved' ? '#f0fdf4' : '#fef2f2',
+              border: `1px solid ${proposal.status === 'approved' ? '#bbf7d0' : '#fecaca'}`,
+              color: proposal.status === 'approved' ? '#166534' : '#991b1b',
+            }}
+          >
+            {proposal.status === 'approved' ? (
+              <>
+                <ShieldCheck className="h-5 w-5" />
+                <span>This proposal has been approved</span>
+              </>
+            ) : (
+              <>
+                <ShieldX className="h-5 w-5" />
+                <span>This proposal has been declined</span>
+              </>
+            )}
+          </div>
         )}
 
         {isExpired && proposal.status === 'sent' && (
-          <Card className="border-amber-500 bg-amber-50 dark:bg-amber-950/20">
-            <CardContent className="py-4">
-              <div className="flex items-center justify-center gap-2">
-                <Clock className="h-5 w-5 text-amber-600" />
-                <span className="font-medium text-amber-700 dark:text-amber-400">This proposal has expired</span>
-              </div>
-            </CardContent>
-          </Card>
+          <div
+            className="rounded-xl p-4 flex items-center justify-center gap-3 text-sm font-medium shadow-sm"
+            style={{
+              backgroundColor: '#fffbeb',
+              border: '1px solid #fde68a',
+              color: '#92400e',
+            }}
+          >
+            <Clock className="h-5 w-5" />
+            <span>This proposal has expired</span>
+          </div>
         )}
 
         {/* Proposal Content */}
-        <Card>
-          <CardContent className="p-8">
+        <div className="bg-card rounded-xl shadow-sm border border-border/60 overflow-hidden">
+          <div className="p-6 sm:p-10">
             {renderedContent ? (
               <div
-                className="prose prose-sm max-w-none text-foreground
-                  prose-headings:text-foreground
-                  prose-p:text-foreground
+                className="prose prose-sm sm:prose-base max-w-none text-foreground
+                  prose-headings:text-foreground prose-headings:font-bold
+                  prose-p:text-foreground/90
                   prose-strong:text-foreground
-                  prose-li:text-foreground
-                  prose-td:text-foreground
+                  prose-li:text-foreground/90
+                  prose-td:text-foreground/80
                   prose-th:text-foreground
-                  [&_table]:w-full [&_table]:border-collapse
-                  [&_th]:bg-muted/50 [&_th]:border-b-2 [&_th]:border-border
-                  [&_td]:border-b [&_td]:border-border/50"
+                  [&_table]:w-full [&_table]:border-collapse [&_table]:text-sm
+                  [&_th]:bg-muted/30 [&_th]:border-b-2 [&_th]:border-border [&_th]:py-2.5 [&_th]:px-3
+                  [&_td]:border-b [&_td]:border-border/40 [&_td]:py-2.5 [&_td]:px-3
+                  [&_tfoot_td]:font-semibold [&_tfoot_td]:border-t-2 [&_tfoot_td]:border-border
+                  [&_hr]:border-border/40"
                 dangerouslySetInnerHTML={{ __html: renderedContent }}
               />
             ) : (
-              /* Fallback: show raw fields if no template */
               <div className="space-y-6">
-                <h2 className="text-xl font-bold">{proposal.title}</h2>
+                <h2 className="text-2xl font-bold text-foreground">{proposal.title}</h2>
                 {proposal.project_name && (
                   <p className="text-muted-foreground">Project: {proposal.project_name}</p>
                 )}
                 {proposal.scope_of_work && (
                   <div>
-                    <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground mb-2">
-                      Scope of Work
-                    </h3>
-                    <div 
-                      className="bg-muted/50 rounded-lg p-4 prose prose-sm max-w-none text-foreground"
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Scope of Work</h3>
+                    <div
+                      className="bg-muted/20 rounded-lg p-5 prose prose-sm max-w-none text-foreground"
                       dangerouslySetInnerHTML={{ __html: proposal.scope_of_work }}
                     />
                   </div>
                 )}
-                <div className="flex flex-wrap gap-4 pt-4 border-t">
+                <div className="flex flex-wrap gap-6 pt-4 border-t border-border/40">
                   {proposal.validity_date && (
                     <div>
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Valid Until</p>
-                      <p className="text-sm font-medium mt-1">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Valid Until</p>
+                      <p className="text-sm font-medium mt-1 text-foreground">
                         {format(new Date(proposal.validity_date), 'MMMM dd, yyyy')}
                       </p>
                     </div>
                   )}
                   <div>
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Sent On</p>
-                    <p className="text-sm font-medium mt-1">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sent On</p>
+                    <p className="text-sm font-medium mt-1 text-foreground">
                       {format(new Date(proposal.created_at), 'MMMM dd, yyyy')}
                     </p>
                   </div>
                 </div>
               </div>
             )}
-          </CardContent>
+          </div>
 
+          {/* Action buttons inside the card */}
           {canRespond && (
-            <CardFooter className="flex-col sm:flex-row gap-3 bg-muted/30 border-t">
-              <Button
-                onClick={() => handleAction('reject')}
-                variant="outline"
-                className="w-full sm:w-auto"
-                disabled={submitting}
-              >
-                {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4" />}
-                Decline Proposal
-              </Button>
-              <Button
-                onClick={() => handleAction('approve')}
-                className="w-full sm:w-auto"
-                style={{ backgroundColor: primaryColor }}
-                disabled={submitting}
-              >
-                {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
-                Approve Proposal
-              </Button>
-            </CardFooter>
+            <div
+              className="px-6 sm:px-10 py-5 border-t border-border/40 flex flex-col sm:flex-row items-center justify-between gap-4"
+              style={{ backgroundColor: `${primaryColor}04` }}
+            >
+              <p className="text-sm text-muted-foreground text-center sm:text-left">
+                Please review the proposal above and approve or decline.
+              </p>
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <Button
+                  onClick={() => setConfirmAction('reject')}
+                  variant="outline"
+                  className="flex-1 sm:flex-none sm:px-6"
+                  disabled={submitting}
+                >
+                  {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4" />}
+                  Decline
+                </Button>
+                <Button
+                  onClick={() => setConfirmAction('approve')}
+                  className="flex-1 sm:flex-none sm:px-8 text-white font-semibold shadow-md hover:shadow-lg transition-shadow"
+                  style={{ backgroundColor: primaryColor }}
+                  disabled={submitting}
+                >
+                  {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
+                  Approve Proposal
+                </Button>
+              </div>
+            </div>
           )}
-        </Card>
+        </div>
 
-        {/* Branded Footer */}
-        <div className="text-center space-y-3">
+        {/* Footer */}
+        <div className="text-center space-y-3 pt-4 pb-8">
           {(branding?.support_email || branding?.website_url) && (
-            <div className="flex items-center justify-center gap-4 text-sm">
+            <div className="flex items-center justify-center gap-4 text-xs">
               {branding.support_email && (
-                <a 
+                <a
                   href={`mailto:${branding.support_email}`}
                   className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  <Mail className="h-4 w-4" />
+                  <Mail className="h-3.5 w-3.5" />
                   {branding.support_email}
                 </a>
               )}
               {branding.website_url && (
-                <a 
+                <a
                   href={branding.website_url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  <Globe className="h-4 w-4" />
+                  <Globe className="h-3.5 w-3.5" />
                   Visit Website
                 </a>
               )}
             </div>
           )}
-          <p className="text-sm text-muted-foreground">
-            If you have any questions, please contact the sender directly.
+          <p className="text-xs text-muted-foreground">
+            Questions? Contact the sender directly for assistance.
           </p>
         </div>
       </div>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={!!confirmAction} onOpenChange={() => setConfirmAction(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmAction === 'approve' ? 'Approve this proposal?' : 'Decline this proposal?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmAction === 'approve'
+                ? 'By approving, you agree to the terms and pricing outlined in this proposal. This action cannot be undone.'
+                : 'Are you sure you want to decline this proposal? The sender will be notified of your decision.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={submitting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => confirmAction && handleAction(confirmAction)}
+              disabled={submitting}
+              style={confirmAction === 'approve' ? { backgroundColor: primaryColor } : undefined}
+              className={confirmAction === 'reject' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}
+            >
+              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {confirmAction === 'approve' ? 'Yes, Approve' : 'Yes, Decline'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
