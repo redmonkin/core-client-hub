@@ -153,7 +153,7 @@ function replacePlaceholders(content: string, data: ProposalData): string {
     '{{proposalExpiryDate}}': expiryDate,
     '{{customerGoals}}': data.customerGoals || '',
     '{{scopeOfWork}}': data.scopeOfWork || '',
-    '{{duration}}': '',
+    '{{duration}}': data.duration || '',
     '{{costing}}': tableHtml,
     '{{totalAmount}}': totalAmount,
   };
