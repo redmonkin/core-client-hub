@@ -340,6 +340,35 @@ export default function Proposals() {
     setIsDialogOpen(true);
   };
 
+  const handlePreview = (proposal: Proposal) => {
+    const proposalTemplates = templates.filter(t => t.type === 'proposal');
+    if (proposalTemplates.length === 0) {
+      toast.error('No proposal templates found. Create a template first.');
+      return;
+    }
+    const client = clients.find(c => c.id === proposal.client_id);
+    const project = projects.find(p => p.id === proposal.project_id);
+    
+    setPreviewProposalData({
+      title: proposal.title,
+      clientName: client?.primary_contact_name || client?.client_name || '',
+      clientDesignation: client?.designation || '',
+      clientEmail: client?.email || '',
+      clientPhone: client?.phone || '',
+      companyName: client?.company_name || client?.client_name || '',
+      companyAddress: client?.billing_address || '',
+      projectName: project?.project_name || '',
+      projectWebsite: '',
+      customerGoals: proposal.customer_goals || '',
+      scopeOfWork: proposal.scope_of_work || '',
+      costBreakdown: proposal.cost_breakdown || '',
+      validityDate: proposal.validity_date || '',
+      createdAt: new Date().toISOString(),
+    });
+    setPreviewTemplate(proposalTemplates[0]);
+    setIsPreviewOpen(true);
+  };
+
   const handleSendEmail = (proposal: Proposal) => {
     const clientEmail = getClientEmail(proposal.client_id);
     if (!clientEmail) {
