@@ -79,7 +79,7 @@ const proposalSampleData: Record<string, string> = {
   '{{phoneNumber}}': '+1 (555) 123-4567',
   '{{companyAddress}}': '123 Business Ave, Suite 100, New York, NY 10001',
   '{{projectName}}': 'Website Redesign Project',
-  '{{proposedDate}}': 'February 1, 2026',
+  '{{proposalDate}}': 'February 1, 2026',
   '{{proposalExpiryDate}}': 'March 1, 2026',
   '{{scopeOfWork}}': 'Complete website redesign including UI/UX improvements, mobile optimization, and CMS integration',
   '{{customerGoals}}': 'Increase online conversions by 30%, improve mobile user experience, and modernize brand presence',
