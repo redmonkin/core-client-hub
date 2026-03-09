@@ -115,6 +115,7 @@ export default function Proposals() {
   const [proposalTemplateSelections, setProposalTemplateSelections] = useState<Record<string, string>>({});
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [shareLink, setShareLink] = useState('');
+  const [sharePassword, setSharePassword] = useState('');
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null);
