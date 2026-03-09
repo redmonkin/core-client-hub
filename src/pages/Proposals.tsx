@@ -303,7 +303,7 @@ export default function Proposals() {
     }
   };
 
-  const handleSubmit = (data: ProposalFormData) => {
+  const handleSubmit = ({ templateId, ...data }: ProposalFormData & { templateId?: string }) => {
     if (!data.title || !data.clientId) {
       toast.error('Please fill in required fields');
       return;
