@@ -179,7 +179,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // POST - Update proposal status (approve/reject)
     if (req.method === "POST") {
-      const { token: bodyToken, action }: UpdateProposalRequest = await req.json();
+      const { token: bodyToken, action, notes }: UpdateProposalRequest = await req.json();
       const accessToken = bodyToken || token;
 
       if (!accessToken) {
@@ -189,9 +189,9 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
 
-      if (!action || !["approve", "reject"].includes(action)) {
+      if (!action || !["approve", "reject", "request_changes"].includes(action)) {
         return new Response(
-          JSON.stringify({ error: "Valid action (approve/reject) is required" }),
+          JSON.stringify({ error: "Valid action (approve/reject/request_changes) is required" }),
           { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
       }
