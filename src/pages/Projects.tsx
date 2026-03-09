@@ -330,10 +330,12 @@ export default function Projects() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="proposal">Proposal</SelectItem>
                       <SelectItem value="planned">Planned</SelectItem>
                       <SelectItem value="active">Active</SelectItem>
                       <SelectItem value="on-hold">On Hold</SelectItem>
                       <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="maintenance">Maintenance</SelectItem>
                       <SelectItem value="cancelled">Cancelled</SelectItem>
                     </SelectContent>
                   </Select>
