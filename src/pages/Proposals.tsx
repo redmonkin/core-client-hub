@@ -590,6 +590,7 @@ export default function Proposals() {
         initialData={newProposal}
         clients={clients}
         projects={projects}
+        templates={templates}
         isSubmitting={createProposalMutation.isPending}
         mode="create"
       />
@@ -605,6 +606,7 @@ export default function Proposals() {
         initialData={editProposal}
         clients={clients}
         projects={projects}
+        templates={templates}
         isSubmitting={updateProposalMutation.isPending}
         mode="edit"
       />
