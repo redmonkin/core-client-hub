@@ -9,7 +9,8 @@ const corsHeaders = {
 
 interface UpdateProposalRequest {
   token: string;
-  action: "approve" | "reject";
+  action: "approve" | "reject" | "request_changes";
+  notes?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -178,7 +179,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // POST - Update proposal status (approve/reject)
     if (req.method === "POST") {
-      const { token: bodyToken, action }: UpdateProposalRequest = await req.json();
+      const { token: bodyToken, action, notes }: UpdateProposalRequest = await req.json();
       const accessToken = bodyToken || token;
 
       if (!accessToken) {
@@ -188,9 +189,9 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
 
-      if (!action || !["approve", "reject"].includes(action)) {
+      if (!action || !["approve", "reject", "request_changes"].includes(action)) {
         return new Response(
-          JSON.stringify({ error: "Valid action (approve/reject) is required" }),
+          JSON.stringify({ error: "Valid action (approve/reject/request_changes) is required" }),
           { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
       }
@@ -221,7 +222,7 @@ const handler = async (req: Request): Promise<Response> => {
       }
 
       // Update proposal status
-      const newStatus = action === "approve" ? "approved" : "rejected";
+      const newStatus = action === "approve" ? "approved" : action === "request_changes" ? "revision_requested" : "rejected";
       const { error: updateError } = await supabase
         .from("proposals")
         .update({ status: newStatus })
@@ -246,8 +247,17 @@ const handler = async (req: Request): Promise<Response> => {
       // Create notification for proposal owner if preference allows
       if (proposal) {
         const clientName = client?.client_name || client?.company_name || "A client";
-        const notificationType = action === "approve" ? "proposal_approved" : "proposal_rejected";
-        const emoji = action === "approve" ? "✅" : "❌";
+        const notificationTypeMap: Record<string, string> = {
+          approve: "proposal_approved",
+          reject: "proposal_rejected",
+          request_changes: "proposal_revision_requested",
+        };
+        const emojiMap: Record<string, string> = { approve: "✅", reject: "❌", request_changes: "📝" };
+        const titleMap: Record<string, string> = {
+          approve: "Proposal Approved!",
+          reject: "Proposal Rejected",
+          request_changes: "Changes Requested",
+        };
 
         // Check user's notification preferences
         const { data: prefs } = await supabase
@@ -260,11 +270,12 @@ const handler = async (req: Request): Promise<Response> => {
           ? prefs?.proposal_approved !== false 
           : prefs?.proposal_rejected !== false;
         if (shouldNotify) {
+          const changeNotesText = action === "request_changes" && notes ? `\n\nNotes: ${notes}` : "";
           await supabase.from("notifications").insert({
             user_id: proposal.user_id,
-            type: notificationType,
-            title: action === "approve" ? "Proposal Approved!" : "Proposal Rejected",
-            message: `${emoji} ${clientName} has ${action}d your proposal "${proposal.title}"`,
+            type: notificationTypeMap[action],
+            title: titleMap[action],
+            message: `${emojiMap[action]} ${clientName} has ${action === "request_changes" ? "requested changes to" : action + "d"} your proposal "${proposal.title}"${changeNotesText}`,
             reference_id: tokenData.proposal_id,
             reference_type: "proposal",
           });

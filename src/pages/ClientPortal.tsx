@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { replacePlaceholders, ProposalData } from '@/lib/proposal-utils';
 import { exportToPdf } from '@/lib/pdf-export';
+import { Textarea } from '@/components/ui/textarea';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -64,7 +65,8 @@ export default function ClientPortal() {
   const [submitting, setSubmitting] = useState(false);
   const [responded, setResponded] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [confirmAction, setConfirmAction] = useState<'approve' | 'reject' | null>(null);
+  const [confirmAction, setConfirmAction] = useState<'approve' | 'reject' | 'request_changes' | null>(null);
+  const [changeNotes, setChangeNotes] = useState('');
 
   const primaryColor = branding?.primary_color || '#0284C7';
   const accentColor = branding?.accent_color || '#0EA5E9';
@@ -97,24 +99,34 @@ export default function ClientPortal() {
     }
   };
 
-  const handleAction = async (action: 'approve' | 'reject') => {
+  const handleAction = async (action: 'approve' | 'reject' | 'request_changes') => {
     if (!token) return;
     setSubmitting(true);
     setConfirmAction(null);
     try {
+      const body: any = { token, action };
+      if (action === 'request_changes' && changeNotes.trim()) {
+        body.notes = changeNotes.trim();
+      }
       const response = await fetch(
         `https://jizouqjrdyfshhztqucd.supabase.co/functions/v1/client-portal`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token, action }),
+          body: JSON.stringify(body),
         }
       );
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Failed to update proposal');
       setResponded(true);
       setProposal(prev => prev ? { ...prev, status: result.status } : null);
-      toast.success(action === 'approve' ? 'Proposal approved successfully!' : 'Proposal declined');
+      const messages: Record<string, string> = {
+        approve: 'Proposal approved successfully!',
+        reject: 'Proposal declined',
+        request_changes: 'Change request sent successfully!',
+      };
+      toast.success(messages[action]);
+      setChangeNotes('');
     } catch (err: any) {
       console.error('Error updating proposal:', err);
       toast.error(err.message);
@@ -157,8 +169,8 @@ export default function ClientPortal() {
   if (!proposal) return null;
 
   const isExpired = proposal.validity_date && new Date(proposal.validity_date) < new Date();
-  const canRespond = proposal.status === 'sent' && !isExpired && !responded;
-  const hasResponded = proposal.status === 'approved' || proposal.status === 'rejected' || responded;
+  const canRespond = ['sent', 'draft'].includes(proposal.status) && !isExpired && !responded;
+  const hasResponded = ['approved', 'rejected', 'revision_requested'].includes(proposal.status) || responded;
 
   const getRenderedContent = () => {
     if (!template?.content) return null;
@@ -251,15 +263,20 @@ export default function ClientPortal() {
           <div
             className="rounded-xl p-4 flex items-center justify-center gap-3 text-sm font-medium shadow-sm"
             style={{
-              backgroundColor: proposal.status === 'approved' ? '#f0fdf4' : '#fef2f2',
-              border: `1px solid ${proposal.status === 'approved' ? '#bbf7d0' : '#fecaca'}`,
-              color: proposal.status === 'approved' ? '#166534' : '#991b1b',
+              backgroundColor: proposal.status === 'approved' ? '#f0fdf4' : proposal.status === 'revision_requested' ? '#fffbeb' : '#fef2f2',
+              border: `1px solid ${proposal.status === 'approved' ? '#bbf7d0' : proposal.status === 'revision_requested' ? '#fde68a' : '#fecaca'}`,
+              color: proposal.status === 'approved' ? '#166534' : proposal.status === 'revision_requested' ? '#92400e' : '#991b1b',
             }}
           >
             {proposal.status === 'approved' ? (
               <>
                 <ShieldCheck className="h-5 w-5" />
                 <span>This proposal has been approved</span>
+              </>
+            ) : proposal.status === 'revision_requested' ? (
+              <>
+                <Clock className="h-5 w-5" />
+                <span>Changes have been requested for this proposal</span>
               </>
             ) : (
               <>
@@ -347,24 +364,33 @@ export default function ClientPortal() {
               <p className="text-sm text-muted-foreground text-center sm:text-left">
                 Please review the proposal above and approve or decline.
               </p>
-              <div className="flex items-center gap-3 w-full sm:w-auto">
+              <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
                 <Button
                   onClick={() => setConfirmAction('reject')}
                   variant="outline"
-                  className="flex-1 sm:flex-none sm:px-6"
+                  className="flex-1 sm:flex-none"
                   disabled={submitting}
                 >
-                  {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4" />}
+                  <X className="mr-1.5 h-4 w-4" />
                   Decline
                 </Button>
                 <Button
+                  onClick={() => setConfirmAction('request_changes')}
+                  variant="outline"
+                  className="flex-1 sm:flex-none"
+                  disabled={submitting}
+                >
+                  <Clock className="mr-1.5 h-4 w-4" />
+                  Request Changes
+                </Button>
+                <Button
                   onClick={() => setConfirmAction('approve')}
-                  className="flex-1 sm:flex-none sm:px-8 text-white font-semibold shadow-md hover:shadow-lg transition-shadow"
+                  className="flex-1 sm:flex-none sm:px-6 text-white font-semibold shadow-md hover:shadow-lg transition-shadow"
                   style={{ backgroundColor: primaryColor }}
                   disabled={submitting}
                 >
-                  {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
-                  Approve Proposal
+                  <Check className="mr-1.5 h-4 w-4" />
+                  Approve
                 </Button>
               </div>
             </div>
@@ -408,24 +434,38 @@ export default function ClientPortal() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {confirmAction === 'approve' ? 'Approve this proposal?' : 'Decline this proposal?'}
+              {confirmAction === 'approve' ? 'Approve this proposal?' : confirmAction === 'request_changes' ? 'Request changes to this proposal?' : 'Decline this proposal?'}
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              {confirmAction === 'approve'
-                ? 'By approving, you agree to the terms and pricing outlined in this proposal. This action cannot be undone.'
-                : 'Are you sure you want to decline this proposal? The sender will be notified of your decision.'}
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  {confirmAction === 'approve'
+                    ? 'By approving, you agree to the terms and pricing outlined in this proposal. This action cannot be undone.'
+                    : confirmAction === 'request_changes'
+                    ? 'Please describe what changes you would like. The sender will be notified.'
+                    : 'Are you sure you want to decline this proposal? The sender will be notified of your decision.'}
+                </p>
+                {confirmAction === 'request_changes' && (
+                  <Textarea
+                    placeholder="Describe the changes you'd like..."
+                    value={changeNotes}
+                    onChange={(e) => setChangeNotes(e.target.value)}
+                    className="min-h-[100px]"
+                  />
+                )}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={submitting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={submitting} onClick={() => setChangeNotes('')}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => confirmAction && handleAction(confirmAction)}
-              disabled={submitting}
+              disabled={submitting || (confirmAction === 'request_changes' && !changeNotes.trim())}
               style={confirmAction === 'approve' ? { backgroundColor: primaryColor } : undefined}
               className={confirmAction === 'reject' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}
             >
               {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {confirmAction === 'approve' ? 'Yes, Approve' : 'Yes, Decline'}
+              {confirmAction === 'approve' ? 'Yes, Approve' : confirmAction === 'request_changes' ? 'Send Request' : 'Yes, Decline'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
