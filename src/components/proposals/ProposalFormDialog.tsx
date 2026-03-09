@@ -20,7 +20,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScopeOfWorkEditor } from './ScopeOfWorkEditor';
 import { CostBreakdownTable } from './CostBreakdownTable';
-import { FileText, DollarSign, Settings } from 'lucide-react';
+import { FileText, DollarSign, Settings, LayoutTemplate } from 'lucide-react';
+import { Template } from '@/hooks/useTemplates';
 
 type ProposalStatus = 'draft' | 'sent' | 'approved' | 'rejected';
 
@@ -50,10 +51,11 @@ interface Project {
 interface ProposalFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: ProposalFormData) => void;
+  onSubmit: (data: ProposalFormData & { templateId?: string }) => void;
   initialData?: ProposalFormData;
   clients: Client[];
   projects: Project[];
+  templates?: Template[];
   isSubmitting?: boolean;
   mode?: 'create' | 'edit';
 }
@@ -76,16 +78,21 @@ export function ProposalFormDialog({
   initialData,
   clients,
   projects,
+  templates = [],
   isSubmitting = false,
   mode = 'create',
 }: ProposalFormDialogProps) {
   const [formData, setFormData] = useState<ProposalFormData>(initialData || emptyFormData);
   const [activeTab, setActiveTab] = useState('details');
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+
+  const proposalTemplates = templates.filter(t => t.type === 'proposal');
 
   useEffect(() => {
     if (open) {
       setFormData(initialData || emptyFormData);
       setActiveTab('details');
+      setSelectedTemplateId('');
     }
   }, [open, initialData]);
 
@@ -93,7 +100,7 @@ export function ProposalFormDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    onSubmit({ ...formData, templateId: selectedTemplateId || undefined });
   };
 
   const isValid = formData.title.trim() && formData.clientId;
@@ -179,6 +186,35 @@ export function ProposalFormDialog({
                     </Select>
                   </div>
                 </div>
+
+                {proposalTemplates.length > 0 && (
+                  <div className="space-y-2">
+                    <Label htmlFor="template">
+                      <span className="flex items-center gap-1.5">
+                        <LayoutTemplate className="h-3.5 w-3.5" />
+                        Template (Optional)
+                      </span>
+                    </Label>
+                    <Select
+                      value={selectedTemplateId}
+                      onValueChange={setSelectedTemplateId}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a template for preview" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {proposalTemplates.map((tmpl) => (
+                          <SelectItem key={tmpl.id} value={tmpl.id}>
+                            {tmpl.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Choose a template to preview the final proposal with your data filled in.
+                    </p>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">

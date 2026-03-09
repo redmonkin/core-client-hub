@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, FileText, MoreHorizontal, Download, Loader2, Pencil, Trash2, Copy, Send, LinkIcon } from 'lucide-react';
+import { Plus, Search, FileText, MoreHorizontal, Download, Loader2, Pencil, Trash2, Copy, Send, LinkIcon, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -44,6 +44,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { ProposalFormDialog } from '@/components/proposals/ProposalFormDialog';
+import { ProposalPreviewDialog, ProposalData } from '@/components/proposals/ProposalPreviewDialog';
+import { useTemplates, Template } from '@/hooks/useTemplates';
 
 type ProposalStatus = 'draft' | 'sent' | 'approved' | 'rejected';
 
@@ -63,6 +65,11 @@ type Client = {
   id: string;
   client_name: string;
   email: string | null;
+  designation: string | null;
+  phone: string | null;
+  company_name: string | null;
+  billing_address: string | null;
+  primary_contact_name: string | null;
 };
 
 interface ProposalFormData {
@@ -103,6 +110,11 @@ export default function Proposals() {
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [shareLink, setShareLink] = useState('');
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null);
+  const [previewProposalData, setPreviewProposalData] = useState<ProposalData | null>(null);
+
+  const { templates } = useTemplates();
 
   const { data: proposals = [], isLoading: proposalsLoading } = useQuery({
     queryKey: ['proposals'],
@@ -121,7 +133,7 @@ export default function Proposals() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('clients')
-        .select('id, client_name, email')
+        .select('id, client_name, email, designation, phone, company_name, billing_address, primary_contact_name')
         .order('client_name');
       if (error) throw error;
       return data as Client[];
@@ -328,6 +340,35 @@ export default function Proposals() {
     setIsDialogOpen(true);
   };
 
+  const handlePreview = (proposal: Proposal) => {
+    const proposalTemplates = templates.filter(t => t.type === 'proposal');
+    if (proposalTemplates.length === 0) {
+      toast.error('No proposal templates found. Create a template first.');
+      return;
+    }
+    const client = clients.find(c => c.id === proposal.client_id);
+    const project = projects.find(p => p.id === proposal.project_id);
+    
+    setPreviewProposalData({
+      title: proposal.title,
+      clientName: client?.primary_contact_name || client?.client_name || '',
+      clientDesignation: client?.designation || '',
+      clientEmail: client?.email || '',
+      clientPhone: client?.phone || '',
+      companyName: client?.company_name || client?.client_name || '',
+      companyAddress: client?.billing_address || '',
+      projectName: project?.project_name || '',
+      projectWebsite: '',
+      customerGoals: proposal.customer_goals || '',
+      scopeOfWork: proposal.scope_of_work || '',
+      costBreakdown: proposal.cost_breakdown || '',
+      validityDate: proposal.validity_date || '',
+      createdAt: new Date().toISOString(),
+    });
+    setPreviewTemplate(proposalTemplates[0]);
+    setIsPreviewOpen(true);
+  };
+
   const handleSendEmail = (proposal: Proposal) => {
     const clientEmail = getClientEmail(proposal.client_id);
     if (!clientEmail) {
@@ -502,6 +543,10 @@ export default function Proposals() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="bg-popover">
+                      <DropdownMenuItem onClick={() => handlePreview(proposal)}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        Preview
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleEdit(proposal)}>
                         <Pencil className="mr-2 h-4 w-4" />
                         Edit
@@ -574,6 +619,7 @@ export default function Proposals() {
         initialData={newProposal}
         clients={clients}
         projects={projects}
+        templates={templates}
         isSubmitting={createProposalMutation.isPending}
         mode="create"
       />
@@ -589,6 +635,7 @@ export default function Proposals() {
         initialData={editProposal}
         clients={clients}
         projects={projects}
+        templates={templates}
         isSubmitting={updateProposalMutation.isPending}
         mode="edit"
       />
@@ -692,6 +739,14 @@ export default function Proposals() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Proposal Preview Dialog */}
+      <ProposalPreviewDialog
+        open={isPreviewOpen}
+        onOpenChange={setIsPreviewOpen}
+        template={previewTemplate}
+        proposalData={previewProposalData!}
+      />
     </div>
   );
 }
