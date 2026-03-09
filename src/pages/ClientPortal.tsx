@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
-import { FileText, Check, X, Loader2, AlertCircle, Clock, Globe, Mail } from 'lucide-react';
+import { FileText, Check, X, Loader2, AlertCircle, Clock, Globe, Mail, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { replacePlaceholders, ProposalData } from '@/lib/proposal-utils';
+import { exportToPdf } from '@/lib/pdf-export';
 
 type PortalProposal = {
   id: string;
@@ -52,6 +53,7 @@ export default function ClientPortal() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [responded, setResponded] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const primaryColor = branding?.primary_color || '#8B5CF6';
 
@@ -183,6 +185,22 @@ export default function ClientPortal() {
 
   const renderedContent = getRenderedContent();
 
+  const handleExportPdf = async () => {
+    if (!renderedContent) return;
+    setIsExporting(true);
+    const toastId = toast.loading('Generating PDF...');
+    try {
+      const filename = `${proposal.title.replace(/[^a-z0-9]/gi, '_')}_proposal.pdf`;
+      await exportToPdf(renderedContent, filename);
+      toast.success('PDF downloaded successfully', { id: toastId });
+    } catch (error: any) {
+      console.error('Error generating PDF:', error);
+      toast.error('Failed to generate PDF', { id: toastId });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-muted/30 py-8 px-4">
       <div className="max-w-3xl mx-auto space-y-6">
@@ -212,6 +230,22 @@ export default function ClientPortal() {
           )}
           {branding?.tagline && (
             <p className="text-sm text-muted-foreground">{branding.tagline}</p>
+          )}
+          {renderedContent && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportPdf}
+              disabled={isExporting}
+              className="mt-4"
+            >
+              {isExporting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
+              Download PDF
+            </Button>
           )}
         </div>
 

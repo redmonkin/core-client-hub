@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Eye, X, Download, Loader2 } from 'lucide-react';
 import { Template } from '@/hooks/useTemplates';
 import { ProposalData, replacePlaceholders } from '@/lib/proposal-utils';
+import { exportToPdf } from '@/lib/pdf-export';
 import { toast } from 'sonner';
 
 interface ProposalPreviewDialogProps {
@@ -19,120 +20,6 @@ interface ProposalPreviewDialogProps {
   template: Template | null;
   proposalData: ProposalData;
 }
-
-async function exportToPdf(html: string, filename: string) {
-  const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
-    import('jspdf'),
-    import('html2canvas'),
-  ]);
-
-  const A4_WIDTH_MM = 210;
-  const A4_HEIGHT_MM = 297;
-  const MARGIN_MM = 15;
-  const CONTENT_WIDTH_MM = A4_WIDTH_MM - MARGIN_MM * 2;
-  const CONTENT_HEIGHT_MM = A4_HEIGHT_MM - MARGIN_MM * 2;
-
-  // Create off-screen container with inlined styles
-  const container = document.createElement('div');
-  container.style.position = 'absolute';
-  container.style.left = '-9999px';
-  container.style.top = '0';
-  // Set width to match A4 content area at 2x scale for sharp rendering
-  container.style.width = '680px';
-  container.style.background = '#ffffff';
-  document.body.appendChild(container);
-
-  container.innerHTML = `
-    <style>
-      .pdf-content {
-        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-        font-size: 14px;
-        line-height: 1.7;
-        color: #1a1a1a;
-        padding: 10px 0;
-        max-width: 100%;
-        word-wrap: break-word;
-      }
-      .pdf-content h1 { font-size: 26px; font-weight: 700; margin: 28px 0 12px; color: #111827; line-height: 1.3; }
-      .pdf-content h2 { font-size: 21px; font-weight: 700; margin: 24px 0 10px; color: #111827; line-height: 1.3; }
-      .pdf-content h3 { font-size: 17px; font-weight: 600; margin: 20px 0 8px; color: #111827; line-height: 1.4; }
-      .pdf-content p { margin: 0 0 12px; color: #374151; }
-      .pdf-content strong, .pdf-content b { font-weight: 700; color: #111827; }
-      .pdf-content em, .pdf-content i { font-style: italic; }
-      .pdf-content ul { list-style-type: disc; margin: 8px 0 12px; padding-left: 24px; }
-      .pdf-content ol { list-style-type: decimal; margin: 8px 0 12px; padding-left: 24px; }
-      .pdf-content li { margin: 4px 0; padding-left: 4px; color: #374151; }
-      .pdf-content li > ul, .pdf-content li > ol { margin: 4px 0; }
-      .pdf-content blockquote { border-left: 3px solid #d1d5db; margin: 12px 0; padding: 8px 16px; color: #6b7280; font-style: italic; }
-      .pdf-content hr { border: none; border-top: 1px solid #e5e7eb; margin: 20px 0; }
-      .pdf-content table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
-      .pdf-content table th { background: #f3f4f6; border-bottom: 2px solid #e5e7eb; padding: 8px 12px; text-align: left; font-weight: 600; color: #374151; }
-      .pdf-content table td { padding: 8px 12px; border-bottom: 1px solid #e5e7eb; color: #374151; }
-      .pdf-content table tfoot td { font-weight: 600; }
-      .pdf-content img { max-width: 100%; height: auto; }
-    </style>
-    <div class="pdf-content">${html}</div>
-  `;
-
-  try {
-    // Render the full content as a single canvas
-    const canvas = await html2canvas(container.querySelector('.pdf-content') as HTMLElement, {
-      scale: 2,
-      useCORS: true,
-      logging: false,
-      backgroundColor: '#ffffff',
-    });
-
-    const pdf = new jsPDF('p', 'mm', 'a4');
-
-    // Calculate how many pixels correspond to one page of content
-    const pxPerMm = canvas.width / CONTENT_WIDTH_MM;
-    const pageHeightPx = Math.floor(CONTENT_HEIGHT_MM * pxPerMm);
-    const totalPages = Math.ceil(canvas.height / pageHeightPx);
-
-    for (let page = 0; page < totalPages; page++) {
-      if (page > 0) pdf.addPage();
-
-      const srcY = page * pageHeightPx;
-      const sliceHeight = Math.min(pageHeightPx, canvas.height - srcY);
-
-      // Create a canvas slice for this page
-      const pageCanvas = document.createElement('canvas');
-      pageCanvas.width = canvas.width;
-      pageCanvas.height = sliceHeight;
-
-      const ctx = pageCanvas.getContext('2d');
-      if (!ctx) throw new Error('Canvas context failed');
-
-      // Fill white background first
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-
-      // Draw the slice from the full canvas
-      ctx.drawImage(
-        canvas,
-        0, srcY, canvas.width, sliceHeight,
-        0, 0, canvas.width, sliceHeight
-      );
-
-      const sliceHeightMm = sliceHeight / pxPerMm;
-      pdf.addImage(
-        pageCanvas.toDataURL('image/png'),
-        'PNG',
-        MARGIN_MM,
-        MARGIN_MM,
-        CONTENT_WIDTH_MM,
-        sliceHeightMm
-      );
-    }
-
-    pdf.save(filename);
-  } finally {
-    document.body.removeChild(container);
-  }
-}
-
-
 
 export function ProposalPreviewDialog({
   open,
