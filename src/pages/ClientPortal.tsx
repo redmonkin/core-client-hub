@@ -227,9 +227,10 @@ export default function ClientPortal() {
                 <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground mb-2">
                   Scope of Work
                 </h3>
-                <div className="bg-muted/50 rounded-lg p-4">
-                  <p className="text-foreground whitespace-pre-wrap">{proposal.scope_of_work}</p>
-                </div>
+                <div 
+                  className="bg-muted/50 rounded-lg p-4 prose prose-sm max-w-none text-foreground [&_h1]:text-foreground [&_h2]:text-foreground [&_h3]:text-foreground [&_strong]:text-foreground [&_li]:text-foreground"
+                  dangerouslySetInnerHTML={{ __html: proposal.scope_of_work }}
+                />
               </div>
             )}
 
