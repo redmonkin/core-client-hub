@@ -370,6 +370,7 @@ export default function Proposals() {
       scopeOfWork: proposal.scope_of_work || '',
       costBreakdown: proposal.cost_breakdown || '',
       validityDate: proposal.validity_date || '',
+      duration: proposal.duration || '',
       createdAt: new Date().toISOString(),
     });
     setPreviewTemplate(proposalTemplates[0]);
