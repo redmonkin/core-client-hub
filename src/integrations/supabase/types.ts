@@ -359,6 +359,44 @@ export type Database = {
           },
         ]
       }
+      proposal_status_history: {
+        Row: {
+          created_at: string
+          from_status: string | null
+          id: string
+          note: string | null
+          proposal_id: string
+          to_status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          proposal_id: string
+          to_status: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          proposal_id?: string
+          to_status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_status_history_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposals: {
         Row: {
           client_id: string
