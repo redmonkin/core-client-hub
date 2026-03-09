@@ -650,7 +650,7 @@ export default function Proposals() {
       />
 
       <ProposalFormDialog
-        key={selectedProposal?.id || 'edit'}
+        key={editDialogKey}
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
         onSubmit={({ templateId, ...data }) => {
