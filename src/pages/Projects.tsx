@@ -54,7 +54,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 
-type ProjectStatus = 'planned' | 'active' | 'on-hold' | 'completed' | 'cancelled';
+type ProjectStatus = 'proposal' | 'planned' | 'active' | 'on-hold' | 'completed' | 'cancelled' | 'maintenance';
 type ProjectType = 'one-time' | 'amc' | 'retainer';
 
 type Project = {
