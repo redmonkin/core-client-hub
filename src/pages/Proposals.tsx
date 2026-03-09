@@ -150,6 +150,7 @@ export default function Proposals() {
           project_id: proposal.projectId || null,
           scope_of_work: proposal.scopeOfWork || null,
           cost_breakdown: proposal.costBreakdown || null,
+          customer_goals: proposal.customerGoals || null,
           validity_date: proposal.validityDate || null,
           status: proposal.status,
           user_id: user?.id,
