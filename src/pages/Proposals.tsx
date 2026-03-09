@@ -58,6 +58,7 @@ type Proposal = {
   cost_breakdown: string | null;
   customer_goals: string | null;
   validity_date: string | null;
+  duration: string | null;
   status: string;
 };
 
@@ -80,6 +81,7 @@ interface ProposalFormData {
   costBreakdown: string;
   customerGoals: string;
   validityDate: string;
+  duration: string;
   status: ProposalStatus;
 }
 
@@ -91,6 +93,7 @@ const emptyProposal: ProposalFormData = {
   costBreakdown: '',
   customerGoals: '',
   validityDate: '',
+  duration: '',
   status: 'draft',
 };
 
@@ -164,6 +167,7 @@ export default function Proposals() {
           cost_breakdown: proposal.costBreakdown || null,
           customer_goals: proposal.customerGoals || null,
           validity_date: proposal.validityDate || null,
+          duration: proposal.duration || null,
           status: proposal.status,
           user_id: user?.id,
         })
@@ -195,6 +199,7 @@ export default function Proposals() {
           cost_breakdown: proposal.costBreakdown || null,
           customer_goals: proposal.customerGoals || null,
           validity_date: proposal.validityDate || null,
+          duration: proposal.duration || null,
           status: proposal.status,
         })
         .eq('id', id)
@@ -298,7 +303,7 @@ export default function Proposals() {
     }
   };
 
-  const handleSubmit = (data: ProposalFormData) => {
+  const handleSubmit = ({ templateId, ...data }: ProposalFormData & { templateId?: string }) => {
     if (!data.title || !data.clientId) {
       toast.error('Please fill in required fields');
       return;
@@ -316,6 +321,7 @@ export default function Proposals() {
       costBreakdown: proposal.cost_breakdown || '',
       customerGoals: proposal.customer_goals || '',
       validityDate: proposal.validity_date || '',
+      duration: proposal.duration || '',
       status: proposal.status as ProposalStatus,
     });
     setIsEditDialogOpen(true);
@@ -334,6 +340,7 @@ export default function Proposals() {
       scopeOfWork: proposal.scope_of_work || '',
       costBreakdown: proposal.cost_breakdown || '',
       customerGoals: proposal.customer_goals || '',
+      duration: proposal.duration || '',
       validityDate: '',
       status: 'draft',
     });
@@ -363,6 +370,7 @@ export default function Proposals() {
       scopeOfWork: proposal.scope_of_work || '',
       costBreakdown: proposal.cost_breakdown || '',
       validityDate: proposal.validity_date || '',
+      duration: proposal.duration || '',
       createdAt: new Date().toISOString(),
     });
     setPreviewTemplate(proposalTemplates[0]);
@@ -627,7 +635,7 @@ export default function Proposals() {
       <ProposalFormDialog
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
-        onSubmit={(data) => {
+        onSubmit={({ templateId, ...data }) => {
           if (selectedProposal) {
             updateProposalMutation.mutate({ id: selectedProposal.id, ...data });
           }
