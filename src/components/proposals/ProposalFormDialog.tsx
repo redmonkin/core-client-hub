@@ -92,6 +92,7 @@ export function ProposalFormDialog({
     if (open) {
       setFormData(initialData || emptyFormData);
       setActiveTab('details');
+      setSelectedTemplateId('');
     }
   }, [open, initialData]);
 
