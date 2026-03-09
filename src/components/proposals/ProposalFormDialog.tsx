@@ -30,6 +30,7 @@ interface ProposalFormData {
   projectId: string;
   scopeOfWork: string;
   costBreakdown: string;
+  customerGoals: string;
   validityDate: string;
   status: ProposalStatus;
 }
