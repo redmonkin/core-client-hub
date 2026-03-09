@@ -71,6 +71,7 @@ interface ProposalFormData {
   projectId: string;
   scopeOfWork: string;
   costBreakdown: string;
+  customerGoals: string;
   validityDate: string;
   status: ProposalStatus;
 }
@@ -81,6 +82,7 @@ const emptyProposal: ProposalFormData = {
   projectId: '',
   scopeOfWork: '',
   costBreakdown: '',
+  customerGoals: '',
   validityDate: '',
   status: 'draft',
 };
