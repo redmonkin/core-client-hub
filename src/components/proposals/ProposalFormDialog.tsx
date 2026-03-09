@@ -20,7 +20,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScopeOfWorkEditor } from './ScopeOfWorkEditor';
 import { CostBreakdownTable } from './CostBreakdownTable';
-import { FileText, DollarSign, Settings } from 'lucide-react';
+import { FileText, DollarSign, Settings, LayoutTemplate } from 'lucide-react';
+import { Template } from '@/hooks/useTemplates';
 
 type ProposalStatus = 'draft' | 'sent' | 'approved' | 'rejected';
 
