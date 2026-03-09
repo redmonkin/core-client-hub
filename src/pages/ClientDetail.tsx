@@ -264,12 +264,13 @@ export default function ClientDetail() {
         <TabsContent value="contracts" className="mt-4">
           <div className="space-y-3">
             {clientContracts.map(contract => (
-              <Card key={contract.id}>
-                <CardContent className="flex items-center justify-between p-4">
-                  <div>
-                    <p className="font-medium capitalize text-foreground">
-                      {contract.contract_type} Contract
-                    </p>
+              <Link key={contract.id} to="/contracts" className="block">
+                <Card className="transition-all hover:border-primary/20 hover:shadow-sm">
+                  <CardContent className="flex items-center justify-between p-4">
+                    <div>
+                      <p className="font-medium capitalize text-foreground hover:text-primary transition-colors">
+                        {contract.contract_type} Contract
+                      </p>
                     <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
                       <span>${Number(contract.value).toLocaleString()}</span>
                       <span>•</span>
