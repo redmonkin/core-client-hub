@@ -58,6 +58,7 @@ type Proposal = {
   cost_breakdown: string | null;
   customer_goals: string | null;
   validity_date: string | null;
+  duration: string | null;
   status: string;
 };
 
