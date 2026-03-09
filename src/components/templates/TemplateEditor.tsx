@@ -56,7 +56,7 @@ const PROPOSAL_PLACEHOLDERS: PlaceholderItem[] = [
   { label: 'Phone Number', value: '{{phoneNumber}}' },
   { label: 'Company Address', value: '{{companyAddress}}' },
   { label: 'Project Name', value: '{{projectName}}' },
-  { label: 'Proposed Date', value: '{{proposedDate}}' },
+  { label: 'Proposal Date', value: '{{proposalDate}}' },
   { label: 'Proposal Expiry Date', value: '{{proposalExpiryDate}}' },
   { label: 'Customer Goals', value: '{{customerGoals}}' },
   { label: 'Scope of Work', value: '{{scopeOfWork}}' },
