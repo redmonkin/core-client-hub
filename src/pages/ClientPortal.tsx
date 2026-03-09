@@ -170,7 +170,7 @@ export default function ClientPortal() {
 
   const isExpired = proposal.validity_date && new Date(proposal.validity_date) < new Date();
   const canRespond = ['sent', 'draft'].includes(proposal.status) && !isExpired && !responded;
-  const hasResponded = ['approved', 'rejected', 'revision_requested'].includes(proposal.status) || responded;
+  const hasResponded = ['approved', 'rejected', 'change_requested'].includes(proposal.status) || responded;
 
   const getRenderedContent = () => {
     if (!template?.content) return null;
