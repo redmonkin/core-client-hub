@@ -80,11 +80,6 @@ export default function Templates() {
     });
   };
 
-  // Strip HTML tags for preview
-  const stripHtml = (html: string) => {
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    return doc.body.textContent || '';
-  };
 
   if (isLoading) {
     return (
