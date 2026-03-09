@@ -133,7 +133,7 @@ export default function Proposals() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('clients')
-        .select('id, client_name, email')
+        .select('id, client_name, email, designation, phone, company_name, billing_address, primary_contact_name')
         .order('client_name');
       if (error) throw error;
       return data as Client[];
