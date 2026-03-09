@@ -115,6 +115,7 @@ export default function Proposals() {
   const [proposalTemplateSelections, setProposalTemplateSelections] = useState<Record<string, string>>({});
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [shareLink, setShareLink] = useState('');
+  const [sharePassword, setSharePassword] = useState('');
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null);
@@ -451,6 +452,7 @@ export default function Proposals() {
   const handleShareLink = async (proposal: Proposal) => {
     setSelectedProposal(proposal);
     setShareLink('');
+    setSharePassword('');
     setIsShareDialogOpen(true);
     setIsGeneratingLink(true);
 
@@ -460,23 +462,37 @@ export default function Proposals() {
       crypto.getRandomValues(tokenArray);
       const token = Array.from(tokenArray, b => b.toString(16).padStart(2, '0')).join('');
 
+      // Generate a 6-character alphanumeric password
+      const passArray = new Uint8Array(4);
+      crypto.getRandomValues(passArray);
+      const password = Array.from(passArray, b => b.toString(36).padStart(2, '0')).join('').substring(0, 6).toUpperCase();
+
+      // Hash the password for storage using SHA-256
+      const encoder = new TextEncoder();
+      const data = encoder.encode(password);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const passwordHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
       // Set expiry to 30 days from now
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 30);
 
-      // Insert the access token
+      // Insert the access token with password hash
       const { error } = await supabase
         .from('proposal_access_tokens')
         .insert({
           proposal_id: proposal.id,
           token,
           expires_at: expiresAt.toISOString(),
+          password_hash: passwordHash,
         });
 
       if (error) throw error;
 
       const link = `${window.location.origin}/portal?token=${token}`;
       setShareLink(link);
+      setSharePassword(password);
     } catch (error: any) {
       console.error('Error generating share link:', error);
       toast.error('Failed to generate share link');
@@ -778,18 +794,34 @@ export default function Proposals() {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Input
-                  value={shareLink}
-                  readOnly
-                  className="flex-1"
-                />
-                <Button onClick={copyShareLink} variant="secondary">
-                  <Copy className="h-4 w-4" />
-                </Button>
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">Link</label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={shareLink}
+                    readOnly
+                    className="flex-1"
+                  />
+                  <Button onClick={copyShareLink} variant="secondary">
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">Password</label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={sharePassword}
+                    readOnly
+                    className="flex-1 font-mono tracking-widest text-lg"
+                  />
+                  <Button onClick={() => { navigator.clipboard.writeText(sharePassword); toast.success('Password copied!'); }} variant="secondary">
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
               <p className="text-sm text-muted-foreground">
-                This link will expire in 30 days. The client can approve or reject the proposal directly from this link.
+                Share both the link and password with your client. The link expires in 30 days.
               </p>
             </div>
           )}

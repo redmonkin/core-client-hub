@@ -1,0 +1,1 @@
+ALTER TABLE public.proposal_access_tokens ADD COLUMN password_hash text DEFAULT NULL;
