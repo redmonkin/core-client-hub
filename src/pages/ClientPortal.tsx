@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
-import { FileText, Check, X, Loader2, AlertCircle, Clock, Globe, Mail, Download, ShieldCheck, ShieldX } from 'lucide-react';
+import { FileText, Check, X, Loader2, AlertCircle, Clock, Globe, Mail, Download, ShieldCheck, ShieldX, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { replacePlaceholders, ProposalData } from '@/lib/proposal-utils';
 import { exportToPdf } from '@/lib/pdf-export';
@@ -67,6 +68,13 @@ export default function ClientPortal() {
   const [isExporting, setIsExporting] = useState(false);
   const [confirmAction, setConfirmAction] = useState<'approve' | 'reject' | 'request_changes' | null>(null);
   const [changeNotes, setChangeNotes] = useState('');
+  
+  // Password gate state
+  const [passwordRequired, setPasswordRequired] = useState(false);
+  const [password, setPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [verifyingPassword, setVerifyingPassword] = useState(false);
+  const [authenticated, setAuthenticated] = useState(false);
 
   const primaryColor = branding?.primary_color || '#0284C7';
   const accentColor = branding?.accent_color || '#0EA5E9';
@@ -80,23 +88,58 @@ export default function ClientPortal() {
     fetchProposal();
   }, [token]);
 
-  const fetchProposal = async () => {
+  const hashPassword = async (pwd: string): Promise<string> => {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(pwd);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  };
+
+  const fetchProposal = async (passwordHash?: string) => {
     try {
-      const response = await fetch(
-        `https://jizouqjrdyfshhztqucd.supabase.co/functions/v1/client-portal?token=${token}`,
-        { method: 'GET' }
-      );
+      let url = `https://jizouqjrdyfshhztqucd.supabase.co/functions/v1/client-portal?token=${token}`;
+      if (passwordHash) {
+        url += `&ph=${passwordHash}`;
+      }
+      const response = await fetch(url, { method: 'GET' });
       const result = await response.json();
+      
+      if (result.password_required) {
+        setPasswordRequired(true);
+        setLoading(false);
+        return;
+      }
+      
+      if (response.status === 403) {
+        setPasswordError('Incorrect password. Please try again.');
+        setVerifyingPassword(false);
+        return;
+      }
+      
       if (!response.ok) throw new Error(result.error || 'Failed to load proposal');
+      
       setProposal(result.proposal);
       setBranding(result.branding);
       setTemplate(result.template);
+      setAuthenticated(true);
+      setPasswordRequired(false);
     } catch (err: any) {
       console.error('Error fetching proposal:', err);
       setError(err.message);
     } finally {
       setLoading(false);
+      setVerifyingPassword(false);
     }
+  };
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!password.trim()) return;
+    setVerifyingPassword(true);
+    setPasswordError('');
+    const hash = await hashPassword(password.toUpperCase());
+    await fetchProposal(hash);
   };
 
   const handleAction = async (action: 'approve' | 'reject' | 'request_changes') => {
