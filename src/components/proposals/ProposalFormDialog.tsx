@@ -54,6 +54,7 @@ interface ProposalFormDialogProps {
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: ProposalFormData & { templateId?: string }) => void;
   initialData?: ProposalFormData;
+  initialTemplateId?: string;
   clients: Client[];
   projects: Project[];
   templates?: Template[];
