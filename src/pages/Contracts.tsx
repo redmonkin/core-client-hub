@@ -54,12 +54,29 @@ type ContractFormData = {
   contract_type: string;
   start_date: string;
   end_date: string;
-  value: string;
   renewal_frequency: string;
   status: string;
   scope_of_work: string;
   cost_breakdown: string;
 };
+
+function computeValueFromCostBreakdown(costBreakdown: string | null): number {
+  if (!costBreakdown) return 0;
+  try {
+    const parsed = JSON.parse(costBreakdown);
+    if (!parsed.items || !Array.isArray(parsed.items)) return 0;
+    const subtotal = parsed.items.reduce((acc: number, item: any) => {
+      const lineTotal = (item.quantity || 0) * (item.unitPrice || 0) * (1 - (item.discount || 0) / 100);
+      return acc + lineTotal;
+    }, 0);
+    const additionalDiscount = subtotal * ((parsed.additionalDiscount || 0) / 100);
+    const afterDiscount = subtotal - additionalDiscount;
+    const tax = afterDiscount * ((parsed.taxRate || 0) / 100);
+    return afterDiscount + tax;
+  } catch {
+    return 0;
+  }
+}
 
 export default function Contracts() {
   const [searchQuery, setSearchQuery] = useState("");
