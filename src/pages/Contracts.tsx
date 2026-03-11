@@ -131,7 +131,7 @@ export default function Contracts() {
           contract_type: contractData.contract_type,
           start_date: contractData.start_date,
           end_date: contractData.end_date,
-          value: parseFloat(contractData.value),
+          value: computeValueFromCostBreakdown(contractData.cost_breakdown),
           renewal_frequency: contractData.renewal_frequency,
           status: contractData.status,
           scope_of_work: contractData.scope_of_work || null,
