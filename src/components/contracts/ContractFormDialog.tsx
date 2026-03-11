@@ -194,15 +194,6 @@ export function ContractFormDialog({
                     </Select>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Contract Value *</Label>
-                    <Input
-                      type="number"
-                      placeholder="Enter value"
-                      value={formData.value}
-                      onChange={(e) => setFormData({ ...formData, value: e.target.value })}
-                    />
-                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
