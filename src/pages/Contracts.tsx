@@ -9,7 +9,6 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   DropdownMenu,
@@ -18,15 +17,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,6 +27,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { ContractFormDialog } from "@/components/contracts/ContractFormDialog";
+import { useTemplates } from "@/hooks/useTemplates";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -52,17 +44,21 @@ type Contract = {
   value: number;
   renewal_frequency: string;
   status: string;
+  scope_of_work: string | null;
+  cost_breakdown: string | null;
 };
 
-const emptyContract = {
-  client_id: "",
-  project_id: "",
-  contract_type: "",
-  start_date: "",
-  end_date: "",
-  value: "",
-  renewal_frequency: "",
-  status: "active",
+type ContractFormData = {
+  client_id: string;
+  project_id: string;
+  contract_type: string;
+  start_date: string;
+  end_date: string;
+  value: string;
+  renewal_frequency: string;
+  status: string;
+  scope_of_work: string;
+  cost_breakdown: string;
 };
 
 export default function Contracts() {
@@ -72,19 +68,19 @@ export default function Contracts() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
-  const [newContract, setNewContract] = useState(emptyContract);
-  const [editContract, setEditContract] = useState(emptyContract);
+  const [editFormKey, setEditFormKey] = useState(0);
 
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { templates } = useTemplates();
 
   const { data: contracts = [], isLoading: contractsLoading } = useQuery({
     queryKey: ["contracts"],
     queryFn: async () => {
       const { data, error } = await supabase.from("contracts").select("*").order("created_at", { ascending: false });
       if (error) throw error;
-      return data;
+      return data as Contract[];
     },
   });
 
@@ -107,7 +103,7 @@ export default function Contracts() {
   });
 
   const createContractMutation = useMutation({
-    mutationFn: async (contractData: typeof newContract) => {
+    mutationFn: async (contractData: ContractFormData) => {
       if (!user?.id) throw new Error("User not authenticated");
       const { data, error } = await supabase
         .from("contracts")
@@ -121,6 +117,8 @@ export default function Contracts() {
           value: parseFloat(contractData.value),
           renewal_frequency: contractData.renewal_frequency,
           status: contractData.status,
+          scope_of_work: contractData.scope_of_work || null,
+          cost_breakdown: contractData.cost_breakdown || null,
         })
         .select()
         .single();
@@ -130,7 +128,6 @@ export default function Contracts() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contracts"] });
       setIsDialogOpen(false);
-      setNewContract(emptyContract);
       toast({ title: "Contract created successfully" });
     },
     onError: (error) => {
@@ -139,7 +136,7 @@ export default function Contracts() {
   });
 
   const updateContractMutation = useMutation({
-    mutationFn: async ({ id, ...contractData }: { id: string } & typeof editContract) => {
+    mutationFn: async ({ id, ...contractData }: { id: string } & ContractFormData) => {
       const { data, error } = await supabase
         .from("contracts")
         .update({
@@ -151,6 +148,8 @@ export default function Contracts() {
           value: parseFloat(contractData.value),
           renewal_frequency: contractData.renewal_frequency,
           status: contractData.status,
+          scope_of_work: contractData.scope_of_work || null,
+          cost_breakdown: contractData.cost_breakdown || null,
         })
         .eq("id", id)
         .select()
@@ -205,44 +204,15 @@ export default function Contracts() {
     return matchesSearch && matchesStatus;
   });
 
-  const filteredProjects = projects.filter((p) => p.client_id === newContract.client_id);
-  const editFilteredProjects = projects.filter((p) => p.client_id === editContract.client_id);
-
   const handleEdit = (contract: Contract) => {
     setSelectedContract(contract);
-    setEditContract({
-      client_id: contract.client_id,
-      project_id: contract.project_id || "",
-      contract_type: contract.contract_type,
-      start_date: contract.start_date,
-      end_date: contract.end_date,
-      value: String(contract.value),
-      renewal_frequency: contract.renewal_frequency,
-      status: contract.status,
-    });
+    setEditFormKey((k) => k + 1);
     setIsEditDialogOpen(true);
   };
 
   const handleDelete = (contract: Contract) => {
     setSelectedContract(contract);
     setIsDeleteDialogOpen(true);
-  };
-
-  const handleEditSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedContract) return;
-    if (
-      !editContract.client_id ||
-      !editContract.contract_type ||
-      !editContract.start_date ||
-      !editContract.end_date ||
-      !editContract.value ||
-      !editContract.renewal_frequency
-    ) {
-      toast({ title: "Please fill in all required fields", variant: "destructive" });
-      return;
-    }
-    updateContractMutation.mutate({ id: selectedContract.id, ...editContract });
   };
 
   const contractTypeLabels: Record<string, string> = {
@@ -257,20 +227,20 @@ export default function Contracts() {
     yearly: "Yearly",
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (
-      !newContract.client_id ||
-      !newContract.contract_type ||
-      !newContract.start_date ||
-      !newContract.end_date ||
-      !newContract.value ||
-      !newContract.renewal_frequency
-    ) {
-      toast({ title: "Please fill in all required fields", variant: "destructive" });
-      return;
-    }
-    createContractMutation.mutate(newContract);
+  const getEditInitialData = () => {
+    if (!selectedContract) return undefined;
+    return {
+      client_id: selectedContract.client_id,
+      project_id: selectedContract.project_id || "",
+      contract_type: selectedContract.contract_type,
+      start_date: selectedContract.start_date,
+      end_date: selectedContract.end_date,
+      value: String(selectedContract.value),
+      renewal_frequency: selectedContract.renewal_frequency,
+      status: selectedContract.status,
+      scope_of_work: selectedContract.scope_of_work || "",
+      cost_breakdown: selectedContract.cost_breakdown || "",
+    };
   };
 
   if (contractsLoading) {
@@ -287,145 +257,10 @@ export default function Contracts() {
         title="Contracts"
         description="Manage contracts, annual maintenance agreements, master service agreements, work orders"
         actions={
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="lg">
-                <Plus className="mr-2 h-4 w-4" />
-                New Contract
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Create New Contract</DialogTitle>
-                <DialogDescription>Add a new contract or AMC agreement.</DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="client">Client *</Label>
-                  <Select
-                    value={newContract.client_id}
-                    onValueChange={(value) => setNewContract({ ...newContract, client_id: value, project_id: "" })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a client" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {clients.map((client) => (
-                        <SelectItem key={client.id} value={client.id}>
-                          {client.client_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="project">Project (Optional)</Label>
-                  <Select
-                    value={newContract.project_id}
-                    onValueChange={(value) => setNewContract({ ...newContract, project_id: value })}
-                    disabled={!newContract.client_id}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a project" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {filteredProjects.map((project) => (
-                        <SelectItem key={project.id} value={project.id}>
-                          {project.project_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="contract_type">Contract Type *</Label>
-                  <Select
-                    value={newContract.contract_type}
-                    onValueChange={(value) => setNewContract({ ...newContract, contract_type: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="amc">AMC</SelectItem>
-                      <SelectItem value="fixed">Fixed</SelectItem>
-                      <SelectItem value="retainer">Retainer</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="start_date">Start Date *</Label>
-                    <Input
-                      id="start_date"
-                      type="date"
-                      value={newContract.start_date}
-                      onChange={(e) => setNewContract({ ...newContract, start_date: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="end_date">End Date *</Label>
-                    <Input
-                      id="end_date"
-                      type="date"
-                      value={newContract.end_date}
-                      onChange={(e) => setNewContract({ ...newContract, end_date: e.target.value })}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="value">Contract Value *</Label>
-                  <Input
-                    id="value"
-                    type="number"
-                    placeholder="Enter value"
-                    value={newContract.value}
-                    onChange={(e) => setNewContract({ ...newContract, value: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="renewal_frequency">Renewal Frequency *</Label>
-                  <Select
-                    value={newContract.renewal_frequency}
-                    onValueChange={(value) => setNewContract({ ...newContract, renewal_frequency: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select frequency" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="monthly">Monthly</SelectItem>
-                      <SelectItem value="quarterly">Quarterly</SelectItem>
-                      <SelectItem value="yearly">Yearly</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="status">Status</Label>
-                  <Select
-                    value={newContract.status}
-                    onValueChange={(value) => setNewContract({ ...newContract, status: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="expired">Expired</SelectItem>
-                      <SelectItem value="pending-renewal">Pending Renewal</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={createContractMutation.isPending}>
-                    {createContractMutation.isPending ? "Creating..." : "Create Contract"}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <Button size="lg" onClick={() => setIsDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Contract
+          </Button>
         }
       />
 
@@ -559,140 +394,35 @@ export default function Contracts() {
         />
       )}
 
+      {/* Create Dialog */}
+      <ContractFormDialog
+        key="create"
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        onSubmit={(data) => createContractMutation.mutate(data)}
+        clients={clients}
+        projects={projects}
+        templates={templates}
+        isSubmitting={createContractMutation.isPending}
+        mode="create"
+      />
+
       {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Contract</DialogTitle>
-            <DialogDescription>Update contract details.</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleEditSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-client">Client *</Label>
-              <Select
-                value={editContract.client_id}
-                onValueChange={(value) => setEditContract({ ...editContract, client_id: value, project_id: "" })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a client" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.client_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-project">Project (Optional)</Label>
-              <Select
-                value={editContract.project_id}
-                onValueChange={(value) => setEditContract({ ...editContract, project_id: value })}
-                disabled={!editContract.client_id}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a project" />
-                </SelectTrigger>
-                <SelectContent>
-                  {editFilteredProjects.map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.project_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-contract_type">Contract Type *</Label>
-              <Select
-                value={editContract.contract_type}
-                onValueChange={(value) => setEditContract({ ...editContract, contract_type: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="amc">AMC</SelectItem>
-                  <SelectItem value="fixed">Fixed</SelectItem>
-                  <SelectItem value="retainer">Retainer</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-start_date">Start Date *</Label>
-                <Input
-                  id="edit-start_date"
-                  type="date"
-                  value={editContract.start_date}
-                  onChange={(e) => setEditContract({ ...editContract, start_date: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-end_date">End Date *</Label>
-                <Input
-                  id="edit-end_date"
-                  type="date"
-                  value={editContract.end_date}
-                  onChange={(e) => setEditContract({ ...editContract, end_date: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-value">Contract Value *</Label>
-              <Input
-                id="edit-value"
-                type="number"
-                placeholder="Enter value"
-                value={editContract.value}
-                onChange={(e) => setEditContract({ ...editContract, value: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-renewal_frequency">Renewal Frequency *</Label>
-              <Select
-                value={editContract.renewal_frequency}
-                onValueChange={(value) => setEditContract({ ...editContract, renewal_frequency: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select frequency" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                  <SelectItem value="quarterly">Quarterly</SelectItem>
-                  <SelectItem value="yearly">Yearly</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-status">Status</Label>
-              <Select
-                value={editContract.status}
-                onValueChange={(value) => setEditContract({ ...editContract, status: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="expired">Expired</SelectItem>
-                  <SelectItem value="pending-renewal">Pending Renewal</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={updateContractMutation.isPending}>
-                {updateContractMutation.isPending ? "Saving..." : "Save Changes"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <ContractFormDialog
+        key={`edit-${editFormKey}`}
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        onSubmit={(data) => {
+          if (!selectedContract) return;
+          updateContractMutation.mutate({ id: selectedContract.id, ...data });
+        }}
+        initialData={getEditInitialData()}
+        clients={clients}
+        projects={projects}
+        templates={templates}
+        isSubmitting={updateContractMutation.isPending}
+        mode="edit"
+      />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
