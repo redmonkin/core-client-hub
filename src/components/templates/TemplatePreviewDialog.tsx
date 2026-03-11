@@ -98,8 +98,13 @@ const contractSampleData: Record<string, string> = {
   '{{companyAddress}}': '123 Business Ave, Suite 100, New York, NY 10001',
   '{{projectName}}': 'Website Redesign Project',
   '{{projectWebsite}}': 'www.acmecorp.com',
+  '{{contractType}}': 'Annual Maintenance Contract',
   '{{startDate}}': 'February 15, 2026',
   '{{endDate}}': 'February 15, 2027',
+  '{{renewalFrequency}}': 'Yearly',
+  '{{scopeOfWork}}': 'Complete website maintenance including security updates, performance monitoring, and CMS support',
+  '{{costing}}': sampleCostBreakdownHtml,
+  '{{totalAmount}}': '₹28,910',
 };
 
 const sampleDataByType: Record<TemplateType, Record<string, string>> = {

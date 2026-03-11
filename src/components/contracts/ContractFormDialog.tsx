@@ -29,7 +29,6 @@ interface ContractFormData {
   contract_type: string;
   start_date: string;
   end_date: string;
-  value: string;
   renewal_frequency: string;
   status: string;
   scope_of_work: string;
@@ -65,7 +64,6 @@ const emptyFormData: ContractFormData = {
   contract_type: '',
   start_date: '',
   end_date: '',
-  value: '',
   renewal_frequency: '',
   status: 'active',
   scope_of_work: '',
@@ -104,7 +102,7 @@ export function ContractFormDialog({
     onSubmit({ ...formData, templateId: selectedTemplateId || undefined });
   };
 
-  const isValid = formData.client_id && formData.contract_type && formData.start_date && formData.end_date && formData.value && formData.renewal_frequency;
+  const isValid = formData.client_id && formData.contract_type && formData.start_date && formData.end_date && formData.renewal_frequency;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -189,22 +187,13 @@ export function ContractFormDialog({
                         <SelectValue placeholder="Select type" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="amc">AMC</SelectItem>
+                        <SelectItem value="amc">Annual Maintenance Contract</SelectItem>
                         <SelectItem value="fixed">Fixed</SelectItem>
                         <SelectItem value="retainer">Retainer</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Contract Value *</Label>
-                    <Input
-                      type="number"
-                      placeholder="Enter value"
-                      value={formData.value}
-                      onChange={(e) => setFormData({ ...formData, value: e.target.value })}
-                    />
-                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
