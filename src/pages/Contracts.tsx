@@ -233,7 +233,7 @@ export default function Contracts() {
   };
 
   const contractTypeLabels: Record<string, string> = {
-    amc: "AMC",
+    amc: "Annual Maintenance Contract",
     fixed: "Fixed",
     retainer: "Retainer",
   };
