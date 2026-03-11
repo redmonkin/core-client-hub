@@ -108,11 +108,13 @@ export type Database = {
         Row: {
           client_id: string
           contract_type: string
+          cost_breakdown: string | null
           created_at: string
           end_date: string
           id: string
           project_id: string | null
           renewal_frequency: string
+          scope_of_work: string | null
           start_date: string
           status: string
           updated_at: string
@@ -122,11 +124,13 @@ export type Database = {
         Insert: {
           client_id: string
           contract_type: string
+          cost_breakdown?: string | null
           created_at?: string
           end_date: string
           id?: string
           project_id?: string | null
           renewal_frequency: string
+          scope_of_work?: string | null
           start_date: string
           status?: string
           updated_at?: string
@@ -136,11 +140,13 @@ export type Database = {
         Update: {
           client_id?: string
           contract_type?: string
+          cost_breakdown?: string | null
           created_at?: string
           end_date?: string
           id?: string
           project_id?: string | null
           renewal_frequency?: string
+          scope_of_work?: string | null
           start_date?: string
           status?: string
           updated_at?: string
