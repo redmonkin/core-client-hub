@@ -29,7 +29,6 @@ interface ContractFormData {
   contract_type: string;
   start_date: string;
   end_date: string;
-  value: string;
   renewal_frequency: string;
   status: string;
   scope_of_work: string;
