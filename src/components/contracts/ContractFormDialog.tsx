@@ -102,7 +102,7 @@ export function ContractFormDialog({
     onSubmit({ ...formData, templateId: selectedTemplateId || undefined });
   };
 
-  const isValid = formData.client_id && formData.contract_type && formData.start_date && formData.end_date && formData.value && formData.renewal_frequency;
+  const isValid = formData.client_id && formData.contract_type && formData.start_date && formData.end_date && formData.renewal_frequency;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
