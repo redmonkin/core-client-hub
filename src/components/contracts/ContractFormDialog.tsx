@@ -187,7 +187,7 @@ export function ContractFormDialog({
                         <SelectValue placeholder="Select type" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="amc">AMC</SelectItem>
+                        <SelectItem value="amc">Annual Maintenance Contract</SelectItem>
                         <SelectItem value="fixed">Fixed</SelectItem>
                         <SelectItem value="retainer">Retainer</SelectItem>
                       </SelectContent>
