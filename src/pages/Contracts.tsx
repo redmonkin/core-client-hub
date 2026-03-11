@@ -252,8 +252,10 @@ export default function Contracts() {
       contract_type: selectedContract.contract_type,
       start_date: selectedContract.start_date,
       end_date: selectedContract.end_date,
-      value: String(selectedContract.value),
       renewal_frequency: selectedContract.renewal_frequency,
+      status: selectedContract.status,
+      scope_of_work: selectedContract.scope_of_work || "",
+      cost_breakdown: selectedContract.cost_breakdown || "",
     };
   };
 
