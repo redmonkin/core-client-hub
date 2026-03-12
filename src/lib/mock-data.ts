@@ -150,7 +150,7 @@ export const mockContracts: Contract[] = [
     contractType: 'fixed',
     startDate: new Date('2024-07-01'),
     endDate: new Date('2025-01-15'),
-    renewalFrequency: 'yearly',
+    renewalFrequency: '1-year',
     value: 20000,
     status: 'pending-renewal',
     createdAt: new Date('2024-06-25'),
