@@ -1,12 +1,24 @@
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Loader2, FileText, Clock, CheckCircle2, XCircle, Send, PenLine, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Loader2, FileText, Clock, CheckCircle2, XCircle, Send, PenLine, MessageSquare, Mail } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Separator } from '@/components/ui/separator';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
 
 const statusIconMap: Record<string, React.ElementType> = {
   draft: PenLine,
@@ -26,8 +38,10 @@ const statusColorMap: Record<string, string> = {
 
 export default function ProposalDetail() {
   const { id } = useParams<{ id: string }>();
+  const [isSendDialogOpen, setIsSendDialogOpen] = useState(false);
+  const [isSending, setIsSending] = useState(false);
 
-  const { data: proposal, isLoading: proposalLoading } = useQuery({
+  const { data: proposal, isLoading: proposalLoading, refetch: refetchProposal } = useQuery({
     queryKey: ['proposal', id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -46,7 +60,7 @@ export default function ProposalDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('clients')
-        .select('id, client_name, company_name')
+        .select('id, client_name, company_name, email')
         .eq('id', proposal!.client_id)
         .single();
       if (error) throw error;
@@ -83,6 +97,51 @@ export default function ProposalDetail() {
     },
     enabled: !!id,
   });
+
+  const handleSendEmail = () => {
+    if (!client?.email) {
+      toast.error('This client does not have an email address configured');
+      return;
+    }
+    setIsSendDialogOpen(true);
+  };
+
+  const confirmSendEmail = async () => {
+    if (!proposal || !client?.email) return;
+    setIsSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-proposal-email', {
+        body: {
+          proposalId: proposal.id,
+          clientEmail: client.email,
+          clientName: client.client_name,
+          proposalTitle: proposal.title,
+          scopeOfWork: proposal.scope_of_work,
+          costBreakdown: proposal.cost_breakdown,
+          validityDate: proposal.validity_date,
+        },
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Failed to send email');
+
+      if (proposal.status === 'draft') {
+        await supabase
+          .from('proposals')
+          .update({ status: 'sent' })
+          .eq('id', proposal.id);
+        refetchProposal();
+      }
+
+      toast.success(`Proposal sent to ${client.email}`);
+      setIsSendDialogOpen(false);
+    } catch (error: any) {
+      console.error('Error sending email:', error);
+      toast.error('Failed to send email: ' + error.message);
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   if (proposalLoading) {
     return (
@@ -150,6 +209,10 @@ export default function ProposalDetail() {
             )}
           </div>
         </div>
+        <Button onClick={handleSendEmail} variant="default" size="sm">
+          <Mail className="mr-2 h-4 w-4" />
+          Send to Client
+        </Button>
         <StatusBadge status={proposal.status as any} />
       </div>
 
@@ -184,6 +247,15 @@ export default function ProposalDetail() {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Duration</span>
                   <span>{proposal.duration}</span>
+                </div>
+              </>
+            )}
+            {client?.email && (
+              <>
+                <Separator />
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Client Email</span>
+                  <span className="text-right truncate max-w-[180px]">{client.email}</span>
                 </div>
               </>
             )}
@@ -253,6 +325,40 @@ export default function ProposalDetail() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Send Email Confirmation Dialog */}
+      <AlertDialog open={isSendDialogOpen} onOpenChange={setIsSendDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Send Proposal to Client</AlertDialogTitle>
+            <AlertDialogDescription>
+              Send "{proposal.title}" to{' '}
+              <strong>{client?.email}</strong>?
+              {proposal.status === 'draft' && (
+                <span className="block mt-2 text-muted-foreground">
+                  The proposal status will be updated to "Sent".
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmSendEmail} disabled={isSending}>
+              {isSending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Send className="mr-2 h-4 w-4" />
+                  Send Email
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
