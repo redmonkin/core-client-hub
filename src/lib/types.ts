@@ -43,7 +43,7 @@ export interface Proposal {
 
 export type ContractType = 'amc' | 'fixed' | 'retainer';
 export type ContractStatus = 'active' | 'expired' | 'pending-renewal';
-export type RenewalFrequency = 'monthly' | 'quarterly' | 'yearly';
+export type RenewalFrequency = '1-month' | '3-months' | '6-months' | '1-year' | '3-years';
 
 export interface Contract {
   id: string;
