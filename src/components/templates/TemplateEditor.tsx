@@ -72,8 +72,13 @@ const PROPOSAL_PLACEHOLDERS: PlaceholderItem[] = [
 
 const CONTRACT_PLACEHOLDERS: PlaceholderItem[] = [
   ...COMMON_PLACEHOLDERS,
+  { label: 'Contract Type', value: '{{contractType}}' },
   { label: 'Start Date', value: '{{startDate}}' },
   { label: 'End Date', value: '{{endDate}}' },
+  { label: 'Renewal Frequency', value: '{{renewalFrequency}}' },
+  { label: 'Scope of Work', value: '{{scopeOfWork}}' },
+  { label: 'Costing (Full Table)', value: '{{costing}}' },
+  { label: 'Total Amount', value: '{{totalAmount}}' },
 ];
 
 const PLACEHOLDERS_BY_TYPE: Record<TemplateType, PlaceholderItem[]> = {
