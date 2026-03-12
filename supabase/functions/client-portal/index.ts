@@ -364,6 +364,7 @@ const handler = async (req: Request): Promise<Response> => {
             // Don't fail the whole request if email fails
           }
         }
+      }
 
       console.log(`Proposal ${tokenData.proposal_id} status updated to ${newStatus}`);
 
