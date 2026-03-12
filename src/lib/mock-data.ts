@@ -138,7 +138,7 @@ export const mockContracts: Contract[] = [
     contractType: 'retainer',
     startDate: new Date('2024-04-01'),
     endDate: new Date('2025-03-31'),
-    renewalFrequency: 'yearly',
+    renewalFrequency: '1-year',
     value: 60000,
     status: 'active',
     createdAt: new Date('2024-03-25'),
