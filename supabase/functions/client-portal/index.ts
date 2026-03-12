@@ -318,8 +318,52 @@ const handler = async (req: Request): Promise<Response> => {
             reference_type: "proposal",
           });
           console.log(`Created ${action} notification for user ${proposal.user_id}`);
+
+          // Send email notification to proposal owner
+          try {
+            const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+            const { data: ownerData } = await supabase.auth.admin.getUserById(proposal.user_id);
+            const ownerEmail = ownerData?.user?.email;
+            if (ownerEmail) {
+              const typeMap: Record<string, string> = {
+                approve: "proposal_approved",
+                reject: "proposal_rejected",
+                request_changes: "proposal_change_requested",
+              };
+              const emojiMap: Record<string, string> = { approve: "✅", reject: "❌", request_changes: "📝" };
+              const subjectMap: Record<string, string> = {
+                approve: "Proposal Approved!",
+                reject: "Proposal Declined",
+                request_changes: "Changes Requested",
+              };
+              const colorMap: Record<string, string> = {
+                approve: "#22c55e",
+                reject: "#ef4444",
+                request_changes: "#f59e0b",
+              };
+              const messageMap: Record<string, string> = {
+                approve: `<strong>${clientName}</strong> has approved your proposal <strong>"${proposal.title}"</strong>. You can proceed with the next steps.`,
+                reject: `<strong>${clientName}</strong> has declined your proposal <strong>"${proposal.title}"</strong>.`,
+                request_changes: `<strong>${clientName}</strong> has requested changes to your proposal <strong>"${proposal.title}"</strong>.`,
+              };
+              const notesHtml = action === "request_changes" && notes
+                ? `<div style="background:#fffbeb;border-left:4px solid #f59e0b;padding:16px;margin:20px 0;border-radius:0 8px 8px 0;"><h4 style="margin:0 0 8px;color:#92400e;font-size:13px;text-transform:uppercase;">Client's Notes</h4><p style="margin:0;color:#78350f;">${notes.replace(/\n/g, "<br>")}</p></div>`
+                : "";
+              const ownerName = ownerData?.user?.user_metadata?.full_name || ownerEmail.split("@")[0];
+
+              await resend.emails.send({
+                from: "Notifications <noreply@notifications.redmonk.in>",
+                to: [ownerEmail],
+                subject: `${emojiMap[action]} ${subjectMap[action]} — ${proposal.title}`,
+                html: `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.6;color:#333;max-width:600px;margin:0 auto;padding:20px;"><div style="background:${colorMap[action]};padding:30px;border-radius:10px 10px 0 0;text-align:center;"><div style="font-size:48px;margin-bottom:8px;">${emojiMap[action]}</div><h1 style="color:white;margin:0;font-size:24px;">${subjectMap[action]}</h1></div><div style="background:#f9fafb;padding:30px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 10px 10px;"><p style="margin-top:0;">Hi ${ownerName},</p><p>${messageMap[action]}</p>${notesHtml}<p style="color:#6b7280;font-size:14px;margin-bottom:0;">Log in to your dashboard to take the next steps.</p></div></body></html>`,
+              });
+              console.log(`Email notification sent to ${ownerEmail} for ${action}`);
+            }
+          } catch (emailErr: any) {
+            console.error("Failed to send email notification:", emailErr.message);
+            // Don't fail the whole request if email fails
+          }
         }
-      }
 
       console.log(`Proposal ${tokenData.proposal_id} status updated to ${newStatus}`);
 
