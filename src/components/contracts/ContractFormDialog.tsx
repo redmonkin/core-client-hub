@@ -223,9 +223,11 @@ export function ContractFormDialog({
                         <SelectValue placeholder="Select frequency" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="monthly">Monthly</SelectItem>
-                        <SelectItem value="quarterly">Quarterly</SelectItem>
-                        <SelectItem value="yearly">Yearly</SelectItem>
+                        <SelectItem value="1-month">1 Month</SelectItem>
+                        <SelectItem value="3-months">3 Months</SelectItem>
+                        <SelectItem value="6-months">6 Months</SelectItem>
+                        <SelectItem value="1-year">1 Year</SelectItem>
+                        <SelectItem value="3-years">3 Years</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

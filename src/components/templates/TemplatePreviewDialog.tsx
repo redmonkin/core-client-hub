@@ -101,7 +101,7 @@ const contractSampleData: Record<string, string> = {
   '{{contractType}}': 'Annual Maintenance Contract',
   '{{startDate}}': 'February 15, 2026',
   '{{endDate}}': 'February 15, 2027',
-  '{{renewalFrequency}}': 'Yearly',
+  '{{renewalFrequency}}': '1 Year',
   '{{scopeOfWork}}': 'Complete website maintenance including security updates, performance monitoring, and CMS support',
   '{{costing}}': sampleCostBreakdownHtml,
   '{{totalAmount}}': '₹28,910',

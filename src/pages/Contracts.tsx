@@ -262,6 +262,11 @@ export default function Contracts() {
   };
 
   const renewalLabels: Record<string, string> = {
+    '1-month': "1 Month",
+    '3-months': "3 Months",
+    '6-months': "6 Months",
+    '1-year': "1 Year",
+    '3-years': "3 Years",
     monthly: "Monthly",
     quarterly: "Quarterly",
     yearly: "Yearly",
