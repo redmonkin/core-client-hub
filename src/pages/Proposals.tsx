@@ -61,6 +61,7 @@ type Proposal = {
   validity_date: string | null;
   duration: string | null;
   status: string;
+  template_id: string | null;
 };
 
 type Client = {
@@ -112,7 +113,7 @@ export default function Proposals() {
   const [editProposal, setEditProposal] = useState(emptyProposal);
   const [editDialogKey, setEditDialogKey] = useState(0);
   const [isSending, setIsSending] = useState(false);
-  const [proposalTemplateSelections, setProposalTemplateSelections] = useState<Record<string, string>>({});
+  
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [shareLink, setShareLink] = useState('');
   const [sharePassword, setSharePassword] = useState('');
@@ -160,7 +161,7 @@ export default function Proposals() {
   });
 
   const createProposalMutation = useMutation({
-    mutationFn: async (proposal: typeof newProposal) => {
+    mutationFn: async (proposal: typeof newProposal & { templateId?: string }) => {
       const { data, error } = await supabase
         .from('proposals')
         .insert({
@@ -174,6 +175,7 @@ export default function Proposals() {
           duration: proposal.duration || null,
           status: proposal.status,
           user_id: user?.id,
+          template_id: proposal.templateId || null,
         })
         .select()
         .single();
@@ -202,7 +204,7 @@ export default function Proposals() {
   });
 
   const updateProposalMutation = useMutation({
-    mutationFn: async ({ id, previousStatus, ...proposal }: { id: string; previousStatus?: string } & typeof editProposal) => {
+    mutationFn: async ({ id, previousStatus, templateId, ...proposal }: { id: string; previousStatus?: string; templateId?: string } & typeof editProposal) => {
       const { data, error } = await supabase
         .from('proposals')
         .update({
@@ -215,6 +217,7 @@ export default function Proposals() {
           validity_date: proposal.validityDate || null,
           duration: proposal.duration || null,
           status: proposal.status,
+          template_id: templateId || null,
         })
         .eq('id', id)
         .select()
@@ -312,7 +315,8 @@ export default function Proposals() {
       duration: proposal.duration || '',
       createdAt: new Date().toISOString(),
     });
-    setPreviewTemplate(proposalTemplates[0]);
+    const savedTemplate = proposal.template_id ? templates.find(t => t.id === proposal.template_id) : null;
+    setPreviewTemplate(savedTemplate || proposalTemplates[0]);
     setIsPreviewOpen(true);
   };
 
@@ -321,7 +325,7 @@ export default function Proposals() {
       toast.error('Please fill in required fields');
       return;
     }
-    createProposalMutation.mutate(data);
+    createProposalMutation.mutate({ ...data, templateId });
   };
 
   const handleEdit = (proposal: Proposal) => {
@@ -387,7 +391,8 @@ export default function Proposals() {
       duration: proposal.duration || '',
       createdAt: new Date().toISOString(),
     });
-    setPreviewTemplate(proposalTemplates[0]);
+    const savedTemplate = proposal.template_id ? templates.find(t => t.id === proposal.template_id) : null;
+    setPreviewTemplate(savedTemplate || proposalTemplates[0]);
     setIsPreviewOpen(true);
   };
 
@@ -701,15 +706,11 @@ export default function Proposals() {
         onOpenChange={setIsEditDialogOpen}
         onSubmit={({ templateId, ...data }) => {
           if (selectedProposal) {
-            setProposalTemplateSelections(prev => ({
-              ...prev,
-              [selectedProposal.id]: templateId || '',
-            }));
-            updateProposalMutation.mutate({ id: selectedProposal.id, previousStatus: selectedProposal.status, ...data });
+            updateProposalMutation.mutate({ id: selectedProposal.id, previousStatus: selectedProposal.status, templateId, ...data });
           }
         }}
         initialData={editProposal}
-        initialTemplateId={selectedProposal ? proposalTemplateSelections[selectedProposal.id] : ''}
+        initialTemplateId={selectedProposal?.template_id || ''}
         clients={clients}
         projects={projects}
         templates={templates}
