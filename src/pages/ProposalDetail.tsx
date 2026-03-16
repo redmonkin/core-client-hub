@@ -152,6 +152,20 @@ export default function ProposalDetail() {
     enabled: !!id,
   });
 
+  const { data: clientContacts = [] } = useQuery({
+    queryKey: ['client-contacts', proposal?.client_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('client_contacts')
+        .select('*')
+        .eq('client_id', proposal!.client_id)
+        .order('is_primary', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!proposal?.client_id,
+  });
+
   const updateProposalMutation = useMutation({
     mutationFn: async ({ templateId, ...formData }: any) => {
       const { data, error } = await supabase
