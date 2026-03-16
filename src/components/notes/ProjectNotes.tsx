@@ -213,19 +213,19 @@ export function ProjectNotes({ projectId }: ProjectNotesProps) {
                     <p className="text-sm text-foreground whitespace-pre-wrap">{note.content}</p>
 
                     {/* File Attachment */}
-                    {note.file_url && (
+                    {note.file_url && getFileUrl(note.file_url) && (
                       <div className="mt-2">
                         {isImage(note.file_type) ? (
-                          <a href={note.file_url} target="_blank" rel="noopener noreferrer" className="block">
+                          <a href={getFileUrl(note.file_url)} target="_blank" rel="noopener noreferrer" className="block">
                             <img
-                              src={note.file_url}
+                              src={getFileUrl(note.file_url)}
                               alt={note.file_name || 'Attachment'}
                               className="max-h-48 rounded-lg border border-border object-cover hover:opacity-90 transition-opacity"
                             />
                           </a>
                         ) : (
                           <a
-                            href={note.file_url}
+                            href={getFileUrl(note.file_url)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
