@@ -43,6 +43,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import { Checkbox } from '@/components/ui/checkbox';
 import { ProposalFormDialog } from '@/components/proposals/ProposalFormDialog';
 import { ProposalPreviewDialog } from '@/components/proposals/ProposalPreviewDialog';
 import { ProposalData } from '@/lib/proposal-utils';
