@@ -252,17 +252,6 @@ export function ClientContacts({ clientId }: { clientId: string }) {
                 <Input id="contact-designation" value={form.designation} onChange={(e) => setForm(prev => ({ ...prev, designation: e.target.value }))} placeholder="e.g. CTO" />
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant={form.is_primary ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setForm(prev => ({ ...prev, is_primary: !prev.is_primary }))}
-              >
-                {form.is_primary ? <Star className="mr-1.5 h-3.5 w-3.5" /> : <StarOff className="mr-1.5 h-3.5 w-3.5" />}
-                {form.is_primary ? 'Primary Contact' : 'Set as Primary'}
-              </Button>
-            </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={closeForm}>Cancel</Button>
               <Button type="submit" disabled={saveMutation.isPending}>
