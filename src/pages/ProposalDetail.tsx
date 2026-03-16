@@ -39,6 +39,7 @@ const statusColorMap: Record<string, string> = {
 
 export default function ProposalDetail() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
   const [isSendDialogOpen, setIsSendDialogOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
