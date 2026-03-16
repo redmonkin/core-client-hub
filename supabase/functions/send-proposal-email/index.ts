@@ -116,6 +116,7 @@ const handler = async (req: Request): Promise<Response> => {
       portalPassword,
       senderName,
       senderCompany,
+      supportEmail,
       ccEmails,
     }: SendProposalRequest = await req.json();
 
