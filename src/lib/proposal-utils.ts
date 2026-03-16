@@ -16,6 +16,11 @@ export interface ProposalData {
   validityDate: string;
   duration: string;
   createdAt: string;
+  // Contract-specific fields (optional)
+  contractType?: string;
+  renewalFrequency?: string;
+  startDate?: string;
+  endDate?: string;
 }
 
 const formatCurrency = (amount: number): string => {
