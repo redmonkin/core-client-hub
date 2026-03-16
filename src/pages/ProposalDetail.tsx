@@ -427,23 +427,32 @@ export default function ProposalDetail() {
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2 flex-wrap sm:ml-auto">
-          <Button onClick={handlePreview} variant="outline" size="sm">
-            <Eye className="mr-2 h-4 w-4" />
-            Preview
-          </Button>
-          <Button onClick={handleEdit} variant="outline" size="sm">
-            <Pencil className="mr-2 h-4 w-4" />
-            Edit
-          </Button>
-          <Button onClick={handleShareLink} variant="outline" size="sm">
-            <LinkIcon className="mr-2 h-4 w-4" />
-            Share Link
-          </Button>
+        <div className="flex items-center gap-2 sm:ml-auto">
           <Button onClick={handleSendEmail} variant="default" size="sm">
             <Mail className="mr-2 h-4 w-4" />
             Send to Client
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" className="h-8 w-8">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handlePreview}>
+                <Eye className="mr-2 h-4 w-4" />
+                Preview
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleEdit}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleShareLink}>
+                <LinkIcon className="mr-2 h-4 w-4" />
+                Share Link
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
