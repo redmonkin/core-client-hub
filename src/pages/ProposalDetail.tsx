@@ -390,33 +390,38 @@ export default function ProposalDetail() {
   ];
 
   return (
-    <div className="space-y-6 p-8">
+    <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       {/* Back button & header */}
-      <div className="flex items-center gap-4">
-        <Link to="/proposals">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-bold truncate">{proposal.title}</h1>
-          <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-            {client && (
-              <Link to={`/clients/${client.id}`} className="hover:text-primary transition-colors">
-                {client.client_name}
-              </Link>
-            )}
-            {project && (
-              <>
-                <span>·</span>
-                <Link to={`/projects/${project.id}`} className="hover:text-primary transition-colors">
-                  {project.project_name}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <Link to="/proposals">
+            <Button variant="ghost" size="icon" className="shrink-0">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-xl sm:text-2xl font-bold truncate">{proposal.title}</h1>
+              <StatusBadge status={proposal.status as any} />
+            </div>
+            <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+              {client && (
+                <Link to={`/clients/${client.id}`} className="hover:text-primary transition-colors">
+                  {client.client_name}
                 </Link>
-              </>
-            )}
+              )}
+              {project && (
+                <>
+                  <span>·</span>
+                  <Link to={`/projects/${project.id}`} className="hover:text-primary transition-colors">
+                    {project.project_name}
+                  </Link>
+                </>
+              )}
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap sm:ml-auto">
           <Button onClick={handlePreview} variant="outline" size="sm">
             <Eye className="mr-2 h-4 w-4" />
             Preview
@@ -434,7 +439,6 @@ export default function ProposalDetail() {
             Send to Client
           </Button>
         </div>
-        <StatusBadge status={proposal.status as any} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
