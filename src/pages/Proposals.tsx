@@ -406,6 +406,51 @@ export default function Proposals() {
     setIsSendDialogOpen(true);
   };
 
+  const generatePortalLink = async (proposalId: string) => {
+    const tokenArray = new Uint8Array(32);
+    crypto.getRandomValues(tokenArray);
+    const token = Array.from(tokenArray, b => b.toString(16).padStart(2, '0')).join('');
+
+    const passArray = new Uint8Array(4);
+    crypto.getRandomValues(passArray);
+    const password = Array.from(passArray, b => b.toString(36).padStart(2, '0')).join('').substring(0, 6).toUpperCase();
+
+    const encoder = new TextEncoder();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(password));
+    const passwordHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30);
+
+    await supabase.from('proposal_access_tokens').insert({
+      proposal_id: proposalId,
+      token,
+      expires_at: expiresAt.toISOString(),
+      password_hash: passwordHash,
+    });
+
+    return {
+      link: `${window.location.origin}/portal?token=${token}`,
+      password,
+    };
+  };
+
+  const calculateTotal = (costBreakdownJson: string | null): string => {
+    if (!costBreakdownJson) return '';
+    try {
+      const data = JSON.parse(costBreakdownJson);
+      if (!data.items || !Array.isArray(data.items)) return '';
+      const subtotal = data.items.reduce((acc: number, item: any) => {
+        const lineTotal = item.quantity * item.unitPrice;
+        return acc + lineTotal - lineTotal * (item.discount / 100);
+      }, 0);
+      const discountAmount = subtotal * ((data.additionalDiscount || 0) / 100);
+      const afterDiscount = subtotal - discountAmount;
+      const taxAmount = afterDiscount * ((data.taxRate || 0) / 100);
+      return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(afterDiscount + taxAmount);
+    } catch { return ''; }
+  };
+
   const confirmSendEmail = async () => {
     if (!selectedProposal) return;
     
@@ -419,15 +464,22 @@ export default function Proposals() {
 
     setIsSending(true);
     try {
+      // Generate portal link for the proposal
+      const portal = await generatePortalLink(selectedProposal.id);
+
       const { data, error } = await supabase.functions.invoke('send-proposal-email', {
         body: {
           proposalId: selectedProposal.id,
           clientEmail,
           clientName,
           proposalTitle: selectedProposal.title,
-          scopeOfWork: selectedProposal.scope_of_work,
-          costBreakdown: selectedProposal.cost_breakdown,
+          customerGoals: selectedProposal.customer_goals,
+          totalAmount: calculateTotal(selectedProposal.cost_breakdown),
           validityDate: selectedProposal.validity_date,
+          portalLink: portal.link,
+          portalPassword: portal.password,
+          senderName: user?.user_metadata?.full_name || null,
+          senderCompany: user?.user_metadata?.company || null,
         },
       });
 

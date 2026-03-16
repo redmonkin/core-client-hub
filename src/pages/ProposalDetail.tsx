@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { ArrowLeft, Loader2, FileText, Clock, CheckCircle2, XCircle, Send, PenLine, MessageSquare, Mail } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -38,6 +39,7 @@ const statusColorMap: Record<string, string> = {
 
 export default function ProposalDetail() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
   const [isSendDialogOpen, setIsSendDialogOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
@@ -106,19 +108,59 @@ export default function ProposalDetail() {
     setIsSendDialogOpen(true);
   };
 
+  const generatePortalLink = async (proposalId: string) => {
+    const tokenArray = new Uint8Array(32);
+    crypto.getRandomValues(tokenArray);
+    const token = Array.from(tokenArray, b => b.toString(16).padStart(2, '0')).join('');
+    const passArray = new Uint8Array(4);
+    crypto.getRandomValues(passArray);
+    const password = Array.from(passArray, b => b.toString(36).padStart(2, '0')).join('').substring(0, 6).toUpperCase();
+    const encoder = new TextEncoder();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(password));
+    const passwordHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30);
+    await supabase.from('proposal_access_tokens').insert({
+      proposal_id: proposalId, token, expires_at: expiresAt.toISOString(), password_hash: passwordHash,
+    });
+    return { link: `${window.location.origin}/portal?token=${token}`, password };
+  };
+
+  const calculateTotal = (costBreakdownJson: string | null): string => {
+    if (!costBreakdownJson) return '';
+    try {
+      const data = JSON.parse(costBreakdownJson);
+      if (!data.items || !Array.isArray(data.items)) return '';
+      const subtotal = data.items.reduce((acc: number, item: any) => {
+        const lineTotal = item.quantity * item.unitPrice;
+        return acc + lineTotal - lineTotal * (item.discount / 100);
+      }, 0);
+      const discountAmount = subtotal * ((data.additionalDiscount || 0) / 100);
+      const afterDiscount = subtotal - discountAmount;
+      const taxAmount = afterDiscount * ((data.taxRate || 0) / 100);
+      return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(afterDiscount + taxAmount);
+    } catch { return ''; }
+  };
+
   const confirmSendEmail = async () => {
     if (!proposal || !client?.email) return;
     setIsSending(true);
     try {
+      const portal = await generatePortalLink(proposal.id);
+
       const { data, error } = await supabase.functions.invoke('send-proposal-email', {
         body: {
           proposalId: proposal.id,
           clientEmail: client.email,
           clientName: client.client_name,
           proposalTitle: proposal.title,
-          scopeOfWork: proposal.scope_of_work,
-          costBreakdown: proposal.cost_breakdown,
+          customerGoals: proposal.customer_goals,
+          totalAmount: calculateTotal(proposal.cost_breakdown),
           validityDate: proposal.validity_date,
+          portalLink: portal.link,
+          portalPassword: portal.password,
+          senderName: user?.user_metadata?.full_name || null,
+          senderCompany: user?.user_metadata?.company || null,
         },
       });
 
