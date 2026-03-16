@@ -65,11 +65,8 @@ export function ProjectNotes({ projectId }: ProjectNotesProps) {
           .upload(path, selectedFile);
         if (uploadError) throw uploadError;
 
-        const { data: urlData } = supabase.storage
-          .from('project-files')
-          .getPublicUrl(path);
-
-        fileUrl = urlData.publicUrl;
+        // Store the storage path, not a public URL
+        fileUrl = path;
         fileName = selectedFile.name;
         fileType = selectedFile.type;
       }
