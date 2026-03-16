@@ -154,13 +154,19 @@ export default function ClientDetail() {
   return (
     <div className="space-y-6 p-6">
       {/* Back Button + Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link to="/clients">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" asChild>
+            <Link to="/clients">
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+          </Button>
+          <h1 className="text-2xl font-semibold text-foreground">{client.client_name}</h1>
+        </div>
+        <Button variant="outline" size="sm" onClick={handleOpenEdit}>
+          <Pencil className="mr-1.5 h-3.5 w-3.5" />
+          Edit
         </Button>
-        <h1 className="text-2xl font-semibold text-foreground">{client.client_name}</h1>
       </div>
 
       {/* Client Info Card - Full Width */}
