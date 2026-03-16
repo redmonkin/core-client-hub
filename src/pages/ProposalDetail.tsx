@@ -75,6 +75,7 @@ export default function ProposalDetail() {
   const [shareLink, setShareLink] = useState('');
   const [sharePassword, setSharePassword] = useState('');
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+  const [selectedCcEmails, setSelectedCcEmails] = useState<string[]>([]);
 
   const { data: proposal, isLoading: proposalLoading, refetch: refetchProposal } = useQuery({
     queryKey: ['proposal', id],
