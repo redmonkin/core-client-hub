@@ -21,6 +21,7 @@ interface SendProposalRequest {
   portalPassword: string | null;
   senderName: string | null;
   senderCompany: string | null;
+  ccEmails?: string[];
 }
 
 const formatCurrency = (amount: number): string => {
