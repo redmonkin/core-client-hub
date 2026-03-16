@@ -65,7 +65,7 @@ const emptyFormData: ContractFormData = {
   start_date: '',
   end_date: '',
   renewal_frequency: '',
-  status: 'active',
+  status: 'draft',
   scope_of_work: '',
   cost_breakdown: '',
 };
@@ -243,6 +243,8 @@ export function ContractFormDialog({
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="draft">Draft</SelectItem>
+                      <SelectItem value="sent">Sent</SelectItem>
                       <SelectItem value="active">Active</SelectItem>
                       <SelectItem value="expired">Expired</SelectItem>
                       <SelectItem value="pending-renewal">Pending Renewal</SelectItem>

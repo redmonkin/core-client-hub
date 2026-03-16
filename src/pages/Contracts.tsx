@@ -324,6 +324,8 @@ export default function Contracts() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="draft">Draft</SelectItem>
+            <SelectItem value="sent">Sent</SelectItem>
             <SelectItem value="active">Active</SelectItem>
             <SelectItem value="expired">Expired</SelectItem>
             <SelectItem value="pending-renewal">Pending Renewal</SelectItem>
@@ -390,7 +392,7 @@ export default function Contracts() {
                       </span>
                     </TableCell>
                     <TableCell>
-                      <StatusBadge status={contract.status as "active" | "expired" | "pending-renewal"} />
+                      <StatusBadge status={contract.status as "draft" | "sent" | "active" | "expired" | "pending-renewal"} />
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
