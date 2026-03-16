@@ -1,0 +1,2 @@
+ALTER TABLE contracts DROP CONSTRAINT contracts_status_check;
+ALTER TABLE contracts ADD CONSTRAINT contracts_status_check CHECK (status = ANY (ARRAY['draft', 'sent', 'approved', 'rejected', 'change_requested', 'active', 'expired', 'pending-renewal']));
