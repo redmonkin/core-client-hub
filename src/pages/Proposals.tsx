@@ -204,7 +204,7 @@ export default function Proposals() {
   });
 
   const updateProposalMutation = useMutation({
-    mutationFn: async ({ id, previousStatus, ...proposal }: { id: string; previousStatus?: string } & typeof editProposal) => {
+    mutationFn: async ({ id, previousStatus, templateId, ...proposal }: { id: string; previousStatus?: string; templateId?: string } & typeof editProposal) => {
       const { data, error } = await supabase
         .from('proposals')
         .update({
@@ -217,6 +217,7 @@ export default function Proposals() {
           validity_date: proposal.validityDate || null,
           duration: proposal.duration || null,
           status: proposal.status,
+          template_id: templateId || null,
         })
         .eq('id', id)
         .select()
