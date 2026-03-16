@@ -161,6 +161,21 @@ export default function Proposals() {
     },
   });
 
+  // Fetch contacts for the selected proposal's client
+  const { data: selectedClientContacts = [] } = useQuery({
+    queryKey: ['client-contacts', selectedProposal?.client_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('client_contacts')
+        .select('*')
+        .eq('client_id', selectedProposal!.client_id)
+        .order('is_primary', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!selectedProposal?.client_id,
+  });
+
   const createProposalMutation = useMutation({
     mutationFn: async (proposal: typeof newProposal & { templateId?: string }) => {
       const { data, error } = await supabase
