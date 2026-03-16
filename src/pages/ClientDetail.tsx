@@ -1,5 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Mail, Phone, MapPin, FileText, FolderKanban, FileSignature, Building2 } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, MapPin, FileText, FolderKanban, FileSignature, Building2, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
+import { ClientContacts } from '@/components/clients/ClientContacts';
 
 export default function ClientDetail() {
   const { id } = useParams();
@@ -188,7 +189,7 @@ export default function ClientDetail() {
 
       {/* Tabs */}
       <Tabs defaultValue="projects" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="projects" className="flex items-center gap-2">
             <FolderKanban className="h-4 w-4" />
             Projects ({clientProjects.length})
@@ -200,6 +201,10 @@ export default function ClientDetail() {
           <TabsTrigger value="contracts" className="flex items-center gap-2">
             <FileSignature className="h-4 w-4" />
             Contracts ({clientContracts.length})
+          </TabsTrigger>
+          <TabsTrigger value="contacts" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Contacts
           </TabsTrigger>
         </TabsList>
 
@@ -288,6 +293,9 @@ export default function ClientDetail() {
               <p className="py-8 text-center text-muted-foreground">No contracts yet</p>
             )}
           </div>
+        </TabsContent>
+        <TabsContent value="contacts" className="mt-4">
+          <ClientContacts clientId={id!} />
         </TabsContent>
       </Tabs>
     </div>

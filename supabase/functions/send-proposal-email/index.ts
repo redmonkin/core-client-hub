@@ -21,6 +21,7 @@ interface SendProposalRequest {
   portalPassword: string | null;
   senderName: string | null;
   senderCompany: string | null;
+  ccEmails?: string[];
 }
 
 const formatCurrency = (amount: number): string => {
@@ -89,6 +90,7 @@ const handler = async (req: Request): Promise<Response> => {
       portalPassword,
       senderName,
       senderCompany,
+      ccEmails,
     }: SendProposalRequest = await req.json();
 
     console.log(
@@ -244,12 +246,19 @@ const handler = async (req: Request): Promise<Response> => {
       </html>
     `;
 
-    const emailResponse = await resend.emails.send({
+    const emailPayload: any = {
       from: `${fromName} <noreply@notifications.redmonk.in>`,
       to: [clientEmail],
       subject: `Proposal: ${proposalTitle}`,
       html: emailHtml,
-    });
+    };
+
+    // Add CC recipients if provided
+    if (ccEmails && ccEmails.length > 0) {
+      emailPayload.cc = ccEmails;
+    }
+
+    const emailResponse = await resend.emails.send(emailPayload);
 
     console.log("Email sent successfully:", emailResponse);
 

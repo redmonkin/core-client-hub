@@ -4,13 +4,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useTemplates, Template } from '@/hooks/useTemplates';
-import { ArrowLeft, Loader2, FileText, Clock, CheckCircle2, XCircle, Send, PenLine, MessageSquare, Mail, Eye, Pencil, LinkIcon, Copy, MoreVertical } from 'lucide-react';
+import { ArrowLeft, Loader2, FileText, Clock, CheckCircle2, XCircle, Send, PenLine, MessageSquare, Mail, Eye, Pencil, LinkIcon, Copy, MoreVertical, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -74,6 +75,7 @@ export default function ProposalDetail() {
   const [shareLink, setShareLink] = useState('');
   const [sharePassword, setSharePassword] = useState('');
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+  const [selectedCcEmails, setSelectedCcEmails] = useState<string[]>([]);
 
   const { data: proposal, isLoading: proposalLoading, refetch: refetchProposal } = useQuery({
     queryKey: ['proposal', id],
@@ -150,6 +152,20 @@ export default function ProposalDetail() {
     enabled: !!id,
   });
 
+  const { data: clientContacts = [] } = useQuery({
+    queryKey: ['client-contacts', proposal?.client_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('client_contacts')
+        .select('*')
+        .eq('client_id', proposal!.client_id)
+        .order('is_primary', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!proposal?.client_id,
+  });
+
   const updateProposalMutation = useMutation({
     mutationFn: async ({ templateId, ...formData }: any) => {
       const { data, error } = await supabase
@@ -200,6 +216,7 @@ export default function ProposalDetail() {
       toast.error('This client does not have an email address configured');
       return;
     }
+    setSelectedCcEmails([]);
     setIsSendDialogOpen(true);
   };
 
@@ -256,6 +273,7 @@ export default function ProposalDetail() {
           portalPassword: portal.password,
           senderName: user?.user_metadata?.full_name || null,
           senderCompany: user?.user_metadata?.company || null,
+          ccEmails: selectedCcEmails.length > 0 ? selectedCcEmails : undefined,
         },
       });
 
@@ -275,13 +293,14 @@ export default function ProposalDetail() {
         user_id: user?.id,
         from_status: previousStatus,
         to_status: previousStatus === 'draft' ? 'sent' : previousStatus,
-        note: `Proposal emailed to ${client.email}`,
+        note: `Proposal emailed to ${client.email}${selectedCcEmails.length > 0 ? ` (CC: ${selectedCcEmails.join(', ')})` : ''}`,
       });
 
       refetchProposal();
       queryClient.invalidateQueries({ queryKey: ['proposal-status-history', id] });
 
-      toast.success(`Proposal sent to ${client.email}`);
+      const ccNote = selectedCcEmails.length > 0 ? ` (CC: ${selectedCcEmails.join(', ')})` : '';
+      toast.success(`Proposal sent to ${client.email}${ccNote}`);
       setIsSendDialogOpen(false);
     } catch (error: any) {
       console.error('Error sending email:', error);
@@ -576,14 +595,48 @@ export default function ProposalDetail() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Send Proposal to Client</AlertDialogTitle>
-            <AlertDialogDescription>
-              Send "{proposal.title}" to{' '}
-              <strong>{client?.email}</strong>?
-              {proposal.status === 'draft' && (
-                <span className="block mt-2 text-muted-foreground">
-                  The proposal status will be updated to "Sent".
-                </span>
-              )}
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  Send "{proposal.title}" to{' '}
+                  <strong>{client?.email}</strong>?
+                </p>
+                {proposal.status === 'draft' && (
+                  <p className="text-muted-foreground">
+                    The proposal status will be updated to "Sent".
+                  </p>
+                )}
+
+                {/* CC Contacts */}
+                {(() => {
+                  const ccContacts = clientContacts.filter(c => c.email && c.email !== client?.email);
+                  if (ccContacts.length === 0) return null;
+                  return (
+                    <div className="rounded-md border p-3 space-y-2">
+                      <p className="text-sm font-medium flex items-center gap-1.5">
+                        <Users className="h-3.5 w-3.5" />
+                        CC Additional Contacts
+                      </p>
+                      {ccContacts.map(contact => (
+                        <label key={contact.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                          <Checkbox
+                            checked={selectedCcEmails.includes(contact.email!)}
+                            onCheckedChange={(checked) => {
+                              setSelectedCcEmails(prev =>
+                                checked
+                                  ? [...prev, contact.email!]
+                                  : prev.filter(e => e !== contact.email!)
+                              );
+                            }}
+                          />
+                          <span className="truncate">{contact.name}</span>
+                          <span className="text-muted-foreground truncate">({contact.email})</span>
+                        </label>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
