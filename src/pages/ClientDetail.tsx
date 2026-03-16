@@ -80,7 +80,49 @@ export default function ClientDetail() {
     enabled: !!id,
   });
 
-  if (isLoading) {
+  const updateClient = useMutation({
+    mutationFn: async (data: typeof editForm) => {
+      const { error } = await supabase
+        .from('clients')
+        .update({
+          client_name: data.clientName,
+          designation: data.designation || null,
+          email: data.email || null,
+          phone: data.phone || null,
+          company_name: data.companyName || null,
+          billing_address: data.address || null,
+          notes: data.notes || null,
+          status: data.status,
+        })
+        .eq('id', id!);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['client', id] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      toast.success('Client updated successfully');
+      setIsEditOpen(false);
+    },
+    onError: (error: any) => {
+      toast.error('Failed to update: ' + error.message);
+    },
+  });
+
+  const handleOpenEdit = () => {
+    if (!client) return;
+    setEditForm({
+      clientName: client.client_name,
+      designation: client.designation || '',
+      email: client.email || '',
+      phone: client.phone || '',
+      companyName: client.company_name || '',
+      address: client.billing_address || '',
+      notes: client.notes || '',
+      status: client.status,
+    });
+    setIsEditOpen(true);
+  };
+
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
         <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
