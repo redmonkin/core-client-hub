@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -573,113 +573,132 @@ export default function Contracts() {
       </div>
 
       {filteredContracts.length > 0 ? (
-        <div className="overflow-hidden rounded-xl border border-border bg-card">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/30 hover:bg-muted/30">
-                <TableHead className="font-semibold">Client / Project</TableHead>
-                <TableHead className="font-semibold">Type</TableHead>
-                <TableHead className="font-semibold">Value</TableHead>
-                <TableHead className="font-semibold">Duration</TableHead>
-                <TableHead className="font-semibold">Renewal</TableHead>
-                <TableHead className="font-semibold">Status</TableHead>
-                <TableHead className="w-12"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredContracts.map((contract) => {
-                const endDate = new Date(contract.end_date);
-                const startDate = new Date(contract.start_date);
-                const daysUntilEnd = differenceInDays(endDate, new Date());
-                const isExpiringSoon = daysUntilEnd > 0 && daysUntilEnd <= 30;
+        <div className="rounded-xl border border-border overflow-hidden">
+          {/* Grid Header */}
+          <div className="hidden md:grid md:grid-cols-[1fr_140px_100px_160px_100px_120px_48px] items-center gap-4 border-b border-border bg-muted/40 px-6 py-3">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Client / Project</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Type</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Value</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Duration</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Renewal</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</span>
+            <span />
+          </div>
 
-                return (
-                  <TableRow key={contract.id} className="group">
-                    <TableCell>
-                      <div>
-                        <Link
-                          to={`/clients/${contract.client_id}`}
-                          className="font-medium text-foreground hover:text-primary transition-colors"
-                        >
-                          {getClientName(contract.client_id)}
-                        </Link>
-                        <p className="text-sm text-muted-foreground">{getProjectName(contract.project_id)}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="font-medium">
-                        {contractTypeLabels[contract.contract_type] || contract.contract_type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="font-semibold text-foreground">
+          {/* Grid Rows */}
+          <div className="divide-y divide-border">
+            {filteredContracts.map((contract) => {
+              const endDate = new Date(contract.end_date);
+              const startDate = new Date(contract.start_date);
+              const daysUntilEnd = differenceInDays(endDate, new Date());
+              const isExpiringSoon = daysUntilEnd > 0 && daysUntilEnd <= 30;
+
+              return (
+                <div
+                  key={contract.id}
+                  className="group grid grid-cols-1 md:grid-cols-[1fr_140px_100px_160px_100px_120px_48px] items-center gap-3 md:gap-4 px-6 py-4 transition-colors hover:bg-muted/30"
+                >
+                  {/* Client / Project */}
+                  <div className="min-w-0">
+                    <Link
+                      to={`/clients/${contract.client_id}`}
+                      className="block"
+                    >
+                      <h3 className="truncate font-medium text-foreground group-hover:text-primary transition-colors">
+                        {getClientName(contract.client_id)}
+                      </h3>
+                    </Link>
+                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                      {getProjectName(contract.project_id)}
+                    </p>
+                  </div>
+
+                  {/* Type */}
+                  <div className="min-w-0">
+                    <Badge variant="outline" className="font-medium text-xs">
+                      {contractTypeLabels[contract.contract_type] || contract.contract_type}
+                    </Badge>
+                  </div>
+
+                  {/* Value */}
+                  <div className="min-w-0">
+                    <span className="font-semibold text-sm text-foreground">
                       ${Number(contract.value).toLocaleString()}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1.5 text-sm">
-                        <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span className={isExpiringSoon ? "text-destructive font-medium" : "text-muted-foreground"}>
-                          {format(startDate, "MMM dd")} - {format(endDate, "MMM dd, yyyy")}
-                        </span>
-                      </div>
-                      {isExpiringSoon && (
-                        <p className="mt-1 text-xs font-medium text-destructive">Expires in {daysUntilEnd} days</p>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm text-muted-foreground">
-                        {renewalLabels[contract.renewal_frequency] || contract.renewal_frequency}
+                    </span>
+                  </div>
+
+                  {/* Duration */}
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 text-sm">
+                      <Calendar className="h-3.5 w-3.5 shrink-0 text-muted-foreground hidden md:block" />
+                      <span className={`truncate ${isExpiringSoon ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                        {format(startDate, "MMM dd")} – {format(endDate, "MMM dd, yyyy")}
                       </span>
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge status={contract.status as ContractStatus} />
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-popover">
-                          <DropdownMenuItem onClick={() => handlePreview(contract)}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            Preview
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleEdit(contract)}>
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleDuplicateContract(contract)}>
-                            <Copy className="mr-2 h-4 w-4" />
-                            Duplicate
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleSendEmail(contract)}>
-                            <Send className="mr-2 h-4 w-4" />
-                            Send to Client
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleShareLink(contract)}>
-                            <LinkIcon className="mr-2 h-4 w-4" />
-                            Get Share Link
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleDelete(contract)}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                    </div>
+                    {isExpiringSoon && (
+                      <p className="mt-0.5 text-xs font-medium text-destructive">Expires in {daysUntilEnd} days</p>
+                    )}
+                  </div>
+
+                  {/* Renewal */}
+                  <div className="min-w-0">
+                    <span className="text-sm text-muted-foreground">
+                      {renewalLabels[contract.renewal_frequency] || contract.renewal_frequency}
+                    </span>
+                  </div>
+
+                  {/* Status */}
+                  <div>
+                    <StatusBadge status={contract.status as ContractStatus} />
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex justify-end">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-popover">
+                        <DropdownMenuItem onClick={() => handlePreview(contract)}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          Preview
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEdit(contract)}>
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDuplicateContract(contract)}>
+                          <Copy className="mr-2 h-4 w-4" />
+                          Duplicate
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleSendEmail(contract)}>
+                          <Send className="mr-2 h-4 w-4" />
+                          Send to Client
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleShareLink(contract)}>
+                          <LinkIcon className="mr-2 h-4 w-4" />
+                          Get Share Link
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleDelete(contract)}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       ) : (
         <EmptyState
