@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
+import DOMPurify from 'dompurify';
 import { FileText, Check, X, Loader2, AlertCircle, Clock, Globe, Mail, Download, ShieldCheck, ShieldX, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
