@@ -330,8 +330,9 @@ export default function ProposalDetail() {
             ) : (
               <div className="relative">
                 {timelineItems.map((item, index) => {
-                  const Icon = statusIconMap[item.to_status] || FileText;
-                  const colorClass = statusColorMap[item.to_status] || 'bg-muted text-muted-foreground';
+                  const isEmailEvent = item.note?.toLowerCase().includes('emailed');
+                  const Icon = isEmailEvent ? Mail : (statusIconMap[item.to_status] || FileText);
+                  const colorClass = isEmailEvent ? 'bg-blue-500/10 text-blue-600' : (statusColorMap[item.to_status] || 'bg-muted text-muted-foreground');
                   const isLast = index === timelineItems.length - 1;
 
                   return (
