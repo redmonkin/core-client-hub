@@ -109,7 +109,6 @@ export function ClientContacts({ clientId }: { clientId: string }) {
             email: data.email || null,
             phone: data.phone || null,
             designation: data.designation || null,
-            is_primary: data.is_primary,
           });
         if (error) throw error;
       }
