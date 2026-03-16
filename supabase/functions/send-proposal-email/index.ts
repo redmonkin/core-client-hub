@@ -22,6 +22,7 @@ interface SendProposalRequest {
   portalPassword: string | null;
   senderName: string | null;
   senderCompany: string | null;
+  supportEmail: string | null;
   ccEmails?: string[];
 }
 
