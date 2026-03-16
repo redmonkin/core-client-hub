@@ -720,10 +720,6 @@ export default function Proposals() {
                         <LinkIcon className="mr-2 h-4 w-4" />
                         Get Share Link
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleExportPDF(proposal)}>
-                        <Download className="mr-2 h-4 w-4" />
-                        Export PDF
-                      </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => handleDelete(proposal)}
                         className="text-destructive focus:text-destructive"
