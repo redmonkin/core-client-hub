@@ -294,6 +294,9 @@ export default function ClientDetail() {
             )}
           </div>
         </TabsContent>
+        <TabsContent value="contacts" className="mt-4">
+          <ClientContacts clientId={id!} />
+        </TabsContent>
       </Tabs>
     </div>
   );
