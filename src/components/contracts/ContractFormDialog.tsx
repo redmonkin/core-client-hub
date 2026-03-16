@@ -97,6 +97,29 @@ export function ContractFormDialog({
 
   const filteredProjects = projects.filter(p => p.client_id === formData.client_id);
 
+  // Auto-calculate end date from start date + renewal frequency
+  useEffect(() => {
+    if (formData.start_date && formData.renewal_frequency) {
+      const start = new Date(formData.start_date);
+      const frequencyMap: Record<string, { months: number }> = {
+        '1-month': { months: 1 },
+        '3-months': { months: 3 },
+        '6-months': { months: 6 },
+        '1-year': { months: 12 },
+        '3-years': { months: 36 },
+      };
+      const freq = frequencyMap[formData.renewal_frequency];
+      if (freq) {
+        const end = new Date(start);
+        end.setMonth(end.getMonth() + freq.months);
+        const endStr = end.toISOString().split('T')[0];
+        if (endStr !== formData.end_date) {
+          setFormData(prev => ({ ...prev, end_date: endStr }));
+        }
+      }
+    }
+  }, [formData.start_date, formData.renewal_frequency]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit({ ...formData, templateId: selectedTemplateId || undefined });
