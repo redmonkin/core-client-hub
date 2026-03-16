@@ -293,13 +293,14 @@ export default function ProposalDetail() {
         user_id: user?.id,
         from_status: previousStatus,
         to_status: previousStatus === 'draft' ? 'sent' : previousStatus,
-        note: `Proposal emailed to ${client.email}`,
+        note: `Proposal emailed to ${client.email}${selectedCcEmails.length > 0 ? ` (CC: ${selectedCcEmails.join(', ')})` : ''}`,
       });
 
       refetchProposal();
       queryClient.invalidateQueries({ queryKey: ['proposal-status-history', id] });
 
-      toast.success(`Proposal sent to ${client.email}`);
+      const ccNote = selectedCcEmails.length > 0 ? ` (CC: ${selectedCcEmails.join(', ')})` : '';
+      toast.success(`Proposal sent to ${client.email}${ccNote}`);
       setIsSendDialogOpen(false);
     } catch (error: any) {
       console.error('Error sending email:', error);
