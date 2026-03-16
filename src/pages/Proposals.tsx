@@ -486,14 +486,25 @@ export default function Proposals() {
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || 'Failed to send email');
 
-      // Update proposal status to 'sent' if it was draft
-      if (selectedProposal.status === 'draft') {
+      // Log email sent in status history
+      const previousStatus = selectedProposal.status;
+      if (previousStatus === 'draft') {
         await supabase
           .from('proposals')
           .update({ status: 'sent' })
           .eq('id', selectedProposal.id);
-        queryClient.invalidateQueries({ queryKey: ['proposals'] });
       }
+
+      await supabase.from('proposal_status_history').insert({
+        proposal_id: selectedProposal.id,
+        user_id: user?.id,
+        from_status: previousStatus,
+        to_status: previousStatus === 'draft' ? 'sent' : previousStatus,
+        note: `Proposal emailed to ${clientEmail}`,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['proposals'] });
+      queryClient.invalidateQueries({ queryKey: ['proposal-status-history'] });
 
       toast.success(`Proposal sent to ${clientEmail}`);
       setIsSendDialogOpen(false);

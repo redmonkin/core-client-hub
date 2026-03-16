@@ -167,13 +167,23 @@ export default function ProposalDetail() {
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || 'Failed to send email');
 
-      if (proposal.status === 'draft') {
+      const previousStatus = proposal.status;
+      if (previousStatus === 'draft') {
         await supabase
           .from('proposals')
           .update({ status: 'sent' })
           .eq('id', proposal.id);
-        refetchProposal();
       }
+
+      await supabase.from('proposal_status_history').insert({
+        proposal_id: proposal.id,
+        user_id: user?.id,
+        from_status: previousStatus,
+        to_status: previousStatus === 'draft' ? 'sent' : previousStatus,
+        note: `Proposal emailed to ${client.email}`,
+      });
+
+      refetchProposal();
 
       toast.success(`Proposal sent to ${client.email}`);
       setIsSendDialogOpen(false);
@@ -320,8 +330,9 @@ export default function ProposalDetail() {
             ) : (
               <div className="relative">
                 {timelineItems.map((item, index) => {
-                  const Icon = statusIconMap[item.to_status] || FileText;
-                  const colorClass = statusColorMap[item.to_status] || 'bg-muted text-muted-foreground';
+                  const isEmailEvent = item.note?.toLowerCase().includes('emailed');
+                  const Icon = isEmailEvent ? Mail : (statusIconMap[item.to_status] || FileText);
+                  const colorClass = isEmailEvent ? 'bg-blue-500/10 text-blue-600' : (statusColorMap[item.to_status] || 'bg-muted text-muted-foreground');
                   const isLast = index === timelineItems.length - 1;
 
                   return (
