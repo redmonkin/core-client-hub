@@ -395,7 +395,7 @@ export default function Contracts() {
                       </span>
                     </TableCell>
                     <TableCell>
-                      <StatusBadge status={contract.status as "draft" | "sent" | "active" | "expired" | "pending-renewal" | "change_requested"} />
+                      <StatusBadge status={contract.status as ContractStatus} />
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>

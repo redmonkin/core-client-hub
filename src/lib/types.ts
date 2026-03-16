@@ -42,7 +42,7 @@ export interface Proposal {
 }
 
 export type ContractType = 'amc' | 'fixed' | 'retainer';
-export type ContractStatus = 'draft' | 'sent' | 'active' | 'expired' | 'pending-renewal' | 'change_requested';
+export type ContractStatus = 'draft' | 'sent' | 'approved' | 'rejected' | 'change_requested' | 'active' | 'expired' | 'pending-renewal';
 export type RenewalFrequency = '1-month' | '3-months' | '6-months' | '1-year' | '3-years';
 
 export interface Contract {
