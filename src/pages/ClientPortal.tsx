@@ -420,7 +420,7 @@ export default function ClientPortal() {
                     <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Scope of Work</h3>
                     <div
                       className="bg-muted/20 rounded-lg p-5 prose prose-sm max-w-none text-foreground"
-                      dangerouslySetInnerHTML={{ __html: proposal.scope_of_work }}
+                      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(proposal.scope_of_work) }}
                     />
                   </div>
                 )}

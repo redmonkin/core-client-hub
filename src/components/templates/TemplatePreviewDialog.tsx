@@ -201,7 +201,7 @@ export function TemplatePreviewDialog({
               prose-p:text-foreground 
               prose-strong:text-foreground
               prose-li:text-foreground"
-            dangerouslySetInnerHTML={{ __html: previewContent }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(previewContent) }}
           />
         </div>
 
