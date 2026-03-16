@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { ArrowLeft, Loader2, FileText, Clock, CheckCircle2, XCircle, Send, PenLine, MessageSquare, Mail } from 'lucide-react';
+import { useTemplates, Template } from '@/hooks/useTemplates';
+import { ArrowLeft, Loader2, FileText, Clock, CheckCircle2, XCircle, Send, PenLine, MessageSquare, Mail, Eye, Pencil, LinkIcon, Copy } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Separator } from '@/components/ui/separator';
@@ -19,7 +21,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { ProposalFormDialog } from '@/components/proposals/ProposalFormDialog';
+import { ProposalPreviewDialog } from '@/components/proposals/ProposalPreviewDialog';
+import { ProposalData } from '@/lib/proposal-utils';
+
+type ProposalStatus = 'draft' | 'sent' | 'approved' | 'rejected' | 'change_requested';
 
 const statusIconMap: Record<string, React.ElementType> = {
   draft: PenLine,
@@ -40,8 +55,19 @@ const statusColorMap: Record<string, string> = {
 export default function ProposalDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const { templates } = useTemplates();
   const [isSendDialogOpen, setIsSendDialogOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editDialogKey, setEditDialogKey] = useState(0);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null);
+  const [previewProposalData, setPreviewProposalData] = useState<ProposalData | null>(null);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [shareLink, setShareLink] = useState('');
+  const [sharePassword, setSharePassword] = useState('');
+  const [isGeneratingLink, setIsGeneratingLink] = useState(false);
 
   const { data: proposal, isLoading: proposalLoading, refetch: refetchProposal } = useQuery({
     queryKey: ['proposal', id],
@@ -62,7 +88,7 @@ export default function ProposalDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('clients')
-        .select('id, client_name, company_name, email')
+        .select('id, client_name, company_name, email, designation, phone, billing_address, primary_contact_name')
         .eq('id', proposal!.client_id)
         .single();
       if (error) throw error;
@@ -77,13 +103,31 @@ export default function ProposalDetail() {
       if (!proposal?.project_id) return null;
       const { data, error } = await supabase
         .from('projects')
-        .select('id, project_name')
+        .select('id, project_name, client_id')
         .eq('id', proposal.project_id)
         .single();
       if (error) throw error;
       return data;
     },
     enabled: !!proposal?.project_id,
+  });
+
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('clients').select('id, client_name, email').order('client_name');
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: projects = [] } = useQuery({
+    queryKey: ['projects'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('projects').select('id, project_name, client_id').order('project_name');
+      if (error) throw error;
+      return data;
+    },
   });
 
   const { data: statusHistory = [], isLoading: historyLoading } = useQuery({
@@ -98,6 +142,51 @@ export default function ProposalDetail() {
       return data;
     },
     enabled: !!id,
+  });
+
+  const updateProposalMutation = useMutation({
+    mutationFn: async ({ templateId, ...formData }: any) => {
+      const { data, error } = await supabase
+        .from('proposals')
+        .update({
+          title: formData.title,
+          client_id: formData.clientId,
+          project_id: formData.projectId || null,
+          scope_of_work: formData.scopeOfWork || null,
+          cost_breakdown: formData.costBreakdown || null,
+          customer_goals: formData.customerGoals || null,
+          validity_date: formData.validityDate || null,
+          duration: formData.duration || null,
+          status: formData.status,
+          template_id: templateId || null,
+        })
+        .eq('id', id!)
+        .select()
+        .single();
+      if (error) throw error;
+
+      if (proposal && proposal.status !== formData.status) {
+        await supabase.from('proposal_status_history').insert({
+          proposal_id: id!,
+          user_id: user?.id,
+          from_status: proposal.status,
+          to_status: formData.status,
+          note: null,
+        });
+      }
+
+      return data;
+    },
+    onSuccess: () => {
+      refetchProposal();
+      queryClient.invalidateQueries({ queryKey: ['proposals'] });
+      queryClient.invalidateQueries({ queryKey: ['proposal-status-history', id] });
+      setIsEditDialogOpen(false);
+      toast.success('Proposal updated successfully');
+    },
+    onError: (error: any) => {
+      toast.error('Failed to update proposal: ' + error.message);
+    },
   });
 
   const handleSendEmail = () => {
@@ -184,6 +273,7 @@ export default function ProposalDetail() {
       });
 
       refetchProposal();
+      queryClient.invalidateQueries({ queryKey: ['proposal-status-history', id] });
 
       toast.success(`Proposal sent to ${client.email}`);
       setIsSendDialogOpen(false);
@@ -192,6 +282,59 @@ export default function ProposalDetail() {
       toast.error('Failed to send email: ' + error.message);
     } finally {
       setIsSending(false);
+    }
+  };
+
+  const handlePreview = () => {
+    if (!proposal) return;
+    const proposalTemplates = templates.filter(t => t.type === 'proposal');
+    if (proposalTemplates.length === 0) {
+      toast.error('No proposal templates found. Create a template first.');
+      return;
+    }
+    setPreviewProposalData({
+      title: proposal.title,
+      clientName: client?.primary_contact_name || client?.client_name || '',
+      clientDesignation: client?.designation || '',
+      clientEmail: client?.email || '',
+      clientPhone: client?.phone || '',
+      companyName: client?.company_name || client?.client_name || '',
+      companyAddress: client?.billing_address || '',
+      projectName: project?.project_name || '',
+      projectWebsite: '',
+      customerGoals: proposal.customer_goals || '',
+      scopeOfWork: proposal.scope_of_work || '',
+      costBreakdown: proposal.cost_breakdown || '',
+      validityDate: proposal.validity_date || '',
+      duration: proposal.duration || '',
+      createdAt: proposal.created_at,
+    });
+    const savedTemplate = (proposal as any).template_id ? templates.find(t => t.id === (proposal as any).template_id) : null;
+    setPreviewTemplate(savedTemplate || proposalTemplates[0]);
+    setIsPreviewOpen(true);
+  };
+
+  const handleEdit = () => {
+    setEditDialogKey(prev => prev + 1);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleShareLink = async () => {
+    if (!proposal) return;
+    setShareLink('');
+    setSharePassword('');
+    setIsShareDialogOpen(true);
+    setIsGeneratingLink(true);
+    try {
+      const portal = await generatePortalLink(proposal.id);
+      setShareLink(portal.link);
+      setSharePassword(portal.password);
+    } catch (error: any) {
+      console.error('Error generating share link:', error);
+      toast.error('Failed to generate share link');
+      setIsShareDialogOpen(false);
+    } finally {
+      setIsGeneratingLink(false);
     }
   };
 
@@ -213,6 +356,18 @@ export default function ProposalDetail() {
       </div>
     );
   }
+
+  const editFormData = {
+    title: proposal.title,
+    clientId: proposal.client_id,
+    projectId: proposal.project_id || '',
+    scopeOfWork: proposal.scope_of_work || '',
+    costBreakdown: proposal.cost_breakdown || '',
+    customerGoals: proposal.customer_goals || '',
+    validityDate: proposal.validity_date || '',
+    duration: proposal.duration || '',
+    status: proposal.status as ProposalStatus,
+  };
 
   // Build a combined timeline: creation + status history
   const timelineItems = [
@@ -261,10 +416,24 @@ export default function ProposalDetail() {
             )}
           </div>
         </div>
-        <Button onClick={handleSendEmail} variant="default" size="sm">
-          <Mail className="mr-2 h-4 w-4" />
-          Send to Client
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={handlePreview} variant="outline" size="sm">
+            <Eye className="mr-2 h-4 w-4" />
+            Preview
+          </Button>
+          <Button onClick={handleEdit} variant="outline" size="sm">
+            <Pencil className="mr-2 h-4 w-4" />
+            Edit
+          </Button>
+          <Button onClick={handleShareLink} variant="outline" size="sm">
+            <LinkIcon className="mr-2 h-4 w-4" />
+            Share Link
+          </Button>
+          <Button onClick={handleSendEmail} variant="default" size="sm">
+            <Mail className="mr-2 h-4 w-4" />
+            Send to Client
+          </Button>
+        </div>
         <StatusBadge status={proposal.status as any} />
       </div>
 
@@ -412,6 +581,75 @@ export default function ProposalDetail() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit Proposal Dialog */}
+      <ProposalFormDialog
+        key={editDialogKey}
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        onSubmit={({ templateId, ...data }) => {
+          updateProposalMutation.mutate({ templateId, ...data });
+        }}
+        initialData={editFormData}
+        initialTemplateId={(proposal as any).template_id || ''}
+        clients={clients}
+        projects={projects}
+        templates={templates}
+        isSubmitting={updateProposalMutation.isPending}
+        mode="edit"
+      />
+
+      {/* Share Link Dialog */}
+      <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Share Proposal Link</DialogTitle>
+            <DialogDescription>
+              Share this link with your client so they can view and respond to the proposal.
+            </DialogDescription>
+          </DialogHeader>
+          {isGeneratingLink ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">Link</label>
+                <div className="flex items-center gap-2">
+                  <Input value={shareLink} readOnly className="flex-1" />
+                  <Button onClick={() => { navigator.clipboard.writeText(shareLink); toast.success('Link copied!'); }} variant="secondary">
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">Password</label>
+                <div className="flex items-center gap-2">
+                  <Input value={sharePassword} readOnly className="flex-1 font-mono tracking-widest text-lg" />
+                  <Button onClick={() => { navigator.clipboard.writeText(sharePassword); toast.success('Password copied!'); }} variant="secondary">
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Share both the link and password with your client. The link expires in 30 days.
+              </p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setIsShareDialogOpen(false)}>Done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Proposal Preview Dialog */}
+      <ProposalPreviewDialog
+        open={isPreviewOpen}
+        onOpenChange={setIsPreviewOpen}
+        template={previewTemplate}
+        proposalData={previewProposalData!}
+      />
     </div>
   );
 }
