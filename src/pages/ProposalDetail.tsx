@@ -216,6 +216,7 @@ export default function ProposalDetail() {
       toast.error('This client does not have an email address configured');
       return;
     }
+    setSelectedCcEmails([]);
     setIsSendDialogOpen(true);
   };
 
