@@ -1,0 +1,2 @@
+ALTER TABLE contracts DROP CONSTRAINT contracts_renewal_frequency_check;
+ALTER TABLE contracts ADD CONSTRAINT contracts_renewal_frequency_check CHECK (renewal_frequency = ANY (ARRAY['1-month', '3-months', '6-months', '1-year', '3-years']));
