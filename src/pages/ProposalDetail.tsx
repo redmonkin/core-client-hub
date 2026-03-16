@@ -406,25 +406,7 @@ export default function ProposalDetail() {
             </Button>
           </Link>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl sm:text-2xl font-bold truncate">{proposal.title}</h1>
-              <StatusBadge status={proposal.status as any} />
-            </div>
-            <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-              {client && (
-                <Link to={`/clients/${client.id}`} className="hover:text-primary transition-colors">
-                  {client.client_name}
-                </Link>
-              )}
-              {project && (
-                <>
-                  <span>·</span>
-                  <Link to={`/projects/${project.id}`} className="hover:text-primary transition-colors">
-                    {project.project_name}
-                  </Link>
-                </>
-              )}
-            </div>
+            <h1 className="text-xl sm:text-2xl font-bold truncate">{proposal.title}</h1>
           </div>
         </div>
         <div className="flex items-center gap-2 sm:ml-auto">
@@ -467,6 +449,37 @@ export default function ProposalDetail() {
               <span className="text-muted-foreground">Status</span>
               <StatusBadge status={proposal.status as any} />
             </div>
+            {client && (
+              <>
+                <Separator />
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Client</span>
+                  <Link to={`/clients/${client.id}`} className="text-right hover:text-primary transition-colors truncate max-w-[180px]">
+                    {client.client_name}
+                  </Link>
+                </div>
+              </>
+            )}
+            {client?.email && (
+              <>
+                <Separator />
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Client Email</span>
+                  <span className="text-right truncate max-w-[180px]">{client.email}</span>
+                </div>
+              </>
+            )}
+            {project && (
+              <>
+                <Separator />
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Project</span>
+                  <Link to={`/projects/${project.id}`} className="text-right hover:text-primary transition-colors truncate max-w-[180px]">
+                    {project.project_name}
+                  </Link>
+                </div>
+              </>
+            )}
             <Separator />
             <div className="flex justify-between">
               <span className="text-muted-foreground">Created</span>
@@ -487,15 +500,6 @@ export default function ProposalDetail() {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Duration</span>
                   <span>{proposal.duration}</span>
-                </div>
-              </>
-            )}
-            {client?.email && (
-              <>
-                <Separator />
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Client Email</span>
-                  <span className="text-right truncate max-w-[180px]">{client.email}</span>
                 </div>
               </>
             )}
