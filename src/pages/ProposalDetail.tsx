@@ -595,14 +595,48 @@ export default function ProposalDetail() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Send Proposal to Client</AlertDialogTitle>
-            <AlertDialogDescription>
-              Send "{proposal.title}" to{' '}
-              <strong>{client?.email}</strong>?
-              {proposal.status === 'draft' && (
-                <span className="block mt-2 text-muted-foreground">
-                  The proposal status will be updated to "Sent".
-                </span>
-              )}
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  Send "{proposal.title}" to{' '}
+                  <strong>{client?.email}</strong>?
+                </p>
+                {proposal.status === 'draft' && (
+                  <p className="text-muted-foreground">
+                    The proposal status will be updated to "Sent".
+                  </p>
+                )}
+
+                {/* CC Contacts */}
+                {(() => {
+                  const ccContacts = clientContacts.filter(c => c.email && c.email !== client?.email);
+                  if (ccContacts.length === 0) return null;
+                  return (
+                    <div className="rounded-md border p-3 space-y-2">
+                      <p className="text-sm font-medium flex items-center gap-1.5">
+                        <Users className="h-3.5 w-3.5" />
+                        CC Additional Contacts
+                      </p>
+                      {ccContacts.map(contact => (
+                        <label key={contact.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                          <Checkbox
+                            checked={selectedCcEmails.includes(contact.email!)}
+                            onCheckedChange={(checked) => {
+                              setSelectedCcEmails(prev =>
+                                checked
+                                  ? [...prev, contact.email!]
+                                  : prev.filter(e => e !== contact.email!)
+                              );
+                            }}
+                          />
+                          <span className="truncate">{contact.name}</span>
+                          <span className="text-muted-foreground truncate">({contact.email})</span>
+                        </label>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
