@@ -65,7 +65,7 @@ const emptyFormData: ContractFormData = {
   start_date: '',
   end_date: '',
   renewal_frequency: '',
-  status: 'active',
+  status: 'draft',
   scope_of_work: '',
   cost_breakdown: '',
 };
