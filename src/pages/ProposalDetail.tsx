@@ -406,25 +406,7 @@ export default function ProposalDetail() {
             </Button>
           </Link>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl sm:text-2xl font-bold truncate">{proposal.title}</h1>
-              <StatusBadge status={proposal.status as any} />
-            </div>
-            <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-              {client && (
-                <Link to={`/clients/${client.id}`} className="hover:text-primary transition-colors">
-                  {client.client_name}
-                </Link>
-              )}
-              {project && (
-                <>
-                  <span>·</span>
-                  <Link to={`/projects/${project.id}`} className="hover:text-primary transition-colors">
-                    {project.project_name}
-                  </Link>
-                </>
-              )}
-            </div>
+            <h1 className="text-xl sm:text-2xl font-bold truncate">{proposal.title}</h1>
           </div>
         </div>
         <div className="flex items-center gap-2 sm:ml-auto">
