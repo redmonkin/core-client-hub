@@ -420,6 +420,7 @@ export default function Proposals() {
       return;
     }
     setSelectedProposal(proposal);
+    setSelectedCcEmails([]);
     setIsSendDialogOpen(true);
   };
 
