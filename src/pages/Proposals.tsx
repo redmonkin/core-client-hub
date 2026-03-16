@@ -61,6 +61,7 @@ type Proposal = {
   validity_date: string | null;
   duration: string | null;
   status: string;
+  template_id: string | null;
 };
 
 type Client = {
