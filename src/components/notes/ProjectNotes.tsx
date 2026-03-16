@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Plus, Trash2, Loader2, Paperclip, FileIcon, Download, StickyNote, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -65,11 +65,8 @@ export function ProjectNotes({ projectId }: ProjectNotesProps) {
           .upload(path, selectedFile);
         if (uploadError) throw uploadError;
 
-        const { data: urlData } = supabase.storage
-          .from('project-files')
-          .getPublicUrl(path);
-
-        fileUrl = urlData.publicUrl;
+        // Store the storage path, not a public URL
+        fileUrl = path;
         fileName = selectedFile.name;
         fileType = selectedFile.type;
       }
@@ -117,6 +114,32 @@ export function ProjectNotes({ projectId }: ProjectNotesProps) {
   };
 
   const isImage = (fileType: string | null) => fileType?.startsWith('image/');
+
+  // Generate signed URLs for file attachments
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+  useEffect(() => {
+    const paths = notes
+      .filter(n => n.file_url && !n.file_url.startsWith('http'))
+      .map(n => n.file_url!);
+    if (paths.length === 0) return;
+    supabase.storage
+      .from('project-files')
+      .createSignedUrls(paths, 3600)
+      .then(({ data }) => {
+        if (!data) return;
+        const map: Record<string, string> = {};
+        data.forEach(item => {
+          if (item.signedUrl) map[item.path] = item.signedUrl;
+        });
+        setSignedUrls(map);
+      });
+  }, [notes]);
+
+  const getFileUrl = (fileUrl: string) => {
+    // Legacy entries store full public URLs; new entries store paths
+    if (fileUrl.startsWith('http')) return fileUrl;
+    return signedUrls[fileUrl] || '';
+  };
 
   if (isLoading) {
     return (
@@ -190,19 +213,19 @@ export function ProjectNotes({ projectId }: ProjectNotesProps) {
                     <p className="text-sm text-foreground whitespace-pre-wrap">{note.content}</p>
 
                     {/* File Attachment */}
-                    {note.file_url && (
+                    {note.file_url && getFileUrl(note.file_url) && (
                       <div className="mt-2">
                         {isImage(note.file_type) ? (
-                          <a href={note.file_url} target="_blank" rel="noopener noreferrer" className="block">
+                          <a href={getFileUrl(note.file_url)} target="_blank" rel="noopener noreferrer" className="block">
                             <img
-                              src={note.file_url}
+                              src={getFileUrl(note.file_url)}
                               alt={note.file_name || 'Attachment'}
                               className="max-h-48 rounded-lg border border-border object-cover hover:opacity-90 transition-opacity"
                             />
                           </a>
                         ) : (
                           <a
-                            href={note.file_url}
+                            href={getFileUrl(note.file_url)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
