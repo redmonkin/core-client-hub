@@ -600,26 +600,35 @@ export default function Contracts() {
                   key={contract.id}
                   className="group grid grid-cols-1 md:grid-cols-[1fr_160px_140px_140px_100px_160px_100px_120px_48px] items-center gap-3 md:gap-4 px-6 py-4 transition-colors hover:bg-muted/30"
                 >
-                  {/* Client / Project */}
+                  {/* Contract */}
                   <div className="min-w-0">
-                    <Link
-                      to={`/clients/${contract.client_id}`}
-                      className="block"
-                    >
-                      <h3 className="truncate font-medium text-foreground group-hover:text-primary transition-colors">
-                        {getClientName(contract.client_id)}
-                      </h3>
-                    </Link>
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                      {getProjectName(contract.project_id)}
-                    </p>
+                    <h3 className="truncate font-medium text-foreground group-hover:text-primary transition-colors">
+                      {contractTypeLabels[contract.contract_type] || contract.contract_type} Contract
+                    </h3>
                   </div>
 
-                  {/* Type */}
+                  {/* Contract Type */}
                   <div className="min-w-0">
                     <Badge variant="outline" className="font-medium text-xs">
                       {contractTypeLabels[contract.contract_type] || contract.contract_type}
                     </Badge>
+                  </div>
+
+                  {/* Client */}
+                  <div className="min-w-0">
+                    <Link
+                      to={`/clients/${contract.client_id}`}
+                      className="truncate text-sm text-muted-foreground hover:text-primary transition-colors block"
+                    >
+                      {getClientName(contract.client_id)}
+                    </Link>
+                  </div>
+
+                  {/* Project */}
+                  <div className="min-w-0">
+                    <p className="truncate text-sm text-muted-foreground">
+                      {getProjectName(contract.project_id)}
+                    </p>
                   </div>
 
                   {/* Value */}
