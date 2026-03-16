@@ -823,26 +823,58 @@ export default function Proposals() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Send Proposal</AlertDialogTitle>
-            <AlertDialogDescription>
-              {selectedProposal && (
-                <>
-                  Send "{selectedProposal.title}" to{' '}
-                  <strong>{getClientEmail(selectedProposal.client_id)}</strong>?
-                  {selectedProposal.status === 'draft' && (
-                    <span className="block mt-2 text-muted-foreground">
-                      The proposal status will be updated to "Sent".
-                    </span>
-                  )}
-                </>
-              )}
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                {selectedProposal && (
+                  <>
+                    <p>
+                      Send "{selectedProposal.title}" to{' '}
+                      <strong>{getClientEmail(selectedProposal.client_id)}</strong>?
+                    </p>
+                    {selectedProposal.status === 'draft' && (
+                      <p className="text-muted-foreground">
+                        The proposal status will be updated to "Sent".
+                      </p>
+                    )}
+
+                    {/* CC Contacts */}
+                    {(() => {
+                      const clientEmail = getClientEmail(selectedProposal.client_id);
+                      const ccContacts = selectedClientContacts.filter(c => c.email && c.email !== clientEmail);
+                      if (ccContacts.length === 0) return null;
+                      return (
+                        <div className="rounded-md border p-3 space-y-2">
+                          <p className="text-sm font-medium flex items-center gap-1.5">
+                            <Users className="h-3.5 w-3.5" />
+                            CC Additional Contacts
+                          </p>
+                          {ccContacts.map(contact => (
+                            <label key={contact.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                              <Checkbox
+                                checked={selectedCcEmails.includes(contact.email!)}
+                                onCheckedChange={(checked) => {
+                                  setSelectedCcEmails(prev =>
+                                    checked
+                                      ? [...prev, contact.email!]
+                                      : prev.filter(e => e !== contact.email!)
+                                  );
+                                }}
+                              />
+                              <span className="truncate">{contact.name}</span>
+                              <span className="text-muted-foreground truncate">({contact.email})</span>
+                            </label>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </>
+                )}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isSending}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmSendEmail}
-              disabled={isSending}
-            >
+            <AlertDialogAction onClick={confirmSendEmail} disabled={isSending}>
               {isSending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
