@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Plus, Pencil, Trash2, Star, StarOff, Mail, Phone } from 'lucide-react';
+import { Plus, Pencil, Trash2, Star, Mail, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -79,15 +79,15 @@ export function ClientContacts({ clientId }: { clientId: string }) {
 
   const saveMutation = useMutation({
     mutationFn: async (data: ContactFormData) => {
-      // If setting as primary, unset others first
-      if (data.is_primary) {
-        await supabase
-          .from('client_contacts')
-          .update({ is_primary: false })
-          .eq('client_id', clientId);
-      }
-
       if (editingContact) {
+        // If setting as primary, unset others first
+        if (data.is_primary) {
+          await supabase
+            .from('client_contacts')
+            .update({ is_primary: false })
+            .eq('client_id', clientId);
+        }
+
         const { error } = await supabase
           .from('client_contacts')
           .update({
@@ -109,7 +109,6 @@ export function ClientContacts({ clientId }: { clientId: string }) {
             email: data.email || null,
             phone: data.phone || null,
             designation: data.designation || null,
-            is_primary: data.is_primary,
           });
         if (error) throw error;
       }
@@ -252,17 +251,6 @@ export function ClientContacts({ clientId }: { clientId: string }) {
                 <Label htmlFor="contact-designation">Designation</Label>
                 <Input id="contact-designation" value={form.designation} onChange={(e) => setForm(prev => ({ ...prev, designation: e.target.value }))} placeholder="e.g. CTO" />
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant={form.is_primary ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setForm(prev => ({ ...prev, is_primary: !prev.is_primary }))}
-              >
-                {form.is_primary ? <Star className="mr-1.5 h-3.5 w-3.5" /> : <StarOff className="mr-1.5 h-3.5 w-3.5" />}
-                {form.is_primary ? 'Primary Contact' : 'Set as Primary'}
-              </Button>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={closeForm}>Cancel</Button>
