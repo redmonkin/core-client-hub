@@ -79,15 +79,15 @@ export function ClientContacts({ clientId }: { clientId: string }) {
 
   const saveMutation = useMutation({
     mutationFn: async (data: ContactFormData) => {
-      // If setting as primary, unset others first
-      if (data.is_primary) {
-        await supabase
-          .from('client_contacts')
-          .update({ is_primary: false })
-          .eq('client_id', clientId);
-      }
-
       if (editingContact) {
+        // If setting as primary, unset others first
+        if (data.is_primary) {
+          await supabase
+            .from('client_contacts')
+            .update({ is_primary: false })
+            .eq('client_id', clientId);
+        }
+
         const { error } = await supabase
           .from('client_contacts')
           .update({
