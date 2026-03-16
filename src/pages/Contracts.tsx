@@ -575,9 +575,11 @@ export default function Contracts() {
       {filteredContracts.length > 0 ? (
         <div className="rounded-xl border border-border overflow-hidden">
           {/* Grid Header */}
-          <div className="hidden md:grid md:grid-cols-[1fr_140px_100px_160px_100px_120px_48px] items-center gap-4 border-b border-border bg-muted/40 px-6 py-3">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Client / Project</span>
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Type</span>
+          <div className="hidden md:grid md:grid-cols-[1fr_160px_140px_140px_100px_160px_100px_120px_48px] items-center gap-4 border-b border-border bg-muted/40 px-6 py-3">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Contract</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Contract Type</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Client</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Project</span>
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Value</span>
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Duration</span>
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Renewal</span>
@@ -596,7 +598,7 @@ export default function Contracts() {
               return (
                 <div
                   key={contract.id}
-                  className="group grid grid-cols-1 md:grid-cols-[1fr_140px_100px_160px_100px_120px_48px] items-center gap-3 md:gap-4 px-6 py-4 transition-colors hover:bg-muted/30"
+                  className="group grid grid-cols-1 md:grid-cols-[1fr_160px_140px_140px_100px_160px_100px_120px_48px] items-center gap-3 md:gap-4 px-6 py-4 transition-colors hover:bg-muted/30"
                 >
                   {/* Client / Project */}
                   <div className="min-w-0">
