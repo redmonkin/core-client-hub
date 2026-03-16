@@ -167,13 +167,23 @@ export default function ProposalDetail() {
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || 'Failed to send email');
 
-      if (proposal.status === 'draft') {
+      const previousStatus = proposal.status;
+      if (previousStatus === 'draft') {
         await supabase
           .from('proposals')
           .update({ status: 'sent' })
           .eq('id', proposal.id);
-        refetchProposal();
       }
+
+      await supabase.from('proposal_status_history').insert({
+        proposal_id: proposal.id,
+        user_id: user?.id,
+        from_status: previousStatus,
+        to_status: previousStatus === 'draft' ? 'sent' : previousStatus,
+        note: `Proposal emailed to ${client.email}`,
+      });
+
+      refetchProposal();
 
       toast.success(`Proposal sent to ${client.email}`);
       setIsSendDialogOpen(false);
