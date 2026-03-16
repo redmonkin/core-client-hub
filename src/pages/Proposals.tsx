@@ -324,7 +324,7 @@ export default function Proposals() {
       toast.error('Please fill in required fields');
       return;
     }
-    createProposalMutation.mutate(data);
+    createProposalMutation.mutate({ ...data, templateId });
   };
 
   const handleEdit = (proposal: Proposal) => {
