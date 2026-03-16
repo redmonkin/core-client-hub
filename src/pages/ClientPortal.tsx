@@ -407,7 +407,7 @@ export default function ClientPortal() {
                   [&_td]:border-b [&_td]:border-border/40 [&_td]:py-2.5 [&_td]:px-3
                   [&_tfoot_td]:font-semibold [&_tfoot_td]:border-t-2 [&_tfoot_td]:border-border
                   [&_hr]:border-border/40"
-                dangerouslySetInnerHTML={{ __html: renderedContent }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(renderedContent) }}
               />
             ) : (
               <div className="space-y-6">
