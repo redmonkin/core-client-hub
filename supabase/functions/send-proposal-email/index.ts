@@ -246,12 +246,19 @@ const handler = async (req: Request): Promise<Response> => {
       </html>
     `;
 
-    const emailResponse = await resend.emails.send({
+    const emailPayload: any = {
       from: `${fromName} <noreply@notifications.redmonk.in>`,
       to: [clientEmail],
       subject: `Proposal: ${proposalTitle}`,
       html: emailHtml,
-    });
+    };
+
+    // Add CC recipients if provided
+    if (ccEmails && ccEmails.length > 0) {
+      emailPayload.cc = ccEmails;
+    }
+
+    const emailResponse = await resend.emails.send(emailPayload);
 
     console.log("Email sent successfully:", emailResponse);
 
