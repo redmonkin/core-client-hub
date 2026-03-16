@@ -189,7 +189,7 @@ export default function ClientDetail() {
 
       {/* Tabs */}
       <Tabs defaultValue="projects" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="projects" className="flex items-center gap-2">
             <FolderKanban className="h-4 w-4" />
             Projects ({clientProjects.length})
@@ -201,6 +201,10 @@ export default function ClientDetail() {
           <TabsTrigger value="contracts" className="flex items-center gap-2">
             <FileSignature className="h-4 w-4" />
             Contracts ({clientContracts.length})
+          </TabsTrigger>
+          <TabsTrigger value="contacts" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Contacts
           </TabsTrigger>
         </TabsList>
 
