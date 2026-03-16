@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
+import DOMPurify from 'dompurify';
 import { FileText, Check, X, Loader2, AlertCircle, Clock, Globe, Mail, Download, ShieldCheck, ShieldX, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -406,7 +407,7 @@ export default function ClientPortal() {
                   [&_td]:border-b [&_td]:border-border/40 [&_td]:py-2.5 [&_td]:px-3
                   [&_tfoot_td]:font-semibold [&_tfoot_td]:border-t-2 [&_tfoot_td]:border-border
                   [&_hr]:border-border/40"
-                dangerouslySetInnerHTML={{ __html: renderedContent }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(renderedContent) }}
               />
             ) : (
               <div className="space-y-6">
@@ -419,7 +420,7 @@ export default function ClientPortal() {
                     <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Scope of Work</h3>
                     <div
                       className="bg-muted/20 rounded-lg p-5 prose prose-sm max-w-none text-foreground"
-                      dangerouslySetInnerHTML={{ __html: proposal.scope_of_work }}
+                      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(proposal.scope_of_work) }}
                     />
                   </div>
                 )}
