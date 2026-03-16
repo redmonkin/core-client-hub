@@ -161,7 +161,7 @@ export default function Proposals() {
   });
 
   const createProposalMutation = useMutation({
-    mutationFn: async (proposal: typeof newProposal) => {
+    mutationFn: async (proposal: typeof newProposal & { templateId?: string }) => {
       const { data, error } = await supabase
         .from('proposals')
         .insert({
@@ -175,6 +175,7 @@ export default function Proposals() {
           duration: proposal.duration || null,
           status: proposal.status,
           user_id: user?.id,
+          template_id: proposal.templateId || null,
         })
         .select()
         .single();
