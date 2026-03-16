@@ -22,6 +22,7 @@ interface SendProposalRequest {
   portalPassword: string | null;
   senderName: string | null;
   senderCompany: string | null;
+  supportEmail: string | null;
   ccEmails?: string[];
 }
 
@@ -115,6 +116,7 @@ const handler = async (req: Request): Promise<Response> => {
       portalPassword,
       senderName,
       senderCompany,
+      supportEmail,
       ccEmails,
     }: SendProposalRequest = await req.json();
 
@@ -252,7 +254,7 @@ const handler = async (req: Request): Promise<Response> => {
                           : ""
                       }
 
-                      <p style="margin: 0; font-size: 14px; color: #6b7280;">If you have any questions, simply reply to this email.</p>
+                      <p style="margin: 0; font-size: 14px; color: #6b7280;">${supportEmail ? `If you have any questions, reach out to us at <a href="mailto:${supportEmail}" style="color: #111827; text-decoration: underline;">${supportEmail}</a>.` : `If you have any questions, feel free to reach out.`}</p>
                     </td>
                   </tr>
 
