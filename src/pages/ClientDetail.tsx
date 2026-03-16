@@ -21,7 +21,12 @@ import { ClientContacts } from '@/components/clients/ClientContacts';
 
 export default function ClientDetail() {
   const { id } = useParams();
-
+  const queryClient = useQueryClient();
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState({
+    clientName: '', designation: '', email: '', phone: '',
+    companyName: '', address: '', notes: '', status: 'active',
+  });
   const { data: client, isLoading } = useQuery({
     queryKey: ['client', id],
     queryFn: async () => {
