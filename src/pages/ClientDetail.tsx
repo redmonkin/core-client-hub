@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Mail, Phone, MapPin, FileText, FolderKanban, FileSignature, Building2, Users } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, MapPin, FileText, FolderKanban, FileSignature, Building2, Users, Pencil, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { StatusBadge } from '@/components/shared/StatusBadge';
@@ -10,11 +11,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 import { ClientContacts } from '@/components/clients/ClientContacts';
 
 export default function ClientDetail() {
   const { id } = useParams();
-
+  const queryClient = useQueryClient();
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState({
+    clientName: '', designation: '', email: '', phone: '',
+    companyName: '', address: '', notes: '', status: 'active',
+  });
   const { data: client, isLoading } = useQuery({
     queryKey: ['client', id],
     queryFn: async () => {
@@ -68,6 +80,49 @@ export default function ClientDetail() {
     enabled: !!id,
   });
 
+  const updateClient = useMutation({
+    mutationFn: async (data: typeof editForm) => {
+      const { error } = await supabase
+        .from('clients')
+        .update({
+          client_name: data.clientName,
+          designation: data.designation || null,
+          email: data.email || null,
+          phone: data.phone || null,
+          company_name: data.companyName || null,
+          billing_address: data.address || null,
+          notes: data.notes || null,
+          status: data.status,
+        })
+        .eq('id', id!);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['client', id] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      toast.success('Client updated successfully');
+      setIsEditOpen(false);
+    },
+    onError: (error: any) => {
+      toast.error('Failed to update: ' + error.message);
+    },
+  });
+
+  const handleOpenEdit = () => {
+    if (!client) return;
+    setEditForm({
+      clientName: client.client_name,
+      designation: client.designation || '',
+      email: client.email || '',
+      phone: client.phone || '',
+      companyName: client.company_name || '',
+      address: client.billing_address || '',
+      notes: client.notes || '',
+      status: client.status,
+    });
+    setIsEditOpen(true);
+  };
+
   if (isLoading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
@@ -99,13 +154,19 @@ export default function ClientDetail() {
   return (
     <div className="space-y-6 p-6">
       {/* Back Button + Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link to="/clients">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" asChild>
+            <Link to="/clients">
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+          </Button>
+          <h1 className="text-2xl font-semibold text-foreground">{client.client_name}</h1>
+        </div>
+        <Button variant="outline" size="sm" onClick={handleOpenEdit}>
+          <Pencil className="mr-1.5 h-3.5 w-3.5" />
+          Edit
         </Button>
-        <h1 className="text-2xl font-semibold text-foreground">{client.client_name}</h1>
       </div>
 
       {/* Client Info Card - Full Width */}
@@ -298,6 +359,66 @@ export default function ClientDetail() {
           <ClientContacts clientId={id!} />
         </TabsContent>
       </Tabs>
+
+      {/* Edit Client Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Client</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={(e) => { e.preventDefault(); updateClient.mutate(editForm); }} className="space-y-6">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="clientName">Name *</Label>
+                <Input id="clientName" value={editForm.clientName} onChange={(e) => setEditForm(prev => ({ ...prev, clientName: e.target.value }))} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="designation">Designation</Label>
+                <Input id="designation" value={editForm.designation} onChange={(e) => setEditForm(prev => ({ ...prev, designation: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address *</Label>
+                <Input id="email" type="email" value={editForm.email} onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number *</Label>
+                <Input id="phone" type="tel" value={editForm.phone} onChange={(e) => setEditForm(prev => ({ ...prev, phone: e.target.value }))} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="companyName">Company Name</Label>
+                <Input id="companyName" value={editForm.companyName} onChange={(e) => setEditForm(prev => ({ ...prev, companyName: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="address">Company Address</Label>
+                <Input id="address" value={editForm.address} onChange={(e) => setEditForm(prev => ({ ...prev, address: e.target.value }))} />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="status">Status</Label>
+                <Select value={editForm.status} onValueChange={(value) => setEditForm(prev => ({ ...prev, status: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="archived">Archived</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes / Remarks</Label>
+              <Textarea id="notes" rows={3} value={editForm.notes} onChange={(e) => setEditForm(prev => ({ ...prev, notes: e.target.value }))} />
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={updateClient.isPending}>
+                {updateClient.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Changes
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
