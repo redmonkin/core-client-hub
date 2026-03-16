@@ -115,6 +115,32 @@ export function ProjectNotes({ projectId }: ProjectNotesProps) {
 
   const isImage = (fileType: string | null) => fileType?.startsWith('image/');
 
+  // Generate signed URLs for file attachments
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+  useEffect(() => {
+    const paths = notes
+      .filter(n => n.file_url && !n.file_url.startsWith('http'))
+      .map(n => n.file_url!);
+    if (paths.length === 0) return;
+    supabase.storage
+      .from('project-files')
+      .createSignedUrls(paths, 3600)
+      .then(({ data }) => {
+        if (!data) return;
+        const map: Record<string, string> = {};
+        data.forEach(item => {
+          if (item.signedUrl) map[item.path] = item.signedUrl;
+        });
+        setSignedUrls(map);
+      });
+  }, [notes]);
+
+  const getFileUrl = (fileUrl: string) => {
+    // Legacy entries store full public URLs; new entries store paths
+    if (fileUrl.startsWith('http')) return fileUrl;
+    return signedUrls[fileUrl] || '';
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
