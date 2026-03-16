@@ -16,6 +16,11 @@ export interface ProposalData {
   validityDate: string;
   duration: string;
   createdAt: string;
+  // Contract-specific fields (optional)
+  contractType?: string;
+  renewalFrequency?: string;
+  startDate?: string;
+  endDate?: string;
 }
 
 const formatCurrency = (amount: number): string => {
@@ -123,6 +128,27 @@ export function replacePlaceholders(content: string, data: ProposalData, highlig
     ? format(new Date(data.validityDate), 'MMMM d, yyyy')
     : '';
 
+  const contractTypeLabels: Record<string, string> = {
+    amc: 'Annual Maintenance Contract',
+    fixed: 'Fixed',
+    retainer: 'Retainer',
+  };
+
+  const renewalLabels: Record<string, string> = {
+    '1-month': '1 Month',
+    '3-months': '3 Months',
+    '6-months': '6 Months',
+    '1-year': '1 Year',
+    '3-years': '3 Years',
+  };
+
+  const startDateFormatted = data.startDate
+    ? format(new Date(data.startDate), 'MMMM d, yyyy')
+    : '';
+  const endDateFormatted = data.endDate
+    ? format(new Date(data.endDate), 'MMMM d, yyyy')
+    : '';
+
   const placeholderMap: Record<string, string> = {
     '{{name}}': data.clientName,
     '{{designation}}': data.clientDesignation,
@@ -140,6 +166,11 @@ export function replacePlaceholders(content: string, data: ProposalData, highlig
     '{{duration}}': data.duration || '',
     '{{costing}}': tableHtml,
     '{{totalAmount}}': totalAmount,
+    // Contract-specific placeholders
+    '{{contractType}}': contractTypeLabels[data.contractType || ''] || data.contractType || '',
+    '{{renewalFrequency}}': renewalLabels[data.renewalFrequency || ''] || data.renewalFrequency || '',
+    '{{startDate}}': startDateFormatted,
+    '{{endDate}}': endDateFormatted,
   };
 
   let result = content;

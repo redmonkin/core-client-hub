@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Search, FileSignature, MoreHorizontal, Calendar, Loader2, Pencil, Trash2 } from "lucide-react";
+import { Plus, Search, FileSignature, MoreHorizontal, Calendar, Loader2, Pencil, Trash2, Eye, Copy, Send, LinkIcon, Users } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   DropdownMenu,
@@ -17,6 +18,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,10 +37,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ContractFormDialog } from "@/components/contracts/ContractFormDialog";
-import { useTemplates } from "@/hooks/useTemplates";
+import { ProposalPreviewDialog } from "@/components/proposals/ProposalPreviewDialog";
+import { ProposalData } from "@/lib/proposal-utils";
+import { useTemplates, Template } from "@/hooks/useTemplates";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { ContractStatus } from "@/lib/types";
 
 type Contract = {
@@ -87,8 +99,24 @@ export default function Contracts() {
   const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
   const [editFormKey, setEditFormKey] = useState(0);
 
+  // Preview state
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null);
+  const [previewData, setPreviewData] = useState<ProposalData | null>(null);
+
+  // Send email state
+  const [isSendDialogOpen, setIsSendDialogOpen] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [selectedCcEmails, setSelectedCcEmails] = useState<string[]>([]);
+
+  // Share link state
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [shareLink, setShareLink] = useState("");
+  const [sharePassword, setSharePassword] = useState("");
+  const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+
   const { user } = useAuth();
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
   const queryClient = useQueryClient();
   const { templates } = useTemplates();
 
@@ -119,6 +147,21 @@ export default function Contracts() {
     },
   });
 
+  // Fetch contacts for the selected contract's client
+  const { data: selectedClientContacts = [] } = useQuery({
+    queryKey: ["client-contacts", selectedContract?.client_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("client_contacts")
+        .select("*")
+        .eq("client_id", selectedContract!.client_id)
+        .order("is_primary", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!selectedContract?.client_id,
+  });
+
   const createContractMutation = useMutation({
     mutationFn: async (contractData: ContractFormData) => {
       if (!user?.id) throw new Error("User not authenticated");
@@ -145,9 +188,8 @@ export default function Contracts() {
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["contracts"] });
       setIsDialogOpen(false);
-      toast({ title: "Contract created successfully" });
+      uiToast({ title: "Contract created successfully" });
 
-      // Send email notification to client
       const client = clients.find(c => c.id === variables.client_id);
       if (client?.email) {
         supabase.functions.invoke('send-notification-email', {
@@ -171,7 +213,7 @@ export default function Contracts() {
       }
     },
     onError: (error) => {
-      toast({ title: "Failed to create contract", description: error.message, variant: "destructive" });
+      uiToast({ title: "Failed to create contract", description: error.message, variant: "destructive" });
     },
   });
 
@@ -201,10 +243,10 @@ export default function Contracts() {
       queryClient.invalidateQueries({ queryKey: ["contracts"] });
       setIsEditDialogOpen(false);
       setSelectedContract(null);
-      toast({ title: "Contract updated successfully" });
+      uiToast({ title: "Contract updated successfully" });
     },
     onError: (error) => {
-      toast({ title: "Failed to update contract", description: error.message, variant: "destructive" });
+      uiToast({ title: "Failed to update contract", description: error.message, variant: "destructive" });
     },
   });
 
@@ -217,16 +259,21 @@ export default function Contracts() {
       queryClient.invalidateQueries({ queryKey: ["contracts"] });
       setIsDeleteDialogOpen(false);
       setSelectedContract(null);
-      toast({ title: "Contract deleted successfully" });
+      uiToast({ title: "Contract deleted successfully" });
     },
     onError: (error) => {
-      toast({ title: "Failed to delete contract", description: error.message, variant: "destructive" });
+      uiToast({ title: "Failed to delete contract", description: error.message, variant: "destructive" });
     },
   });
 
   const getClientName = (clientId: string) => {
     const client = clients.find((c) => c.id === clientId);
     return client?.client_name || "Unknown Client";
+  };
+
+  const getClientEmail = (clientId: string) => {
+    const client = clients.find((c) => c.id === clientId);
+    return client?.email || null;
   };
 
   const getProjectName = (projectId: string | null) => {
@@ -253,6 +300,195 @@ export default function Contracts() {
   const handleDelete = (contract: Contract) => {
     setSelectedContract(contract);
     setIsDeleteDialogOpen(true);
+  };
+
+  const buildContractPreviewData = (contract: Contract): ProposalData => {
+    const client = clients.find(c => c.id === contract.client_id);
+    const project = projects.find(p => p.id === contract.project_id);
+    return {
+      title: `${contractTypeLabels[contract.contract_type] || contract.contract_type} Contract`,
+      clientName: client?.primary_contact_name || client?.client_name || '',
+      clientDesignation: client?.designation || '',
+      clientEmail: client?.email || '',
+      clientPhone: client?.phone || '',
+      companyName: client?.company_name || client?.client_name || '',
+      companyAddress: client?.billing_address || '',
+      projectName: project?.project_name || '',
+      projectWebsite: '',
+      customerGoals: '',
+      scopeOfWork: contract.scope_of_work || '',
+      costBreakdown: contract.cost_breakdown || '',
+      validityDate: contract.end_date || '',
+      duration: '',
+      createdAt: contract.start_date || new Date().toISOString(),
+      contractType: contract.contract_type,
+      renewalFrequency: contract.renewal_frequency,
+      startDate: contract.start_date,
+      endDate: contract.end_date,
+    };
+  };
+
+  const handlePreview = (contract: Contract) => {
+    const contractTemplates = templates.filter(t => t.type === 'contract');
+    if (contractTemplates.length === 0) {
+      toast.error('No contract templates found. Create a template first.');
+      return;
+    }
+    setPreviewData(buildContractPreviewData(contract));
+    setPreviewTemplate(contractTemplates[0]);
+    setIsPreviewOpen(true);
+  };
+
+  const handleDuplicate = (contract: Contract) => {
+    setSelectedContract(null);
+    // Open the create dialog pre-filled with duplicated data
+    setIsDialogOpen(true);
+    // We need a slight delay for the dialog to mount, so we use a workaround
+    // by setting initial data via a state update after dialog opens
+    setTimeout(() => {
+      const createDialog = document.querySelector('[data-contract-create-dialog]');
+      // Instead, we'll use a dedicated state for duplicate initial data
+    }, 0);
+  };
+
+  // Duplicate state
+  const [duplicateInitialData, setDuplicateInitialData] = useState<ContractFormData | undefined>(undefined);
+
+  const handleDuplicateContract = (contract: Contract) => {
+    setDuplicateInitialData({
+      client_id: contract.client_id,
+      project_id: contract.project_id || '',
+      contract_type: contract.contract_type,
+      start_date: '',
+      end_date: '',
+      renewal_frequency: contract.renewal_frequency,
+      status: 'draft',
+      scope_of_work: contract.scope_of_work || '',
+      cost_breakdown: contract.cost_breakdown || '',
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleSendEmail = (contract: Contract) => {
+    const clientEmail = getClientEmail(contract.client_id);
+    if (!clientEmail) {
+      toast.error('This client does not have an email address configured');
+      return;
+    }
+    setSelectedContract(contract);
+    setSelectedCcEmails([]);
+    setIsSendDialogOpen(true);
+  };
+
+  const confirmSendEmail = async () => {
+    if (!selectedContract) return;
+
+    const clientEmail = getClientEmail(selectedContract.client_id);
+    const clientName = getClientName(selectedContract.client_id);
+
+    if (!clientEmail) {
+      toast.error('Client email not found');
+      return;
+    }
+
+    setIsSending(true);
+    try {
+      const { data: brandingData } = await supabase
+        .from('branding_settings')
+        .select('support_email')
+        .eq('user_id', user?.id)
+        .maybeSingle();
+
+      const { error } = await supabase.functions.invoke('send-notification-email', {
+        body: {
+          type: 'contract_sent',
+          recipientEmail: clientEmail,
+          recipientName: clientName,
+          data: {
+            contractType: selectedContract.contract_type,
+            startDate: selectedContract.start_date,
+            endDate: selectedContract.end_date,
+            value: selectedContract.value,
+            renewalFrequency: selectedContract.renewal_frequency,
+            senderName: user?.user_metadata?.full_name || 'Your Team',
+            supportEmail: brandingData?.support_email || null,
+          },
+          ccEmails: selectedCcEmails.length > 0 ? selectedCcEmails : undefined,
+        },
+      });
+
+      if (error) throw error;
+
+      // Update status to 'sent' if currently draft
+      if (selectedContract.status === 'draft') {
+        await supabase
+          .from('contracts')
+          .update({ status: 'sent' })
+          .eq('id', selectedContract.id);
+        queryClient.invalidateQueries({ queryKey: ['contracts'] });
+      }
+
+      const ccNote = selectedCcEmails.length > 0 ? ` (CC: ${selectedCcEmails.join(', ')})` : '';
+      toast.success(`Contract sent to ${clientEmail}${ccNote}`);
+      setIsSendDialogOpen(false);
+      setSelectedContract(null);
+    } catch (error: any) {
+      console.error('Error sending email:', error);
+      toast.error('Failed to send email: ' + error.message);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleShareLink = async (contract: Contract) => {
+    setSelectedContract(contract);
+    setShareLink('');
+    setSharePassword('');
+    setIsShareDialogOpen(true);
+    setIsGeneratingLink(true);
+
+    try {
+      const tokenArray = new Uint8Array(32);
+      crypto.getRandomValues(tokenArray);
+      const token = Array.from(tokenArray, b => b.toString(16).padStart(2, '0')).join('');
+
+      const passArray = new Uint8Array(4);
+      crypto.getRandomValues(passArray);
+      const password = Array.from(passArray, b => b.toString(36).padStart(2, '0')).join('').substring(0, 6).toUpperCase();
+
+      const encoder = new TextEncoder();
+      const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(password));
+      const passwordHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 30);
+
+      // Reuse proposal_access_tokens table — we store contract id as proposal_id for now
+      // In a future iteration, this could be a generic "document_access_tokens" table
+      const { error } = await supabase.from('proposal_access_tokens').insert({
+        proposal_id: contract.id,
+        token,
+        expires_at: expiresAt.toISOString(),
+        password_hash: passwordHash,
+      });
+
+      if (error) throw error;
+
+      const link = `${window.location.origin}/portal?token=${token}`;
+      setShareLink(link);
+      setSharePassword(password);
+    } catch (error: any) {
+      console.error('Error generating share link:', error);
+      toast.error('Failed to generate share link');
+      setIsShareDialogOpen(false);
+    } finally {
+      setIsGeneratingLink(false);
+    }
+  };
+
+  const copyShareLink = () => {
+    navigator.clipboard.writeText(shareLink);
+    toast.success('Link copied to clipboard!');
   };
 
   const contractTypeLabels: Record<string, string> = {
@@ -301,7 +537,7 @@ export default function Contracts() {
         title="Contracts"
         description="Manage contracts, annual maintenance agreements, master service agreements, work orders"
         actions={
-          <Button size="lg" onClick={() => setIsDialogOpen(true)}>
+          <Button size="lg" onClick={() => { setDuplicateInitialData(undefined); setIsDialogOpen(true); }}>
             <Plus className="mr-2 h-4 w-4" />
             New Contract
           </Button>
@@ -409,9 +645,25 @@ export default function Contracts() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-popover">
+                          <DropdownMenuItem onClick={() => handlePreview(contract)}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            Preview
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleEdit(contract)}>
                             <Pencil className="mr-2 h-4 w-4" />
                             Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleDuplicateContract(contract)}>
+                            <Copy className="mr-2 h-4 w-4" />
+                            Duplicate
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleSendEmail(contract)}>
+                            <Send className="mr-2 h-4 w-4" />
+                            Send to Client
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleShareLink(contract)}>
+                            <LinkIcon className="mr-2 h-4 w-4" />
+                            Get Share Link
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => handleDelete(contract)}
@@ -447,8 +699,12 @@ export default function Contracts() {
       <ContractFormDialog
         key="create"
         open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
+        onOpenChange={(open) => {
+          setIsDialogOpen(open);
+          if (!open) setDuplicateInitialData(undefined);
+        }}
         onSubmit={(data) => createContractMutation.mutate(data)}
+        initialData={duplicateInitialData}
         clients={clients}
         projects={projects}
         templates={templates}
@@ -493,6 +749,131 @@ export default function Contracts() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Send Email Confirmation Dialog */}
+      <AlertDialog open={isSendDialogOpen} onOpenChange={setIsSendDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Send Contract</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                {selectedContract && (
+                  <>
+                    <p>
+                      Send contract to{' '}
+                      <strong>{getClientEmail(selectedContract.client_id)}</strong>?
+                    </p>
+                    {selectedContract.status === 'draft' && (
+                      <p className="text-muted-foreground">
+                        The contract status will be updated to "Sent".
+                      </p>
+                    )}
+
+                    {/* CC Contacts */}
+                    {(() => {
+                      const clientEmail = getClientEmail(selectedContract.client_id);
+                      const ccContacts = selectedClientContacts.filter(c => c.email && c.email !== clientEmail);
+                      if (ccContacts.length === 0) return null;
+                      return (
+                        <div className="rounded-md border p-3 space-y-2">
+                          <p className="text-sm font-medium flex items-center gap-1.5">
+                            <Users className="h-3.5 w-3.5" />
+                            CC Additional Contacts
+                          </p>
+                          {ccContacts.map(contact => (
+                            <label key={contact.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                              <Checkbox
+                                checked={selectedCcEmails.includes(contact.email!)}
+                                onCheckedChange={(checked) => {
+                                  setSelectedCcEmails(prev =>
+                                    checked
+                                      ? [...prev, contact.email!]
+                                      : prev.filter(e => e !== contact.email!)
+                                  );
+                                }}
+                              />
+                              <span className="truncate">{contact.name}</span>
+                              <span className="text-muted-foreground truncate">({contact.email})</span>
+                            </label>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmSendEmail} disabled={isSending}>
+              {isSending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Send className="mr-2 h-4 w-4" />
+                  Send Email
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Share Link Dialog */}
+      <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Share Contract Link</DialogTitle>
+            <DialogDescription>
+              Share this link with your client so they can view the contract.
+            </DialogDescription>
+          </DialogHeader>
+          {isGeneratingLink ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">Link</label>
+                <div className="flex items-center gap-2">
+                  <Input value={shareLink} readOnly className="flex-1" />
+                  <Button onClick={copyShareLink} variant="secondary">
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">Password</label>
+                <div className="flex items-center gap-2">
+                  <Input value={sharePassword} readOnly className="flex-1 font-mono tracking-widest text-lg" />
+                  <Button onClick={() => { navigator.clipboard.writeText(sharePassword); toast.success('Password copied!'); }} variant="secondary">
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Share both the link and password with your client. The link expires in 30 days.
+              </p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setIsShareDialogOpen(false)}>Done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Contract Preview Dialog */}
+      <ProposalPreviewDialog
+        open={isPreviewOpen}
+        onOpenChange={setIsPreviewOpen}
+        template={previewTemplate}
+        proposalData={previewData!}
+      />
     </div>
   );
 }
