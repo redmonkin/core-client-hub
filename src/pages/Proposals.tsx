@@ -315,7 +315,8 @@ export default function Proposals() {
       duration: proposal.duration || '',
       createdAt: new Date().toISOString(),
     });
-    setPreviewTemplate(proposalTemplates[0]);
+    const savedTemplate = proposal.template_id ? templates.find(t => t.id === proposal.template_id) : null;
+    setPreviewTemplate(savedTemplate || proposalTemplates[0]);
     setIsPreviewOpen(true);
   };
 
