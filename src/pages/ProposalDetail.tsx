@@ -273,6 +273,7 @@ export default function ProposalDetail() {
           portalPassword: portal.password,
           senderName: user?.user_metadata?.full_name || null,
           senderCompany: user?.user_metadata?.company || null,
+          ccEmails: selectedCcEmails.length > 0 ? selectedCcEmails : undefined,
         },
       });
 
