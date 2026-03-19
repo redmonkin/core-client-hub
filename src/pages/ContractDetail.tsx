@@ -319,9 +319,9 @@ export default function ContractDetail() {
       const passwordHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 30);
-      const { error } = await supabase.from('proposal_access_tokens').insert({
-        proposal_id: contract.id, token, expires_at: expiresAt.toISOString(), password_hash: passwordHash,
-      });
+      const { error } = await supabase.from('contract_access_tokens' as any).insert({
+        contract_id: contract.id, token, expires_at: expiresAt.toISOString(), password_hash: passwordHash,
+      } as any);
       if (error) throw error;
       setShareLink(`${window.location.origin}/portal?token=${token}`);
       setSharePassword(password);
