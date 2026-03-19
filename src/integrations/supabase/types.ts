@@ -151,6 +151,44 @@ export type Database = {
         }
         Relationships: []
       }
+      contract_access_tokens: {
+        Row: {
+          contract_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          password_hash: string | null
+          token: string
+          viewed_at: string | null
+        }
+        Insert: {
+          contract_id: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          password_hash?: string | null
+          token: string
+          viewed_at?: string | null
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          password_hash?: string | null
+          token?: string
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_access_tokens_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contracts: {
         Row: {
           client_id: string
