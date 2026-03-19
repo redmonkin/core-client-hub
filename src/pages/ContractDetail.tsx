@@ -404,7 +404,7 @@ export default function ContractDetail() {
       status: 'sent',
       label: 'Sent to Client',
       note: client ? `Sent to ${client.client_name}` : 'Sent to client',
-      date: null,
+      date: contract.updated_at,
       reached: currentStatusIndex >= 1 || contract.status === 'sent',
       icon: Send,
     });
@@ -427,7 +427,7 @@ export default function ContractDetail() {
         status: 'approved',
         label: 'Approved',
         note: 'Contract approved by client',
-        date: null,
+        date: contract.updated_at,
         reached: true,
         icon: CheckCircle2,
       });
