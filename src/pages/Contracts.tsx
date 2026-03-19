@@ -627,7 +627,7 @@ export default function Contracts() {
                   {/* Value */}
                   <div className="min-w-0">
                     <span className="font-semibold text-sm text-foreground">
-                      ${Number(contract.value).toLocaleString()}
+                      ₹{Number(contract.value).toLocaleString('en-IN')}
                     </span>
                   </div>
 
