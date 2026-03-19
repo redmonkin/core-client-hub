@@ -14,6 +14,7 @@ import ProjectDetail from "./pages/ProjectDetail";
 import Proposals from "./pages/Proposals";
 import ProposalDetail from "./pages/ProposalDetail";
 import Contracts from "./pages/Contracts";
+import ContractDetail from "./pages/ContractDetail";
 import Templates from "./pages/Templates";
 import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
