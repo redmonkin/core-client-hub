@@ -600,9 +600,11 @@ export default function Contracts() {
                 >
                   {/* Contract */}
                   <div className="min-w-0">
-                    <h3 className="truncate font-medium text-foreground group-hover:text-primary transition-colors">
-                      {contractTypeLabels[contract.contract_type] || contract.contract_type} Contract
-                    </h3>
+                    <Link to={`/contracts/${contract.id}`}>
+                      <h3 className="truncate font-medium text-foreground group-hover:text-primary transition-colors cursor-pointer">
+                        {contractTypeLabels[contract.contract_type] || contract.contract_type} Contract
+                      </h3>
+                    </Link>
                   </div>
 
                   {/* Client */}
