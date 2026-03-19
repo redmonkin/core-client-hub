@@ -582,6 +582,11 @@ export default function ContractDetail() {
             )}
             <Separator />
             <div className="flex justify-between">
+              <span className="text-muted-foreground">Created</span>
+              <span>{format(new Date(contract.created_at), 'MMM dd, yyyy')}</span>
+            </div>
+            <Separator />
+            <div className="flex justify-between">
               <span className="text-muted-foreground">Start Date</span>
               <span>{format(startDate, 'MMM dd, yyyy')}</span>
             </div>
@@ -629,12 +634,12 @@ export default function ContractDetail() {
           </CardContent>
         </Card>
 
-        {/* Lifecycle Timeline Card */}
+        {/* Timeline Card */}
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Clock className="h-4 w-4" />
-              Contract Lifecycle
+              Status Timeline
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -645,26 +650,36 @@ export default function ContractDetail() {
                   ? (statusColorMap[stage.status] || 'bg-muted text-muted-foreground')
                   : 'bg-muted/50 text-muted-foreground/50';
                 const isLast = index === lifecycleStages.length - 1;
+                // Find previous reached stage for "from" display
+                const prevReachedStage = index > 0 ? lifecycleStages[index - 1] : null;
 
                 return (
                   <div key={stage.id} className="flex gap-4 pb-6 last:pb-0">
+                    {/* Line + Icon */}
                     <div className="flex flex-col items-center">
                       <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${colorClass}`}>
                         <Icon className="h-4 w-4" />
                       </div>
                       {!isLast && (
-                        <div className={`w-px flex-1 mt-1 ${stage.reached ? 'bg-border' : 'bg-border/30 border-dashed'}`} />
+                        <div className={`w-px flex-1 mt-1 ${stage.reached ? 'bg-border' : 'bg-border/30'}`} />
                       )}
                     </div>
+
+                    {/* Content */}
                     <div className="flex-1 pt-1">
                       <div className="flex items-center gap-2">
-                        <span className={`text-sm font-medium ${stage.reached ? 'text-foreground' : 'text-muted-foreground/50'}`}>
-                          {stage.label}
-                        </span>
-                        {stage.reached && <StatusBadge status={stage.status as any} />}
+                        <StatusBadge status={stage.status as any} />
+                        {stage.reached && prevReachedStage && (
+                          <span className="text-xs text-muted-foreground">
+                            from <StatusBadge status={prevReachedStage.status as any} className="text-[10px] px-1.5 py-0" />
+                          </span>
+                        )}
+                        {!stage.reached && (
+                          <span className="text-xs text-muted-foreground/50">Pending</span>
+                        )}
                       </div>
                       {stage.note && (
-                        <p className={`mt-1 text-sm ${stage.reached ? 'text-muted-foreground' : 'text-muted-foreground/40'}`}>
+                        <p className={`mt-1 text-sm ${stage.reached ? 'text-foreground' : 'text-muted-foreground/40'}`}>
                           {stage.note}
                         </p>
                       )}
@@ -677,6 +692,12 @@ export default function ContractDetail() {
                   </div>
                 );
               })}
+
+              {lifecycleStages.length <= 1 && (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No status changes recorded yet. Changes will appear here as the contract progresses.
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
