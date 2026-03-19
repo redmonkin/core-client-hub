@@ -600,7 +600,7 @@ export default function ContractDetail() {
             <Separator />
             <div className="flex justify-between">
               <span className="text-muted-foreground">Value</span>
-              <span className="font-semibold">${Number(contract.value).toLocaleString()}</span>
+              <span className="font-semibold">₹{Number(contract.value).toLocaleString('en-IN')}</span>
             </div>
 
             {/* Progress bar for active contracts */}

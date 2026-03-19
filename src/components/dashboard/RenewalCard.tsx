@@ -53,7 +53,7 @@ export function RenewalCard({ clientName, projectName, endDate, value, contractT
             </div>
             <div className="text-right">
               <p className="text-lg font-bold text-foreground">
-                ${value.toLocaleString()}
+                ₹{value.toLocaleString('en-IN')}
               </p>
               {daysUntilRenewal <= 30 && (
                 <AlertCircle className="ml-auto mt-1 h-4 w-4 text-destructive" />

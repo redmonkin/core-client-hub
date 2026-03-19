@@ -338,7 +338,7 @@ export default function ClientDetail() {
                         {contract.contract_type} Contract
                       </p>
                     <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
-                      <span>${Number(contract.value).toLocaleString()}</span>
+                      <span>₹{Number(contract.value).toLocaleString('en-IN')}</span>
                       <span>•</span>
                       <span>
                         {format(new Date(contract.start_date), 'MMM dd')} - {format(new Date(contract.end_date), 'MMM dd, yyyy')}
