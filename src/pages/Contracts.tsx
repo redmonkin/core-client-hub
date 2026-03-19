@@ -575,14 +575,12 @@ export default function Contracts() {
       {filteredContracts.length > 0 ? (
         <div className="rounded-xl border border-border overflow-hidden">
           {/* Grid Header */}
-          <div className="hidden md:grid md:grid-cols-[1fr_160px_140px_140px_100px_160px_100px_120px_48px] items-center gap-4 border-b border-border bg-muted/40 px-6 py-3">
+          <div className="hidden md:grid md:grid-cols-[1fr_140px_140px_100px_200px_120px_48px] items-center gap-4 border-b border-border bg-muted/40 px-6 py-3">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Contract</span>
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Contract Type</span>
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Client</span>
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Project</span>
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Value</span>
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Duration</span>
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Renewal</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Duration / Renewal</span>
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</span>
             <span />
           </div>
@@ -598,20 +596,13 @@ export default function Contracts() {
               return (
                 <div
                   key={contract.id}
-                  className="group grid grid-cols-1 md:grid-cols-[1fr_160px_140px_140px_100px_160px_100px_120px_48px] items-center gap-3 md:gap-4 px-6 py-4 transition-colors hover:bg-muted/30"
+                  className="group grid grid-cols-1 md:grid-cols-[1fr_140px_140px_100px_200px_120px_48px] items-center gap-3 md:gap-4 px-6 py-4 transition-colors hover:bg-muted/30"
                 >
                   {/* Contract */}
                   <div className="min-w-0">
                     <h3 className="truncate font-medium text-foreground group-hover:text-primary transition-colors">
                       {contractTypeLabels[contract.contract_type] || contract.contract_type} Contract
                     </h3>
-                  </div>
-
-                  {/* Contract Type */}
-                  <div className="min-w-0">
-                    <Badge variant="outline" className="font-medium text-xs">
-                      {contractTypeLabels[contract.contract_type] || contract.contract_type}
-                    </Badge>
                   </div>
 
                   {/* Client */}
@@ -638,7 +629,7 @@ export default function Contracts() {
                     </span>
                   </div>
 
-                  {/* Duration */}
+                  {/* Duration / Renewal */}
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 text-sm">
                       <Calendar className="h-3.5 w-3.5 shrink-0 text-muted-foreground hidden md:block" />
@@ -646,16 +637,12 @@ export default function Contracts() {
                         {format(startDate, "MMM dd")} – {format(endDate, "MMM dd, yyyy")}
                       </span>
                     </div>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      Renewal: {renewalLabels[contract.renewal_frequency] || contract.renewal_frequency}
+                    </p>
                     {isExpiringSoon && (
                       <p className="mt-0.5 text-xs font-medium text-destructive">Expires in {daysUntilEnd} days</p>
                     )}
-                  </div>
-
-                  {/* Renewal */}
-                  <div className="min-w-0">
-                    <span className="text-sm text-muted-foreground">
-                      {renewalLabels[contract.renewal_frequency] || contract.renewal_frequency}
-                    </span>
                   </div>
 
                   {/* Status */}
