@@ -164,6 +164,16 @@ const App = () => (
             }
           />
           <Route
+            path="/contracts/:id"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <ContractDetail />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/templates"
             element={
               <ProtectedRoute>
