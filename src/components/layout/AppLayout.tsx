@@ -1,4 +1,4 @@
-import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
+import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 
 interface AppLayoutProps {
@@ -11,6 +11,9 @@ export function AppLayout({ children }: AppLayoutProps) {
       <div className="flex min-h-screen w-full">
         <AppSidebar />
         <SidebarInset className="flex-1">
+          <header className="flex h-12 items-center border-b px-4 md:hidden">
+            <SidebarTrigger />
+          </header>
           <main className="flex-1 overflow-auto">
             {children}
           </main>
