@@ -529,7 +529,6 @@ export default function ContractDetail() {
                   Edit
                 </DropdownMenuItem>
               )}
-              </DropdownMenuItem>
               <DropdownMenuItem onClick={handleShareLink}>
                 <LinkIcon className="mr-2 h-4 w-4" />
                 Share Link
