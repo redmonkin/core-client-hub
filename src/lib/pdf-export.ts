@@ -1,7 +1,52 @@
+async function renderPdfCanvas(element: HTMLElement) {
+  const { default: html2canvas } = await import('html2canvas');
+
+  try {
+    return await html2canvas(element, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      backgroundColor: '#ffffff',
+      foreignObjectRendering: true,
+    });
+  } catch {
+    return await html2canvas(element, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      backgroundColor: '#ffffff',
+      foreignObjectRendering: false,
+    });
+  }
+}
+
+function preserveHeadingWordSpacing(root: HTMLElement) {
+  root.querySelectorAll('h1, h2, h3').forEach((heading) => {
+    const element = heading as HTMLElement;
+
+    if (element.children.length > 0) return;
+
+    const text = element.textContent?.replace(/\s+/g, ' ').trim();
+    if (!text || !text.includes(' ')) return;
+
+    const words = text.split(' ');
+    element.textContent = '';
+
+    words.forEach((word, index) => {
+      const wordSpan = document.createElement('span');
+      wordSpan.textContent = word;
+      wordSpan.style.display = 'inline-block';
+      if (index < words.length - 1) {
+        wordSpan.style.marginRight = '0.32em';
+      }
+      element.appendChild(wordSpan);
+    });
+  });
+}
+
 export async function exportToPdf(html: string, filename: string) {
-  const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
+  const [{ default: jsPDF }] = await Promise.all([
     import('jspdf'),
-    import('html2canvas'),
   ]);
 
   const A4_WIDTH_MM = 210;
@@ -30,14 +75,11 @@ export async function exportToPdf(html: string, filename: string) {
         word-wrap: break-word;
         overflow-wrap: break-word;
         white-space: normal;
-        word-spacing: normal;
       }
-      .pdf-content * { word-spacing: normal; white-space: normal; }
-      .pdf-content h1, .pdf-content h2, .pdf-content h3 { white-space: pre-wrap; word-spacing: 0.15em; letter-spacing: normal; font-kerning: none; -webkit-font-smoothing: antialiased; }
-      .pdf-content h1 { font-size: 26px; font-weight: 700; margin: 28px 0 12px; color: #111827; line-height: 1.3; }
+      .pdf-content h1 { font-size: 26px; font-weight: 700; margin: 28px 0 12px; color: #111827; line-height: 1.3; text-align: center; }
       .pdf-content h2 { font-size: 21px; font-weight: 700; margin: 24px 0 10px; color: #111827; line-height: 1.3; }
       .pdf-content h3 { font-size: 17px; font-weight: 600; margin: 20px 0 8px; color: #111827; line-height: 1.4; }
-      .pdf-content p { margin: 0 0 12px; color: #374151; white-space: pre-wrap; }
+      .pdf-content p { margin: 0 0 12px; color: #374151; }
       .pdf-content strong, .pdf-content b { font-weight: 700; color: #111827; }
       .pdf-content em, .pdf-content i { font-style: italic; }
       .pdf-content ul { list-style-type: disc; margin: 8px 0 12px; padding-left: 24px; }
@@ -56,12 +98,10 @@ export async function exportToPdf(html: string, filename: string) {
   `;
 
   try {
-    const canvas = await html2canvas(container.querySelector('.pdf-content') as HTMLElement, {
-      scale: 2,
-      useCORS: true,
-      logging: false,
-      backgroundColor: '#ffffff',
-    });
+    const content = container.querySelector('.pdf-content') as HTMLElement;
+    preserveHeadingWordSpacing(content);
+
+    const canvas = await renderPdfCanvas(content);
 
     const pdf = new jsPDF('p', 'mm', 'a4');
     const pxPerMm = canvas.width / CONTENT_WIDTH_MM;
