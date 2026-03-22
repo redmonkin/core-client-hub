@@ -123,7 +123,7 @@ export function ContractFormDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({ ...formData, templateId: selectedTemplateId || undefined });
+    onSubmit({ ...formData, template_id: selectedTemplateId || undefined });
   };
 
   const isValid = formData.client_id && formData.contract_type && formData.start_date && formData.end_date && formData.renewal_frequency;
