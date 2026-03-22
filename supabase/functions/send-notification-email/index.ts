@@ -20,8 +20,7 @@ interface NotificationEmailRequest {
   recipientName: string;
   data: Record<string, any>;
   ccEmails?: string[];
-
-
+}
 
 function buildProposalStatusEmail(
   type: string,
