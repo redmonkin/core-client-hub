@@ -28,8 +28,12 @@ export async function exportToPdf(html: string, filename: string) {
         padding: 10px 0;
         max-width: 100%;
         word-wrap: break-word;
+        overflow-wrap: break-word;
+        white-space: normal;
+        word-spacing: normal;
       }
-      .pdf-content h1 { font-size: 26px; font-weight: 700; margin: 28px 0 12px; color: #111827; line-height: 1.3; }
+      .pdf-content * { word-spacing: normal; }
+      .pdf-content h1 { font-size: 26px; font-weight: 700; margin: 28px 0 12px; color: #111827; line-height: 1.3; white-space: pre-wrap; word-spacing: normal; }
       .pdf-content h2 { font-size: 21px; font-weight: 700; margin: 24px 0 10px; color: #111827; line-height: 1.3; }
       .pdf-content h3 { font-size: 17px; font-weight: 600; margin: 20px 0 8px; color: #111827; line-height: 1.4; }
       .pdf-content p { margin: 0 0 12px; color: #374151; }
