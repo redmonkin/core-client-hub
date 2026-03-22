@@ -33,7 +33,7 @@ export async function exportToPdf(html: string, filename: string) {
         word-spacing: normal;
       }
       .pdf-content * { word-spacing: normal; white-space: normal; }
-      .pdf-content h1, .pdf-content h2, .pdf-content h3 { white-space: pre-wrap; word-spacing: 0.15em; letter-spacing: normal; }
+      .pdf-content h1, .pdf-content h2, .pdf-content h3 { white-space: pre-wrap; word-spacing: 0.15em; letter-spacing: normal; font-kerning: none; -webkit-font-smoothing: antialiased; }
       .pdf-content h1 { font-size: 26px; font-weight: 700; margin: 28px 0 12px; color: #111827; line-height: 1.3; }
       .pdf-content h2 { font-size: 21px; font-weight: 700; margin: 24px 0 10px; color: #111827; line-height: 1.3; }
       .pdf-content h3 { font-size: 17px; font-weight: 600; margin: 20px 0 8px; color: #111827; line-height: 1.4; }
