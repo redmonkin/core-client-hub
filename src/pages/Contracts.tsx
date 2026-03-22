@@ -182,7 +182,8 @@ export default function Contracts() {
           status: contractData.status,
           scope_of_work: contractData.scope_of_work || null,
           cost_breakdown: contractData.cost_breakdown || null,
-        })
+          template_id: contractData.template_id || null,
+        } as any)
         .select()
         .single();
       if (error) throw error;
