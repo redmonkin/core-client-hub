@@ -21,6 +21,7 @@ export interface ProposalData {
   renewalFrequency?: string;
   startDate?: string;
   endDate?: string;
+  approvedDate?: string;
 }
 
 const formatCurrency = (amount: number): string => {
