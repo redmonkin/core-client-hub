@@ -241,6 +241,7 @@ export default function ContractDetail() {
       renewalFrequency: contract.renewal_frequency,
       startDate: contract.start_date,
       endDate: contract.end_date,
+      approvedDate: contract.status === 'approved' ? contract.updated_at : '',
     });
     setPreviewTemplate(contractTemplates[0]);
     setIsPreviewOpen(true);
