@@ -605,6 +605,9 @@ export default function Contracts() {
                         {contractTypeLabels[contract.contract_type] || contract.contract_type} Contract
                       </h3>
                     </Link>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      Renewal: {renewalLabels[contract.renewal_frequency] || contract.renewal_frequency}
+                    </p>
                   </div>
 
                   {/* Client */}
