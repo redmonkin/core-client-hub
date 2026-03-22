@@ -33,6 +33,7 @@ interface ContractFormData {
   status: string;
   scope_of_work: string;
   cost_breakdown: string;
+  template_id?: string;
 }
 
 interface Client {
@@ -91,7 +92,7 @@ export function ContractFormDialog({
     if (open) {
       setFormData(initialData || emptyFormData);
       setActiveTab('details');
-      setSelectedTemplateId('');
+      setSelectedTemplateId(initialData?.template_id || '');
     }
   }, [open, initialData]);
 

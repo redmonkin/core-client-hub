@@ -58,6 +58,8 @@ type Contract = {
   status: string;
   scope_of_work: string | null;
   cost_breakdown: string | null;
+  template_id: string | null;
+  updated_at: string;
 };
 
 type ContractFormData = {
@@ -70,6 +72,7 @@ type ContractFormData = {
   status: string;
   scope_of_work: string;
   cost_breakdown: string;
+  template_id?: string;
 };
 
 function computeValueFromCostBreakdown(costBreakdown: string | null): number {
@@ -179,7 +182,8 @@ export default function Contracts() {
           status: contractData.status,
           scope_of_work: contractData.scope_of_work || null,
           cost_breakdown: contractData.cost_breakdown || null,
-        })
+          template_id: contractData.template_id || null,
+        } as any)
         .select()
         .single();
       if (error) throw error;
@@ -232,7 +236,8 @@ export default function Contracts() {
           status: contractData.status,
           scope_of_work: contractData.scope_of_work || null,
           cost_breakdown: contractData.cost_breakdown || null,
-        })
+          template_id: contractData.template_id || null,
+        } as any)
         .eq("id", id)
         .select()
         .single();
@@ -519,6 +524,7 @@ export default function Contracts() {
       status: selectedContract.status,
       scope_of_work: selectedContract.scope_of_work || "",
       cost_breakdown: selectedContract.cost_breakdown || "",
+      template_id: selectedContract.template_id || "",
     };
   };
 
