@@ -63,6 +63,7 @@ type Proposal = {
   duration: string | null;
   status: string;
   template_id: string | null;
+  updated_at: string;
 };
 
 type Client = {
