@@ -90,10 +90,10 @@ export function AppSidebar() {
             </div>
           )}
           {collapsed ? (
-            <div className="flex items-center justify-center">
+            <SidebarTrigger className="h-8 w-8 text-sidebar-foreground hover:bg-sidebar-accent">
               <img src={clientraLogoDark} alt="Clientra" className="h-7 w-7 dark:hidden" />
               <img src={clientraLogoLight} alt="Clientra" className="h-7 w-7 hidden dark:block" />
-            </div>
+            </SidebarTrigger>
           ) : (
             <SidebarTrigger className="h-8 w-8 text-sidebar-foreground hover:bg-sidebar-accent">
               <ChevronLeft className="h-4 w-4 transition-transform duration-200" />
