@@ -279,6 +279,11 @@ export default function ClientPortal() {
       validityDate: proposal.validity_date || '',
       duration: proposal.duration || '',
       createdAt: proposal.created_at,
+      approvedDate: proposal.status === 'approved' ? '' : '',
+      contractType: (proposal as any).contract_type || '',
+      renewalFrequency: (proposal as any).renewal_frequency || '',
+      startDate: (proposal as any).start_date || '',
+      endDate: (proposal as any).end_date || '',
     };
     return replacePlaceholders(template.content, proposalData, false);
   };
