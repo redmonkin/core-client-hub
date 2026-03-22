@@ -72,6 +72,7 @@ type ContractFormData = {
   status: string;
   scope_of_work: string;
   cost_breakdown: string;
+  template_id?: string;
 };
 
 function computeValueFromCostBreakdown(costBreakdown: string | null): number {
