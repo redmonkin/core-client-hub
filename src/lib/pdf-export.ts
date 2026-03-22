@@ -1,52 +1,26 @@
-async function renderPdfCanvas(element: HTMLElement) {
-  const { default: html2canvas } = await import('html2canvas');
-
-  try {
-    return await html2canvas(element, {
-      scale: 2,
-      useCORS: true,
-      logging: false,
-      backgroundColor: '#ffffff',
-      foreignObjectRendering: true,
-    });
-  } catch {
-    return await html2canvas(element, {
-      scale: 2,
-      useCORS: true,
-      logging: false,
-      backgroundColor: '#ffffff',
-      foreignObjectRendering: false,
-    });
-  }
-}
-
-function preserveHeadingWordSpacing(root: HTMLElement) {
-  root.querySelectorAll('h1, h2, h3').forEach((heading) => {
-    const element = heading as HTMLElement;
-
+/**
+ * Before rendering to canvas, split heading text nodes into
+ * individual word spans with explicit margins so html2canvas
+ * doesn't collapse the whitespace.
+ */
+function preserveWordSpacing(root: HTMLElement) {
+  root.querySelectorAll('h1, h2, h3, p, td, th, li, span, strong, em, b, i').forEach((el) => {
+    const element = el as HTMLElement;
+    // Only process leaf text nodes
     if (element.children.length > 0) return;
+    const text = element.textContent || '';
+    if (!text.includes(' ')) return;
 
-    const text = element.textContent?.replace(/\s+/g, ' ').trim();
-    if (!text || !text.includes(' ')) return;
-
-    const words = text.split(' ');
-    element.textContent = '';
-
-    words.forEach((word, index) => {
-      const wordSpan = document.createElement('span');
-      wordSpan.textContent = word;
-      wordSpan.style.display = 'inline-block';
-      if (index < words.length - 1) {
-        wordSpan.style.marginRight = '0.32em';
-      }
-      element.appendChild(wordSpan);
-    });
+    // Replace spaces with non-breaking spaces + zero-width space
+    // This forces html2canvas to preserve word gaps
+    element.innerHTML = text.replace(/ /g, '&nbsp; ');
   });
 }
 
 export async function exportToPdf(html: string, filename: string) {
-  const [{ default: jsPDF }] = await Promise.all([
+  const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
     import('jspdf'),
+    import('html2canvas'),
   ]);
 
   const A4_WIDTH_MM = 210;
@@ -73,10 +47,8 @@ export async function exportToPdf(html: string, filename: string) {
         padding: 10px 0;
         max-width: 100%;
         word-wrap: break-word;
-        overflow-wrap: break-word;
-        white-space: normal;
       }
-      .pdf-content h1 { font-size: 26px; font-weight: 700; margin: 28px 0 12px; color: #111827; line-height: 1.3; text-align: center; }
+      .pdf-content h1 { font-size: 26px; font-weight: 700; margin: 28px 0 12px; color: #111827; line-height: 1.3; }
       .pdf-content h2 { font-size: 21px; font-weight: 700; margin: 24px 0 10px; color: #111827; line-height: 1.3; }
       .pdf-content h3 { font-size: 17px; font-weight: 600; margin: 20px 0 8px; color: #111827; line-height: 1.4; }
       .pdf-content p { margin: 0 0 12px; color: #374151; }
@@ -98,10 +70,15 @@ export async function exportToPdf(html: string, filename: string) {
   `;
 
   try {
-    const content = container.querySelector('.pdf-content') as HTMLElement;
-    preserveHeadingWordSpacing(content);
+    const contentEl = container.querySelector('.pdf-content') as HTMLElement;
+    preserveWordSpacing(contentEl);
 
-    const canvas = await renderPdfCanvas(content);
+    const canvas = await html2canvas(contentEl, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      backgroundColor: '#ffffff',
+    });
 
     const pdf = new jsPDF('p', 'mm', 'a4');
     const pxPerMm = canvas.width / CONTENT_WIDTH_MM;
