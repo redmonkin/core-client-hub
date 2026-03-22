@@ -191,12 +191,18 @@ const handler = async (req: Request): Promise<Response> => {
       emailContent = buildProposalStatusEmail(type, recipientName, data);
     }
 
-    const emailResponse = await resend.emails.send({
+    const emailPayload: any = {
       from: "Notifications <noreply@notifications.redmonk.in>",
       to: [recipientEmail],
       subject: emailContent.subject,
       html: emailContent.html,
-    });
+    };
+
+    if (ccEmails && ccEmails.length > 0) {
+      emailPayload.cc = ccEmails;
+    }
+
+    const emailResponse = await resend.emails.send(emailPayload);
 
     console.log("Notification email sent:", emailResponse);
 
