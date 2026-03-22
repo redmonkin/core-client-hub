@@ -175,7 +175,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { type, recipientEmail, recipientName, data }: NotificationEmailRequest = await req.json();
+    const { type, recipientEmail, recipientName, data, ccEmails }: NotificationEmailRequest = await req.json();
 
     console.log(`Sending ${type} notification email to ${recipientEmail}`);
 
