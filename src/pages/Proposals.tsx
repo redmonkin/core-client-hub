@@ -735,10 +735,12 @@ export default function Proposals() {
                         <Eye className="mr-2 h-4 w-4" />
                         Preview
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleEdit(proposal)}>
-                        <Pencil className="mr-2 h-4 w-4" />
-                        Edit
-                      </DropdownMenuItem>
+                      {proposal.status !== 'approved' && (
+                        <DropdownMenuItem onClick={() => handleEdit(proposal)}>
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem onClick={() => handleDuplicate(proposal)}>
                         <Copy className="mr-2 h-4 w-4" />
                         Duplicate
@@ -751,13 +753,15 @@ export default function Proposals() {
                         <LinkIcon className="mr-2 h-4 w-4" />
                         Get Share Link
                       </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => handleDelete(proposal)}
-                        className="text-destructive focus:text-destructive"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
-                      </DropdownMenuItem>
+                      {proposal.status !== 'approved' && (
+                        <DropdownMenuItem
+                          onClick={() => handleDelete(proposal)}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>

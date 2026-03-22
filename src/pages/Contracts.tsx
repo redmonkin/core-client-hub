@@ -675,10 +675,12 @@ export default function Contracts() {
                           <Eye className="mr-2 h-4 w-4" />
                           Preview
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleEdit(contract)}>
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Edit
-                        </DropdownMenuItem>
+                        {!['approved', 'active'].includes(contract.status) && (
+                          <DropdownMenuItem onClick={() => handleEdit(contract)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem onClick={() => handleDuplicateContract(contract)}>
                           <Copy className="mr-2 h-4 w-4" />
                           Duplicate
@@ -691,13 +693,15 @@ export default function Contracts() {
                           <LinkIcon className="mr-2 h-4 w-4" />
                           Get Share Link
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleDelete(contract)}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
+                        {!['approved', 'active'].includes(contract.status) && (
+                          <DropdownMenuItem
+                            onClick={() => handleDelete(contract)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
