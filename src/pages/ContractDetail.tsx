@@ -281,7 +281,7 @@ export default function ContractDetail() {
             senderName: user?.user_metadata?.full_name || 'Your Team',
             supportEmail: brandingData?.support_email || null,
           },
-          ccEmails: selectedCcEmails.length > 0 ? selectedCcEmails : undefined,
+          ccEmails: [...(selectedCcEmails.length > 0 ? selectedCcEmails : []), ...(user?.email ? [user.email] : [])].filter((v, i, a) => a.indexOf(v) === i),
         },
       });
 

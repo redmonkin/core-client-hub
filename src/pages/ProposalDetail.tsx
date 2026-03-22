@@ -281,7 +281,7 @@ export default function ProposalDetail() {
           senderName: user?.user_metadata?.full_name || null,
           senderCompany: user?.user_metadata?.company || null,
           supportEmail: brandingData?.support_email || null,
-          ccEmails: selectedCcEmails.length > 0 ? selectedCcEmails : undefined,
+          ccEmails: [...(selectedCcEmails.length > 0 ? selectedCcEmails : []), ...(user?.email ? [user.email] : [])].filter((v, i, a) => a.indexOf(v) === i),
         },
       });
 
