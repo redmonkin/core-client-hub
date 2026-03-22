@@ -523,9 +523,12 @@ export default function ContractDetail() {
                 <Eye className="mr-2 h-4 w-4" />
                 Preview
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleEdit}>
-                <Pencil className="mr-2 h-4 w-4" />
-                Edit
+              {!['approved', 'active'].includes(contract.status) && (
+                <DropdownMenuItem onClick={handleEdit}>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Edit
+                </DropdownMenuItem>
+              )}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleShareLink}>
                 <LinkIcon className="mr-2 h-4 w-4" />
