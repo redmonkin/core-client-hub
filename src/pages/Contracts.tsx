@@ -580,7 +580,7 @@ export default function Contracts() {
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Client</span>
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Project</span>
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Value</span>
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Duration / Renewal</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Duration</span>
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</span>
             <span />
           </div>
