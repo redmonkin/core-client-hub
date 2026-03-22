@@ -371,6 +371,7 @@ export default function ContractDetail() {
     status: contract.status,
     scope_of_work: contract.scope_of_work || '',
     cost_breakdown: contract.cost_breakdown || '',
+    template_id: (contract as any).template_id || '',
   };
 
   // Build contract lifecycle timeline
