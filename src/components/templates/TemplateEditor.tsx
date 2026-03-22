@@ -76,6 +76,7 @@ const CONTRACT_PLACEHOLDERS: PlaceholderItem[] = [
   { label: 'Contract Type', value: '{{contractType}}' },
   { label: 'Start Date', value: '{{startDate}}' },
   { label: 'End Date', value: '{{endDate}}' },
+  { label: 'Approved Date', value: '{{approvedDate}}' },
   { label: 'Renewal Frequency', value: '{{renewalFrequency}}' },
   { label: 'Scope of Work', value: '{{scopeOfWork}}' },
   { label: 'Costing (Full Table)', value: '{{costing}}' },

@@ -149,6 +149,9 @@ export function replacePlaceholders(content: string, data: ProposalData, highlig
   const endDateFormatted = data.endDate
     ? format(new Date(data.endDate), 'MMMM d, yyyy')
     : '';
+  const approvedDateFormatted = data.approvedDate
+    ? format(new Date(data.approvedDate), 'MMMM d, yyyy')
+    : '';
 
   const placeholderMap: Record<string, string> = {
     '{{name}}': data.clientName,
@@ -167,6 +170,7 @@ export function replacePlaceholders(content: string, data: ProposalData, highlig
     '{{duration}}': data.duration || '',
     '{{costing}}': tableHtml,
     '{{totalAmount}}': totalAmount,
+    '{{approvedDate}}': approvedDateFormatted,
     // Contract-specific placeholders
     '{{contractType}}': contractTypeLabels[data.contractType || ''] || data.contractType || '',
     '{{renewalFrequency}}': renewalLabels[data.renewalFrequency || ''] || data.renewalFrequency || '',
