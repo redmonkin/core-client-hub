@@ -341,6 +341,7 @@ export default function ProposalDetail() {
       validityDate: proposal.validity_date || '',
       duration: proposal.duration || '',
       createdAt: proposal.created_at,
+      approvedDate: statusHistory.find((h: any) => h.to_status === 'approved')?.created_at || '',
     });
     const savedTemplate = (proposal as any).template_id ? templates.find(t => t.id === (proposal as any).template_id) : null;
     setPreviewTemplate(savedTemplate || proposalTemplates[0]);

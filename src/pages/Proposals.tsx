@@ -63,6 +63,7 @@ type Proposal = {
   duration: string | null;
   status: string;
   template_id: string | null;
+  updated_at: string;
 };
 
 type Client = {
@@ -331,6 +332,7 @@ export default function Proposals() {
       validityDate: proposal.validity_date || '',
       duration: proposal.duration || '',
       createdAt: new Date().toISOString(),
+      approvedDate: proposal.status === 'approved' ? proposal.updated_at : '',
     });
     const savedTemplate = proposal.template_id ? templates.find(t => t.id === proposal.template_id) : null;
     setPreviewTemplate(savedTemplate || proposalTemplates[0]);
@@ -407,6 +409,7 @@ export default function Proposals() {
       validityDate: proposal.validity_date || '',
       duration: proposal.duration || '',
       createdAt: new Date().toISOString(),
+      approvedDate: proposal.status === 'approved' ? proposal.updated_at : '',
     });
     const savedTemplate = proposal.template_id ? templates.find(t => t.id === proposal.template_id) : null;
     setPreviewTemplate(savedTemplate || proposalTemplates[0]);

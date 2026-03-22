@@ -325,6 +325,7 @@ export default function Contracts() {
       renewalFrequency: contract.renewal_frequency,
       startDate: contract.start_date,
       endDate: contract.end_date,
+      approvedDate: contract.status === 'approved' ? new Date().toISOString() : '',
     };
   };
 
