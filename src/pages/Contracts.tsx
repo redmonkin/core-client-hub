@@ -210,6 +210,7 @@ export default function Contracts() {
               scopeOfWork: variables.scope_of_work,
               senderName: user?.user_metadata?.full_name || 'Your Team',
             },
+            ccEmails: user?.email ? [user.email] : undefined,
           },
         }).then(res => {
           if (res.error) console.error('Failed to send contract email:', res.error);
@@ -419,7 +420,7 @@ export default function Contracts() {
             senderName: user?.user_metadata?.full_name || 'Your Team',
             supportEmail: brandingData?.support_email || null,
           },
-          ccEmails: selectedCcEmails.length > 0 ? selectedCcEmails : undefined,
+          ccEmails: [...(selectedCcEmails.length > 0 ? selectedCcEmails : []), ...(user?.email ? [user.email] : [])].filter((v, i, a) => a.indexOf(v) === i),
         },
       });
 

@@ -19,6 +19,7 @@ interface NotificationEmailRequest {
   recipientEmail: string;
   recipientName: string;
   data: Record<string, any>;
+  ccEmails?: string[];
 }
 
 function buildProposalStatusEmail(
@@ -170,7 +171,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { type, recipientEmail, recipientName, data }: NotificationEmailRequest = await req.json();
+    const { type, recipientEmail, recipientName, data, ccEmails }: NotificationEmailRequest = await req.json();
 
     console.log(`Sending ${type} notification email to ${recipientEmail}`);
 
@@ -186,12 +187,18 @@ const handler = async (req: Request): Promise<Response> => {
       emailContent = buildProposalStatusEmail(type, recipientName, data);
     }
 
-    const emailResponse = await resend.emails.send({
+    const emailPayload: any = {
       from: "Notifications <noreply@notifications.redmonk.in>",
       to: [recipientEmail],
       subject: emailContent.subject,
       html: emailContent.html,
-    });
+    };
+
+    if (ccEmails && ccEmails.length > 0) {
+      emailPayload.cc = ccEmails;
+    }
+
+    const emailResponse = await resend.emails.send(emailPayload);
 
     console.log("Notification email sent:", emailResponse);
 
