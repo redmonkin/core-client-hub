@@ -58,6 +58,8 @@ type Contract = {
   status: string;
   scope_of_work: string | null;
   cost_breakdown: string | null;
+  template_id: string | null;
+  updated_at: string;
 };
 
 type ContractFormData = {
