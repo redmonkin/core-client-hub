@@ -92,7 +92,7 @@ export function ContractFormDialog({
     if (open) {
       setFormData(initialData || emptyFormData);
       setActiveTab('details');
-      setSelectedTemplateId('');
+      setSelectedTemplateId(initialData?.template_id || '');
     }
   }, [open, initialData]);
 

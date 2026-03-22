@@ -1,0 +1,1 @@
+ALTER TABLE public.contracts ADD COLUMN template_id uuid REFERENCES public.templates(id) ON DELETE SET NULL DEFAULT NULL;

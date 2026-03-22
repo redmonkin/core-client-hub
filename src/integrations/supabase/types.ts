@@ -202,6 +202,7 @@ export type Database = {
           scope_of_work: string | null
           start_date: string
           status: string
+          template_id: string | null
           updated_at: string
           user_id: string
           value: number
@@ -218,6 +219,7 @@ export type Database = {
           scope_of_work?: string | null
           start_date: string
           status?: string
+          template_id?: string | null
           updated_at?: string
           user_id: string
           value?: number
@@ -234,6 +236,7 @@ export type Database = {
           scope_of_work?: string | null
           start_date?: string
           status?: string
+          template_id?: string | null
           updated_at?: string
           user_id?: string
           value?: number
@@ -251,6 +254,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "templates"
             referencedColumns: ["id"]
           },
         ]
