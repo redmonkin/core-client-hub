@@ -210,6 +210,7 @@ export default function Contracts() {
               scopeOfWork: variables.scope_of_work,
               senderName: user?.user_metadata?.full_name || 'Your Team',
             },
+            ccEmails: user?.email ? [user.email] : undefined,
           },
         }).then(res => {
           if (res.error) console.error('Failed to send contract email:', res.error);
