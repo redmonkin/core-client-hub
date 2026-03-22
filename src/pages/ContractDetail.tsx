@@ -191,7 +191,8 @@ export default function ContractDetail() {
           status: formData.status,
           scope_of_work: formData.scope_of_work || null,
           cost_breakdown: formData.cost_breakdown || null,
-        })
+          template_id: formData.template_id || null,
+        } as any)
         .eq('id', id!)
         .select()
         .single();
