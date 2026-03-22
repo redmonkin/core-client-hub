@@ -524,6 +524,7 @@ export default function Contracts() {
       status: selectedContract.status,
       scope_of_work: selectedContract.scope_of_work || "",
       cost_breakdown: selectedContract.cost_breakdown || "",
+      template_id: selectedContract.template_id || "",
     };
   };
 
