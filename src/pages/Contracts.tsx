@@ -634,7 +634,7 @@ export default function Contracts() {
                     </span>
                   </div>
 
-                  {/* Duration / Renewal */}
+                  {/* Duration */}
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 text-sm">
                       <Calendar className="h-3.5 w-3.5 shrink-0 text-muted-foreground hidden md:block" />
@@ -642,9 +642,6 @@ export default function Contracts() {
                         {format(startDate, "MMM dd")} – {format(endDate, "MMM dd, yyyy")}
                       </span>
                     </div>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      Renewal: {renewalLabels[contract.renewal_frequency] || contract.renewal_frequency}
-                    </p>
                     {isExpiringSoon && (
                       <p className="mt-0.5 text-xs font-medium text-destructive">Expires in {daysUntilEnd} days</p>
                     )}
