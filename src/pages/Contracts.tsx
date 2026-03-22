@@ -463,14 +463,12 @@ export default function Contracts() {
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 30);
 
-      // Reuse proposal_access_tokens table — we store contract id as proposal_id for now
-      // In a future iteration, this could be a generic "document_access_tokens" table
-      const { error } = await supabase.from('proposal_access_tokens').insert({
-        proposal_id: contract.id,
+      const { error } = await supabase.from('contract_access_tokens').insert({
+        contract_id: contract.id,
         token,
         expires_at: expiresAt.toISOString(),
         password_hash: passwordHash,
-      });
+      } as any);
 
       if (error) throw error;
 
