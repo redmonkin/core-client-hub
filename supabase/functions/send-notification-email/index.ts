@@ -18,7 +18,8 @@ interface NotificationEmailRequest {
     | "proposal_approved"
     | "proposal_rejected"
     | "proposal_change_requested"
-    | "contract_created";
+    | "contract_created"
+    | "contract_sent";
   recipientEmail: string;
   recipientName: string;
   data: Record<string, any>;
@@ -209,7 +210,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     let emailContent: { subject: string; html: string };
 
-    if (type === "contract_created") {
+    if (type === "contract_created" || type === "contract_sent") {
       emailContent = buildContractCreatedEmail(recipientName, data);
     } else {
       emailContent = buildProposalStatusEmail(type, recipientName, data);
