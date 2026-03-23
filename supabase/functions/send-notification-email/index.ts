@@ -45,10 +45,12 @@ function buildProposalStatusEmail(
     proposal_rejected: "#ef4444",
     proposal_change_requested: "#f59e0b",
   };
+  const safeClientName = escapeHtml(data.clientName || "");
+  const safeProposalTitle = escapeHtml(data.proposalTitle || "");
   const messageMap: Record<string, string> = {
-    proposal_approved: `<strong>${data.clientName}</strong> has approved your proposal <strong>"${data.proposalTitle}"</strong>. You can proceed with the next steps.`,
-    proposal_rejected: `<strong>${data.clientName}</strong> has declined your proposal <strong>"${data.proposalTitle}"</strong>.`,
-    proposal_change_requested: `<strong>${data.clientName}</strong> has requested changes to your proposal <strong>"${data.proposalTitle}"</strong>.`,
+    proposal_approved: `<strong>${safeClientName}</strong> has approved your proposal <strong>"${safeProposalTitle}"</strong>. You can proceed with the next steps.`,
+    proposal_rejected: `<strong>${safeClientName}</strong> has declined your proposal <strong>"${safeProposalTitle}"</strong>.`,
+    proposal_change_requested: `<strong>${safeClientName}</strong> has requested changes to your proposal <strong>"${safeProposalTitle}"</strong>.`,
   };
 
   const notesSection =
@@ -56,7 +58,7 @@ function buildProposalStatusEmail(
       ? `
       <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 16px; margin: 20px 0; border-radius: 0 8px 8px 0;">
         <h4 style="margin: 0 0 8px; color: #92400e; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Client's Notes</h4>
-        <p style="margin: 0; color: #78350f;">${data.notes.replace(/\n/g, "<br>")}</p>
+        <p style="margin: 0; color: #78350f;">${escapeHtml(data.notes).replace(/\n/g, "<br>")}</p>
       </div>`
       : "";
 
