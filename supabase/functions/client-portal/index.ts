@@ -289,17 +289,28 @@ const handler = async (req: Request): Promise<Response> => {
       const { data: currentDoc } = await supabase.from(tableName).select("status, user_id, client_id, title").eq("id", documentId).single();
       const previousStatus = currentDoc?.status || "sent";
 
-      // Update status
-      const { error: updateError } = await supabase.from(tableName).update({ status: newStatus }).eq("id", documentId);
+      // Update status (and signature for contracts)
+      const updatePayload: any = { status: newStatus };
+      if (documentType === "contract" && action === "approve" && signature_name) {
+        updatePayload.client_signature = signature_name;
+      }
+      const { error: updateError } = await supabase.from(tableName).update(updatePayload).eq("id", documentId);
       if (updateError) throw updateError;
 
-      // Log status change in history (only for proposals)
+      // Log status change in history
       if (documentType === "proposal") {
         await supabase.from("proposal_status_history").insert({
           proposal_id: documentId,
           user_id: currentDoc?.user_id || "00000000-0000-0000-0000-000000000000",
           from_status: previousStatus, to_status: newStatus,
           note: action === "request_changes" && notes ? notes : action === "approve" ? "Approved via client portal" : "Rejected via client portal",
+        });
+      } else {
+        await supabase.from("contract_status_history").insert({
+          contract_id: documentId,
+          user_id: currentDoc?.user_id || "00000000-0000-0000-0000-000000000000",
+          from_status: previousStatus, to_status: newStatus,
+          note: action === "request_changes" && notes ? notes : action === "approve" ? `Approved via client portal${signature_name ? ` — signed by ${signature_name}` : ''}` : "Rejected via client portal",
         });
       }
 
