@@ -210,7 +210,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     let emailContent: { subject: string; html: string };
 
-    if (type === "contract_created") {
+    if (type === "contract_created" || type === "contract_sent") {
       emailContent = buildContractCreatedEmail(recipientName, data);
     } else {
       emailContent = buildProposalStatusEmail(type, recipientName, data);
