@@ -115,7 +115,7 @@ export function buildCostTableHtml(costBreakdownJson: string): { tableHtml: stri
   }
 }
 
-const HTML_PLACEHOLDERS = new Set(['{{costing}}', '{{scopeOfWork}}', '{{customerGoals}}']);
+const HTML_PLACEHOLDERS = new Set(['{{costing}}', '{{scopeOfWork}}', '{{customerGoals}}', '{{clientSignature}}', '{{mySignature}}']);
 
 /**
  * Replace template placeholders with actual data.
