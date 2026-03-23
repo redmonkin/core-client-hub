@@ -45,6 +45,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { toast } from "sonner";
 import { ContractStatus } from "@/lib/types";
+import { createContractPortalAccess } from "@/lib/contract-portal-access";
 
 type Contract = {
   id: string;
@@ -422,24 +423,9 @@ export default function Contracts() {
     setIsSending(true);
     try {
       // Generate portal link for the contract
-      const tokenArray = new Uint8Array(32);
-      crypto.getRandomValues(tokenArray);
-      const token = Array.from(tokenArray, b => b.toString(16).padStart(2, '0')).join('');
-      const passArray = new Uint8Array(4);
-      crypto.getRandomValues(passArray);
-      const password = Array.from(passArray, b => b.toString(36).padStart(2, '0')).join('').substring(0, 6).toUpperCase();
-      const encoder = new TextEncoder();
-      const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(password));
-      const passwordHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 30);
-      await supabase.from('contract_access_tokens').insert({
-        contract_id: selectedContract.id,
-        token,
-        expires_at: expiresAt.toISOString(),
-        password_hash: passwordHash,
-      } as any);
-      const portalLink = `${window.location.origin}/portal?token=${token}`;
+      const portal = await createContractPortalAccess(selectedContract.id, window.location.origin);
+      const portalLink = portal.link;
+      const password = portal.password;
 
       const { data: brandingData } = await supabase
         .from('branding_settings')
@@ -528,33 +514,9 @@ export default function Contracts() {
     setIsGeneratingLink(true);
 
     try {
-      const tokenArray = new Uint8Array(32);
-      crypto.getRandomValues(tokenArray);
-      const token = Array.from(tokenArray, b => b.toString(16).padStart(2, '0')).join('');
-
-      const passArray = new Uint8Array(4);
-      crypto.getRandomValues(passArray);
-      const password = Array.from(passArray, b => b.toString(36).padStart(2, '0')).join('').substring(0, 6).toUpperCase();
-
-      const encoder = new TextEncoder();
-      const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(password));
-      const passwordHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 30);
-
-      const { error } = await supabase.from('contract_access_tokens').insert({
-        contract_id: contract.id,
-        token,
-        expires_at: expiresAt.toISOString(),
-        password_hash: passwordHash,
-      } as any);
-
-      if (error) throw error;
-
-      const link = `${window.location.origin}/portal?token=${token}`;
-      setShareLink(link);
-      setSharePassword(password);
+      const portal = await createContractPortalAccess(contract.id, window.location.origin);
+      setShareLink(portal.link);
+      setSharePassword(portal.password);
     } catch (error: any) {
       console.error('Error generating share link:', error);
       toast.error('Failed to generate share link');
