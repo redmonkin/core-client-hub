@@ -231,7 +231,7 @@ const handler = async (req: Request): Promise<Response> => {
             success: true, document_type: "contract",
             proposal: {
               id: contract.id,
-              title: `${contractTypeLabels[contract.contract_type] || contract.contract_type} Contract`,
+              title: contractTypeLabels[contract.contract_type] || contract.contract_type,
               scope_of_work: contract.scope_of_work,
               cost_breakdown: contract.cost_breakdown,
               validity_date: contract.end_date,
