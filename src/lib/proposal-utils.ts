@@ -22,6 +22,7 @@ export interface ProposalData {
   startDate?: string;
   endDate?: string;
   approvedDate?: string;
+  clientSignature?: string;
 }
 
 const formatCurrency = (amount: number): string => {
