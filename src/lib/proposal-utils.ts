@@ -179,6 +179,7 @@ export function replacePlaceholders(content: string, data: ProposalData, highlig
     '{{startDate}}': startDateFormatted,
     '{{endDate}}': endDateFormatted,
     '{{clientSignature}}': data.clientSignature || '',
+    '{{mySignature}}': data.mySignature || '',
   };
 
   let result = content;
