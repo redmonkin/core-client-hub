@@ -308,7 +308,7 @@ export default function ContractDetail() {
 
       const { data: brandingData } = await supabase
         .from('branding_settings')
-        .select('support_email')
+        .select('support_email, company_name')
         .eq('user_id', user?.id)
         .maybeSingle();
 
