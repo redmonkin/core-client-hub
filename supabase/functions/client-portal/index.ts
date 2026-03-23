@@ -98,18 +98,27 @@ const handler = async (req: Request): Promise<Response> => {
       const passwordHash = accessToken.password_hash;
       const providedPasswordHash = url.searchParams.get("ph");
 
-      if (passwordHash && !providedPasswordHash) {
-        return new Response(
-          JSON.stringify({ password_required: true }),
-          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
-        );
-      }
-
-      if (passwordHash && providedPasswordHash !== passwordHash) {
-        return new Response(
-          JSON.stringify({ error: "Incorrect password" }),
-          { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
-        );
+      // Support POST-based password verification (preferred) or legacy GET query param
+      let verifiedPassword = false;
+      if (passwordHash) {
+        if (providedPasswordHash) {
+          // Legacy GET-based verification
+          verifiedPassword = providedPasswordHash === passwordHash;
+        }
+        
+        if (!verifiedPassword && !providedPasswordHash) {
+          return new Response(
+            JSON.stringify({ password_required: true }),
+            { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        }
+        
+        if (!verifiedPassword) {
+          return new Response(
+            JSON.stringify({ error: "Incorrect password" }),
+            { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        }
       }
 
       if (documentType === "proposal") {
