@@ -642,7 +642,7 @@ export default function ContractDetail() {
                 );
               })}
 
-              {lifecycleStages.length <= 1 && (
+              {lifecycleStages.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-4">
                   No status changes recorded yet. Changes will appear here as the contract progresses.
                 </p>
