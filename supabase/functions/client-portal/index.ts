@@ -231,7 +231,7 @@ const handler = async (req: Request): Promise<Response> => {
             success: true, document_type: "contract",
             proposal: {
               id: contract.id,
-              title: `${contractTypeLabels[contract.contract_type] || contract.contract_type} Contract`,
+              title: contractTypeLabels[contract.contract_type] || contract.contract_type,
               scope_of_work: contract.scope_of_work,
               cost_breakdown: contract.cost_breakdown,
               validity_date: contract.end_date,
@@ -327,9 +327,10 @@ const handler = async (req: Request): Promise<Response> => {
           branding: branding || null, template: template || null, document_type: documentType,
         }), { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } });
       } else {
+        const contractTypeLabelsLocal: Record<string, string> = { amc: "Annual Maintenance Contract", fixed: "Fixed", retainer: "Retainer" };
         const { data: contract, error: contractError } = await supabase
           .from("contracts")
-          .select("id, contract_type, scope_of_work, cost_breakdown, start_date, end_date, value, renewal_frequency, status, client_id, project_id, user_id, created_at, template_id, client_signature, title")
+          .select("id, contract_type, scope_of_work, cost_breakdown, start_date, end_date, value, renewal_frequency, status, client_id, project_id, user_id, created_at, template_id, client_signature")
           .eq("id", accessToken.contract_id)
           .single();
         if (contractError || !contract) {
@@ -355,8 +356,11 @@ const handler = async (req: Request): Promise<Response> => {
         if (!accessToken.viewed_at) {
           await supabase.from("contract_access_tokens").update({ viewed_at: new Date().toISOString() }).eq("id", accessToken.id);
         }
+        // Get owner's name for mySignature
+        const { data: ownerData2 } = await supabase.auth.admin.getUserById(contract.user_id);
+        const ownerName2 = ownerData2?.user?.user_metadata?.full_name || '';
         return new Response(JSON.stringify({
-          proposal: { ...contract, client_name: client?.client_name, company_name: client?.company_name, client_email: client?.email, client_phone: client?.phone, client_designation: client?.designation, client_address: client?.billing_address, project_name: projectName, title: (contract as any).title || `${contract.contract_type.toUpperCase()} Contract` },
+          proposal: { ...contract, client_name: client?.client_name, company_name: client?.company_name, client_email: client?.email, client_phone: client?.phone, client_designation: client?.designation, client_address: client?.billing_address, project_name: projectName, title: contractTypeLabelsLocal[contract.contract_type] || contract.contract_type, my_signature: ownerName2 },
           branding: branding || null, template: template || null, document_type: documentType,
         }), { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } });
       }
