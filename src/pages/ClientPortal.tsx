@@ -69,6 +69,8 @@ export default function ClientPortal() {
   const [isExporting, setIsExporting] = useState(false);
   const [confirmAction, setConfirmAction] = useState<'approve' | 'reject' | 'request_changes' | null>(null);
   const [changeNotes, setChangeNotes] = useState('');
+  const [signatureName, setSignatureName] = useState('');
+  const [documentType, setDocumentType] = useState<'proposal' | 'contract'>('proposal');
   
   // Password gate state
   const [passwordRequired, setPasswordRequired] = useState(false);
@@ -123,6 +125,7 @@ export default function ClientPortal() {
       setProposal(result.proposal);
       setBranding(result.branding);
       setTemplate(result.template);
+      setDocumentType(result.document_type || 'proposal');
       setAuthenticated(true);
       setPasswordRequired(false);
     } catch (err: any) {
@@ -152,6 +155,9 @@ export default function ClientPortal() {
       if (action === 'request_changes' && changeNotes.trim()) {
         body.notes = changeNotes.trim();
       }
+      if (action === 'approve' && documentType === 'contract' && signatureName.trim()) {
+        body.signature_name = signatureName.trim();
+      }
       const response = await fetch(
         `https://jizouqjrdyfshhztqucd.supabase.co/functions/v1/client-portal`,
         {
@@ -164,13 +170,15 @@ export default function ClientPortal() {
       if (!response.ok) throw new Error(result.error || 'Failed to update proposal');
       setResponded(true);
       setProposal(prev => prev ? { ...prev, status: result.status } : null);
+      const docLabel = documentType === 'contract' ? 'Contract' : 'Proposal';
       const messages: Record<string, string> = {
-        approve: 'Proposal approved successfully!',
-        reject: 'Proposal declined',
+        approve: `${docLabel} approved successfully!`,
+        reject: `${docLabel} declined`,
         request_changes: 'Change request sent successfully!',
       };
       toast.success(messages[action]);
       setChangeNotes('');
+      setSignatureName('');
     } catch (err: any) {
       console.error('Error updating proposal:', err);
       toast.error(err.message);
@@ -284,6 +292,7 @@ export default function ClientPortal() {
       renewalFrequency: (proposal as any).renewal_frequency || '',
       startDate: (proposal as any).start_date || '',
       endDate: (proposal as any).end_date || '',
+      clientSignature: (proposal as any).client_signature || '',
     };
     return replacePlaceholders(template.content, proposalData, false);
   };
@@ -524,21 +533,36 @@ export default function ClientPortal() {
       </div>
 
       {/* Confirmation Dialog */}
-      <AlertDialog open={!!confirmAction} onOpenChange={() => setConfirmAction(null)}>
+      <AlertDialog open={!!confirmAction} onOpenChange={() => { setConfirmAction(null); setSignatureName(''); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {confirmAction === 'approve' ? 'Approve this proposal?' : confirmAction === 'request_changes' ? 'Request changes to this proposal?' : 'Decline this proposal?'}
+              {confirmAction === 'approve' ? `Approve this ${documentType}?` : confirmAction === 'request_changes' ? `Request changes to this ${documentType}?` : `Decline this ${documentType}?`}
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-3">
                 <p>
                   {confirmAction === 'approve'
-                    ? 'By approving, you agree to the terms and pricing outlined in this proposal. This action cannot be undone.'
+                    ? `By approving, you agree to the terms and pricing outlined in this ${documentType}. This action cannot be undone.`
                     : confirmAction === 'request_changes'
                     ? 'Please describe what changes you would like. The sender will be notified.'
-                    : 'Are you sure you want to decline this proposal? The sender will be notified of your decision.'}
+                    : `Are you sure you want to decline this ${documentType}? The sender will be notified of your decision.`}
                 </p>
+                {confirmAction === 'approve' && documentType === 'contract' && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Your Full Name (as signature) *</label>
+                    <Input
+                      placeholder="Enter your full name"
+                      value={signatureName}
+                      onChange={(e) => setSignatureName(e.target.value)}
+                      className="text-base"
+                      autoFocus
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Your name will appear as the digital signature on this contract.
+                    </p>
+                  </div>
+                )}
                 {confirmAction === 'request_changes' && (
                   <Textarea
                     placeholder="Describe the changes you'd like..."
@@ -551,10 +575,10 @@ export default function ClientPortal() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={submitting} onClick={() => setChangeNotes('')}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={submitting} onClick={() => { setChangeNotes(''); setSignatureName(''); }}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => confirmAction && handleAction(confirmAction)}
-              disabled={submitting || (confirmAction === 'request_changes' && !changeNotes.trim())}
+              disabled={submitting || (confirmAction === 'request_changes' && !changeNotes.trim()) || (confirmAction === 'approve' && documentType === 'contract' && !signatureName.trim())}
               style={confirmAction === 'approve' ? { backgroundColor: primaryColor } : undefined}
               className={confirmAction === 'reject' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}
             >

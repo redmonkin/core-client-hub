@@ -22,6 +22,7 @@ export interface ProposalData {
   startDate?: string;
   endDate?: string;
   approvedDate?: string;
+  clientSignature?: string;
 }
 
 const formatCurrency = (amount: number): string => {
@@ -176,6 +177,7 @@ export function replacePlaceholders(content: string, data: ProposalData, highlig
     '{{renewalFrequency}}': renewalLabels[data.renewalFrequency || ''] || data.renewalFrequency || '',
     '{{startDate}}': startDateFormatted,
     '{{endDate}}': endDateFormatted,
+    '{{clientSignature}}': data.clientSignature || '',
   };
 
   let result = content;

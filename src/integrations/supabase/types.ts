@@ -230,6 +230,7 @@ export type Database = {
       contracts: {
         Row: {
           client_id: string
+          client_signature: string | null
           contract_type: string
           cost_breakdown: string | null
           created_at: string
@@ -247,6 +248,7 @@ export type Database = {
         }
         Insert: {
           client_id: string
+          client_signature?: string | null
           contract_type: string
           cost_breakdown?: string | null
           created_at?: string
@@ -264,6 +266,7 @@ export type Database = {
         }
         Update: {
           client_id?: string
+          client_signature?: string | null
           contract_type?: string
           cost_breakdown?: string | null
           created_at?: string

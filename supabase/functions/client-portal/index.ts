@@ -12,6 +12,7 @@ interface UpdateProposalRequest {
   token: string;
   action: "approve" | "reject" | "request_changes";
   notes?: string;
+  signature_name?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -169,7 +170,7 @@ const handler = async (req: Request): Promise<Response> => {
         // --- CONTRACT FLOW ---
         const { data: contract, error: contractError } = await supabase
           .from("contracts")
-          .select(`id, contract_type, start_date, end_date, value, renewal_frequency, status, scope_of_work, cost_breakdown, client_id, project_id, user_id, created_at`)
+          .select(`id, contract_type, start_date, end_date, value, renewal_frequency, status, scope_of_work, cost_breakdown, client_id, project_id, user_id, created_at, client_signature`)
           .eq("id", accessToken.contract_id)
           .single();
 
@@ -233,6 +234,7 @@ const handler = async (req: Request): Promise<Response> => {
               renewal_frequency: contract.renewal_frequency,
               start_date: contract.start_date,
               end_date: contract.end_date,
+              client_signature: contract.client_signature,
             },
             branding: branding || null, template: template || null,
           }),
@@ -243,7 +245,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // POST - Update proposal status (approve/reject)
     if (req.method === "POST") {
-      const { token: bodyToken, action, notes }: UpdateProposalRequest = await req.json();
+      const { token: bodyToken, action, notes, signature_name }: UpdateProposalRequest = await req.json();
       const accessTokenValue = bodyToken || token;
 
       if (!accessTokenValue) {
@@ -288,17 +290,28 @@ const handler = async (req: Request): Promise<Response> => {
       const { data: currentDoc } = await supabase.from(tableName).select("status, user_id, client_id, title").eq("id", documentId).single();
       const previousStatus = currentDoc?.status || "sent";
 
-      // Update status
-      const { error: updateError } = await supabase.from(tableName).update({ status: newStatus }).eq("id", documentId);
+      // Update status (and signature for contracts)
+      const updatePayload: any = { status: newStatus };
+      if (documentType === "contract" && action === "approve" && signature_name) {
+        updatePayload.client_signature = signature_name;
+      }
+      const { error: updateError } = await supabase.from(tableName).update(updatePayload).eq("id", documentId);
       if (updateError) throw updateError;
 
-      // Log status change in history (only for proposals)
+      // Log status change in history
       if (documentType === "proposal") {
         await supabase.from("proposal_status_history").insert({
           proposal_id: documentId,
           user_id: currentDoc?.user_id || "00000000-0000-0000-0000-000000000000",
           from_status: previousStatus, to_status: newStatus,
           note: action === "request_changes" && notes ? notes : action === "approve" ? "Approved via client portal" : "Rejected via client portal",
+        });
+      } else {
+        await supabase.from("contract_status_history").insert({
+          contract_id: documentId,
+          user_id: currentDoc?.user_id || "00000000-0000-0000-0000-000000000000",
+          from_status: previousStatus, to_status: newStatus,
+          note: action === "request_changes" && notes ? notes : action === "approve" ? `Approved via client portal${signature_name ? ` — signed by ${signature_name}` : ''}` : "Rejected via client portal",
         });
       }
 
