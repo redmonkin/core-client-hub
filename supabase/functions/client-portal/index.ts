@@ -358,8 +358,6 @@ const handler = async (req: Request): Promise<Response> => {
                 approve: `<strong>${safeClientName}</strong> has approved your ${documentType} <strong>"${safeDocTitle}"</strong>.`,
                 reject: `<strong>${safeClientName}</strong> has declined your ${documentType} <strong>"${safeDocTitle}"</strong>.`,
                 request_changes: `<strong>${safeClientName}</strong> has requested changes to your ${documentType} <strong>"${safeDocTitle}"</strong>.`,
-                reject: `<strong>${clientName}</strong> has declined your ${documentType} <strong>"${docTitle}"</strong>.`,
-                request_changes: `<strong>${clientName}</strong> has requested changes to your ${documentType} <strong>"${docTitle}"</strong>.`,
               };
               const notesHtml = action === "request_changes" && notes ? `<div style="background:#fffbeb;border-left:4px solid #f59e0b;padding:16px;margin:20px 0;border-radius:0 8px 8px 0;"><h4 style="margin:0 0 8px;color:#92400e;font-size:13px;text-transform:uppercase;">Client's Notes</h4><p style="margin:0;color:#78350f;">${escapeHtml(notes).replace(/\n/g, "<br>")}</p></div>` : "";
               const ownerName = ownerData?.user?.user_metadata?.full_name || ownerEmail.split("@")[0];
