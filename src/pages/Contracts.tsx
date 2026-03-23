@@ -254,9 +254,21 @@ export default function Contracts() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["contracts"] });
       setIsEditDialogOpen(false);
+
+      // Log status change if it changed
+      if (selectedContract && selectedContract.status !== variables.status) {
+        supabase.from('contract_status_history' as any).insert({
+          contract_id: variables.id,
+          user_id: user?.id,
+          from_status: selectedContract.status,
+          to_status: variables.status,
+          note: null,
+        } as any);
+      }
+
       setSelectedContract(null);
       uiToast({ title: "Contract updated successfully" });
     },
