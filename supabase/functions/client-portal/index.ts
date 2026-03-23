@@ -209,6 +209,10 @@ const handler = async (req: Request): Promise<Response> => {
           await supabase.from("contract_access_tokens").update({ viewed_at: new Date().toISOString() }).eq("id", accessToken.id);
         }
 
+        // Get owner's name for mySignature
+        const { data: ownerData } = await supabase.auth.admin.getUserById(contract.user_id);
+        const ownerName = ownerData?.user?.user_metadata?.full_name || '';
+
         // Return contract data in a proposal-compatible shape for the portal to render
         return new Response(
           JSON.stringify({
@@ -235,6 +239,7 @@ const handler = async (req: Request): Promise<Response> => {
               start_date: contract.start_date,
               end_date: contract.end_date,
               client_signature: contract.client_signature,
+              my_signature: ownerName,
             },
             branding: branding || null, template: template || null,
           }),
