@@ -293,6 +293,7 @@ export default function ClientPortal() {
       startDate: (proposal as any).start_date || '',
       endDate: (proposal as any).end_date || '',
       clientSignature: (proposal as any).client_signature || '',
+      mySignature: (proposal as any).my_signature || '',
     };
     return replacePlaceholders(template.content, proposalData, false);
   };
