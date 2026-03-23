@@ -447,24 +447,24 @@ export default function Contracts() {
 
       if (error) throw error;
 
-      // Update status to 'sent' if currently draft
-      if (selectedContract.status === 'draft') {
+      const previousStatus = selectedContract.status;
+      if (previousStatus === 'draft') {
         await supabase
           .from('contracts')
           .update({ status: 'sent' })
           .eq('id', selectedContract.id);
-
-        // Log status change
-        await supabase.from('contract_status_history' as any).insert({
-          contract_id: selectedContract.id,
-          user_id: user?.id,
-          from_status: 'draft',
-          to_status: 'sent',
-          note: `Sent to ${clientEmail}`,
-        } as any);
-
-        queryClient.invalidateQueries({ queryKey: ['contracts'] });
       }
+
+      // Always log send action in history
+      await supabase.from('contract_status_history' as any).insert({
+        contract_id: selectedContract.id,
+        user_id: user?.id,
+        from_status: previousStatus,
+        to_status: previousStatus === 'draft' ? 'sent' : previousStatus,
+        note: `Contract emailed to ${clientEmail}${selectedCcEmails.length > 0 ? ` (CC: ${selectedCcEmails.join(', ')})` : ''}`,
+      } as any);
+
+      queryClient.invalidateQueries({ queryKey: ['contracts'] });
 
       const ccNote = selectedCcEmails.length > 0 ? ` (CC: ${selectedCcEmails.join(', ')})` : '';
       toast.success(`Contract sent to ${clientEmail}${ccNote}`);
