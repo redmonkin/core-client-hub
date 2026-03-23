@@ -234,6 +234,7 @@ const handler = async (req: Request): Promise<Response> => {
               renewal_frequency: contract.renewal_frequency,
               start_date: contract.start_date,
               end_date: contract.end_date,
+              client_signature: contract.client_signature,
             },
             branding: branding || null, template: template || null,
           }),
