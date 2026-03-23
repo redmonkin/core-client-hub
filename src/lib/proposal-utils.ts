@@ -177,6 +177,7 @@ export function replacePlaceholders(content: string, data: ProposalData, highlig
     '{{renewalFrequency}}': renewalLabels[data.renewalFrequency || ''] || data.renewalFrequency || '',
     '{{startDate}}': startDateFormatted,
     '{{endDate}}': endDateFormatted,
+    '{{clientSignature}}': data.clientSignature || '',
   };
 
   let result = content;
