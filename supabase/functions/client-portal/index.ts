@@ -170,7 +170,7 @@ const handler = async (req: Request): Promise<Response> => {
         // --- CONTRACT FLOW ---
         const { data: contract, error: contractError } = await supabase
           .from("contracts")
-          .select(`id, contract_type, start_date, end_date, value, renewal_frequency, status, scope_of_work, cost_breakdown, client_id, project_id, user_id, created_at`)
+          .select(`id, contract_type, start_date, end_date, value, renewal_frequency, status, scope_of_work, cost_breakdown, client_id, project_id, user_id, created_at, client_signature`)
           .eq("id", accessToken.contract_id)
           .single();
 
