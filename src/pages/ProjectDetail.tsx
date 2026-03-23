@@ -197,18 +197,18 @@ export default function ProjectDetail() {
         <TabsContent value="contracts" className="mt-4">
           <div className="space-y-3">
             {projectContracts.map(contract => (
-              <Link key={contract.id} to="/contracts" className="block">
+              <Link key={contract.id} to={`/contracts/${contract.id}`} className="block">
                 <Card className="transition-all hover:border-primary/20 hover:shadow-sm">
                   <CardContent className="flex items-center justify-between p-4">
                     <div>
-                      <p className="font-medium capitalize text-foreground hover:text-primary transition-colors">
-                        {contract.contract_type} Contract
+                      <p className="font-medium text-foreground hover:text-primary transition-colors">
+                        {contract.contract_type === 'amc' ? 'Annual Maintenance Contract' : contract.contract_type === 'retainer' ? 'Retainer Contract' : 'Fixed Contract'}
                       </p>
                     <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
                       <span>₹{Number(contract.value).toLocaleString('en-IN')}</span>
                       <span>•</span>
                       <span>
-                        {format(new Date(contract.start_date), 'MMM dd')} - {format(new Date(contract.end_date), 'MMM dd, yyyy')}
+                        {format(new Date(contract.start_date), 'MMM dd, yyyy')} – {format(new Date(contract.end_date), 'MMM dd, yyyy')}
                       </span>
                     </div>
                   </div>
