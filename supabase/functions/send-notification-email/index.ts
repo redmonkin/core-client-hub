@@ -10,6 +10,9 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+const escapeHtml = (s: string): string =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+
 interface NotificationEmailRequest {
   type:
     | "proposal_approved"
@@ -42,10 +45,12 @@ function buildProposalStatusEmail(
     proposal_rejected: "#ef4444",
     proposal_change_requested: "#f59e0b",
   };
+  const safeClientName = escapeHtml(data.clientName || "");
+  const safeProposalTitle = escapeHtml(data.proposalTitle || "");
   const messageMap: Record<string, string> = {
-    proposal_approved: `<strong>${data.clientName}</strong> has approved your proposal <strong>"${data.proposalTitle}"</strong>. You can proceed with the next steps.`,
-    proposal_rejected: `<strong>${data.clientName}</strong> has declined your proposal <strong>"${data.proposalTitle}"</strong>.`,
-    proposal_change_requested: `<strong>${data.clientName}</strong> has requested changes to your proposal <strong>"${data.proposalTitle}"</strong>.`,
+    proposal_approved: `<strong>${safeClientName}</strong> has approved your proposal <strong>"${safeProposalTitle}"</strong>. You can proceed with the next steps.`,
+    proposal_rejected: `<strong>${safeClientName}</strong> has declined your proposal <strong>"${safeProposalTitle}"</strong>.`,
+    proposal_change_requested: `<strong>${safeClientName}</strong> has requested changes to your proposal <strong>"${safeProposalTitle}"</strong>.`,
   };
 
   const notesSection =
@@ -53,7 +58,7 @@ function buildProposalStatusEmail(
       ? `
       <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 16px; margin: 20px 0; border-radius: 0 8px 8px 0;">
         <h4 style="margin: 0 0 8px; color: #92400e; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Client's Notes</h4>
-        <p style="margin: 0; color: #78350f;">${data.notes.replace(/\n/g, "<br>")}</p>
+        <p style="margin: 0; color: #78350f;">${escapeHtml(data.notes).replace(/\n/g, "<br>")}</p>
       </div>`
       : "";
 
@@ -171,6 +176,30 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Authenticate the request
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Unauthorized" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Unauthorized" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
     const { type, recipientEmail, recipientName, data, ccEmails }: NotificationEmailRequest = await req.json();
 
     console.log(`Sending ${type} notification email to ${recipientEmail}`);
