@@ -532,21 +532,36 @@ export default function ClientPortal() {
       </div>
 
       {/* Confirmation Dialog */}
-      <AlertDialog open={!!confirmAction} onOpenChange={() => setConfirmAction(null)}>
+      <AlertDialog open={!!confirmAction} onOpenChange={() => { setConfirmAction(null); setSignatureName(''); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {confirmAction === 'approve' ? 'Approve this proposal?' : confirmAction === 'request_changes' ? 'Request changes to this proposal?' : 'Decline this proposal?'}
+              {confirmAction === 'approve' ? `Approve this ${documentType}?` : confirmAction === 'request_changes' ? `Request changes to this ${documentType}?` : `Decline this ${documentType}?`}
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-3">
                 <p>
                   {confirmAction === 'approve'
-                    ? 'By approving, you agree to the terms and pricing outlined in this proposal. This action cannot be undone.'
+                    ? `By approving, you agree to the terms and pricing outlined in this ${documentType}. This action cannot be undone.`
                     : confirmAction === 'request_changes'
                     ? 'Please describe what changes you would like. The sender will be notified.'
-                    : 'Are you sure you want to decline this proposal? The sender will be notified of your decision.'}
+                    : `Are you sure you want to decline this ${documentType}? The sender will be notified of your decision.`}
                 </p>
+                {confirmAction === 'approve' && documentType === 'contract' && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Your Full Name (as signature) *</label>
+                    <Input
+                      placeholder="Enter your full name"
+                      value={signatureName}
+                      onChange={(e) => setSignatureName(e.target.value)}
+                      className="text-base"
+                      autoFocus
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Your name will appear as the digital signature on this contract.
+                    </p>
+                  </div>
+                )}
                 {confirmAction === 'request_changes' && (
                   <Textarea
                     placeholder="Describe the changes you'd like..."
@@ -559,10 +574,10 @@ export default function ClientPortal() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={submitting} onClick={() => setChangeNotes('')}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={submitting} onClick={() => { setChangeNotes(''); setSignatureName(''); }}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => confirmAction && handleAction(confirmAction)}
-              disabled={submitting || (confirmAction === 'request_changes' && !changeNotes.trim())}
+              disabled={submitting || (confirmAction === 'request_changes' && !changeNotes.trim()) || (confirmAction === 'approve' && documentType === 'contract' && !signatureName.trim())}
               style={confirmAction === 'approve' ? { backgroundColor: primaryColor } : undefined}
               className={confirmAction === 'reject' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}
             >
