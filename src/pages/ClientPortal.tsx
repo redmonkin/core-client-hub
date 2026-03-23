@@ -125,6 +125,7 @@ export default function ClientPortal() {
       setProposal(result.proposal);
       setBranding(result.branding);
       setTemplate(result.template);
+      setDocumentType(result.document_type || 'proposal');
       setAuthenticated(true);
       setPasswordRequired(false);
     } catch (err: any) {
