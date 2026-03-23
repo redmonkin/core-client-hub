@@ -91,21 +91,21 @@ export default function ClientPortal() {
     fetchProposal();
   }, [token]);
 
-  const hashPassword = async (pwd: string): Promise<string> => {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(pwd);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  };
-
-  const fetchProposal = async (passwordHash?: string) => {
+  const fetchProposal = async (plainPassword?: string) => {
     try {
-      let url = `https://jizouqjrdyfshhztqucd.supabase.co/functions/v1/client-portal?token=${token}`;
-      if (passwordHash) {
-        url += `&ph=${passwordHash}`;
+      const baseUrl = `https://jizouqjrdyfshhztqucd.supabase.co/functions/v1/client-portal?token=${token}`;
+      
+      let response: Response;
+      if (plainPassword) {
+        // Send password via POST body for server-side verification
+        response = await fetch(baseUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: plainPassword }),
+        });
+      } else {
+        response = await fetch(baseUrl, { method: 'GET' });
       }
-      const response = await fetch(url, { method: 'GET' });
       const result = await response.json();
       
       if (result.password_required) {
@@ -142,8 +142,7 @@ export default function ClientPortal() {
     if (!password.trim()) return;
     setVerifyingPassword(true);
     setPasswordError('');
-    const hash = await hashPassword(password.toUpperCase());
-    await fetchProposal(hash);
+    await fetchProposal(password.toUpperCase());
   };
 
   const handleAction = async (action: 'approve' | 'reject' | 'request_changes') => {
