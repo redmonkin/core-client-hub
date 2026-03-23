@@ -155,6 +155,9 @@ export default function ClientPortal() {
       if (action === 'request_changes' && changeNotes.trim()) {
         body.notes = changeNotes.trim();
       }
+      if (action === 'approve' && documentType === 'contract' && signatureName.trim()) {
+        body.signature_name = signatureName.trim();
+      }
       const response = await fetch(
         `https://jizouqjrdyfshhztqucd.supabase.co/functions/v1/client-portal`,
         {
@@ -167,13 +170,15 @@ export default function ClientPortal() {
       if (!response.ok) throw new Error(result.error || 'Failed to update proposal');
       setResponded(true);
       setProposal(prev => prev ? { ...prev, status: result.status } : null);
+      const docLabel = documentType === 'contract' ? 'Contract' : 'Proposal';
       const messages: Record<string, string> = {
-        approve: 'Proposal approved successfully!',
-        reject: 'Proposal declined',
+        approve: `${docLabel} approved successfully!`,
+        reject: `${docLabel} declined`,
         request_changes: 'Change request sent successfully!',
       };
       toast.success(messages[action]);
       setChangeNotes('');
+      setSignatureName('');
     } catch (err: any) {
       console.error('Error updating proposal:', err);
       toast.error(err.message);
