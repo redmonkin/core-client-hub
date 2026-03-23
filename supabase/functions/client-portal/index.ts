@@ -327,9 +327,10 @@ const handler = async (req: Request): Promise<Response> => {
           branding: branding || null, template: template || null, document_type: documentType,
         }), { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } });
       } else {
+        const contractTypeLabelsLocal: Record<string, string> = { amc: "Annual Maintenance Contract", fixed: "Fixed", retainer: "Retainer" };
         const { data: contract, error: contractError } = await supabase
           .from("contracts")
-          .select("id, contract_type, scope_of_work, cost_breakdown, start_date, end_date, value, renewal_frequency, status, client_id, project_id, user_id, created_at, template_id, client_signature, title")
+          .select("id, contract_type, scope_of_work, cost_breakdown, start_date, end_date, value, renewal_frequency, status, client_id, project_id, user_id, created_at, template_id, client_signature")
           .eq("id", accessToken.contract_id)
           .single();
         if (contractError || !contract) {
