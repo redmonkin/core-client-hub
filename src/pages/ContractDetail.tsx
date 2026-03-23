@@ -249,6 +249,11 @@ export default function ContractDetail() {
       toast.error('No contract templates found. Create a template first.');
       return;
     }
+
+    const savedTemplate = contract.template_id
+      ? contractTemplates.find((template) => template.id === contract.template_id)
+      : null;
+
     setPreviewData({
       title: `${contractTypeLabels[contract.contract_type] || contract.contract_type} Contract`,
       clientName: client?.primary_contact_name || client?.client_name || '',
@@ -273,7 +278,7 @@ export default function ContractDetail() {
       clientSignature: (contract as any).client_signature || '',
       mySignature: user?.user_metadata?.full_name || '',
     });
-    setPreviewTemplate(contractTemplates[0]);
+    setPreviewTemplate(savedTemplate || contractTemplates[0]);
     setIsPreviewOpen(true);
   };
 
