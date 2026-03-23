@@ -115,6 +115,20 @@ export default function ContractDetail() {
     enabled: !!id,
   });
 
+  const { data: statusHistory = [] } = useQuery({
+    queryKey: ['contract-status-history', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('contract_status_history' as any)
+        .select('*')
+        .eq('contract_id', id!)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      return data as any[];
+    },
+    enabled: !!id,
+  });
+
   const { data: client } = useQuery({
     queryKey: ['client', contract?.client_id],
     queryFn: async () => {
