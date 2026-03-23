@@ -179,10 +179,10 @@ export function replacePlaceholders(content: string, data: ProposalData, highlig
     '{{startDate}}': startDateFormatted,
     '{{endDate}}': endDateFormatted,
     '{{clientSignature}}': data.clientSignature
-      ? `<span style="font-family:'Dancing Script',cursive;font-size:1.6em;color:#1a1a1a;">${data.clientSignature}</span>`
+      ? `<span style="font-family:'Hurricane',cursive;font-size:2em;color:#1a1a1a;">${data.clientSignature}</span>`
       : '',
     '{{mySignature}}': data.mySignature
-      ? `<span style="font-family:'Dancing Script',cursive;font-size:1.6em;color:#1a1a1a;">${data.mySignature}</span>`
+      ? `<span style="font-family:'Hurricane',cursive;font-size:2em;color:#1a1a1a;">${data.mySignature}</span>`
       : '',
   };
 
