@@ -213,9 +213,21 @@ export default function ContractDetail() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: async (_data, formData) => {
+      // Log status change if it changed
+      if (contract && contract.status !== formData.status) {
+        await supabase.from('contract_status_history' as any).insert({
+          contract_id: id!,
+          user_id: user?.id,
+          from_status: contract.status,
+          to_status: formData.status,
+          note: null,
+        } as any);
+      }
+
       refetchContract();
       queryClient.invalidateQueries({ queryKey: ['contracts'] });
+      queryClient.invalidateQueries({ queryKey: ['contract-status-history', id] });
       setIsEditDialogOpen(false);
       toast.success('Contract updated successfully');
     },
