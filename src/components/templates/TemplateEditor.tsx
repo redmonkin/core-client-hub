@@ -81,6 +81,8 @@ const CONTRACT_PLACEHOLDERS: PlaceholderItem[] = [
   { label: 'Scope of Work', value: '{{scopeOfWork}}' },
   { label: 'Costing (Full Table)', value: '{{costing}}' },
   { label: 'Total Amount', value: '{{totalAmount}}' },
+  { label: 'Client Signature', value: '{{clientSignature}}' },
+  { label: 'My Signature', value: '{{mySignature}}' },
 ];
 
 const PLACEHOLDERS_BY_TYPE: Record<TemplateType, PlaceholderItem[]> = {
