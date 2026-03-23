@@ -189,10 +189,19 @@ export default function Contracts() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (data, variables) => {
+    onSuccess: async (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["contracts"] });
       setIsDialogOpen(false);
       uiToast({ title: "Contract created successfully" });
+
+      // Log initial status in history
+      await supabase.from('contract_status_history' as any).insert({
+        contract_id: data.id,
+        user_id: user?.id,
+        from_status: null,
+        to_status: variables.status || 'draft',
+        note: 'Contract created',
+      } as any);
 
       const client = clients.find(c => c.id === variables.client_id);
       if (client?.email) {
@@ -245,9 +254,21 @@ export default function Contracts() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["contracts"] });
       setIsEditDialogOpen(false);
+
+      // Log status change if it changed
+      if (selectedContract && selectedContract.status !== variables.status) {
+        supabase.from('contract_status_history' as any).insert({
+          contract_id: variables.id,
+          user_id: user?.id,
+          from_status: selectedContract.status,
+          to_status: variables.status,
+          note: null,
+        } as any);
+      }
+
       setSelectedContract(null);
       uiToast({ title: "Contract updated successfully" });
     },
@@ -432,6 +453,16 @@ export default function Contracts() {
           .from('contracts')
           .update({ status: 'sent' })
           .eq('id', selectedContract.id);
+
+        // Log status change
+        await supabase.from('contract_status_history' as any).insert({
+          contract_id: selectedContract.id,
+          user_id: user?.id,
+          from_status: 'draft',
+          to_status: 'sent',
+          note: `Sent to ${clientEmail}`,
+        } as any);
+
         queryClient.invalidateQueries({ queryKey: ['contracts'] });
       }
 

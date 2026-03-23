@@ -115,6 +115,20 @@ export default function ContractDetail() {
     enabled: !!id,
   });
 
+  const { data: statusHistory = [] } = useQuery({
+    queryKey: ['contract-status-history', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('contract_status_history' as any)
+        .select('*')
+        .eq('contract_id', id!)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      return data as any[];
+    },
+    enabled: !!id,
+  });
+
   const { data: client } = useQuery({
     queryKey: ['client', contract?.client_id],
     queryFn: async () => {
@@ -199,9 +213,21 @@ export default function ContractDetail() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: async (_data, formData) => {
+      // Log status change if it changed
+      if (contract && contract.status !== formData.status) {
+        await supabase.from('contract_status_history' as any).insert({
+          contract_id: id!,
+          user_id: user?.id,
+          from_status: contract.status,
+          to_status: formData.status,
+          note: null,
+        } as any);
+      }
+
       refetchContract();
       queryClient.invalidateQueries({ queryKey: ['contracts'] });
+      queryClient.invalidateQueries({ queryKey: ['contract-status-history', id] });
       setIsEditDialogOpen(false);
       toast.success('Contract updated successfully');
     },
@@ -289,8 +315,19 @@ export default function ContractDetail() {
 
       if (contract.status === 'draft') {
         await supabase.from('contracts').update({ status: 'sent' }).eq('id', contract.id);
+
+        // Log status change
+        await supabase.from('contract_status_history' as any).insert({
+          contract_id: contract.id,
+          user_id: user?.id,
+          from_status: 'draft',
+          to_status: 'sent',
+          note: `Sent to ${client.email}`,
+        } as any);
+
         refetchContract();
         queryClient.invalidateQueries({ queryKey: ['contracts'] });
+        queryClient.invalidateQueries({ queryKey: ['contract-status-history', id] });
       }
 
       const ccNote = selectedCcEmails.length > 0 ? ` (CC: ${selectedCcEmails.join(', ')})` : '';
@@ -375,121 +412,33 @@ export default function ContractDetail() {
     template_id: (contract as any).template_id || '',
   };
 
-  // Build contract lifecycle timeline
+  // Build timeline from real status history
   const lifecycleStages: Array<{
     id: string;
     status: string;
+    fromStatus: string | null;
     label: string;
     note: string | null;
     date: string | null;
     reached: boolean;
     icon: React.ElementType;
-  }> = [];
-
-  const statusOrder = ['draft', 'sent', 'approved', 'active', 'pending-renewal', 'expired'];
-  const currentStatusIndex = statusOrder.indexOf(contract.status);
-  // Handle rejected/change_requested as branch statuses
-  const isBranchStatus = ['rejected', 'change_requested'].includes(contract.status);
-
-  lifecycleStages.push({
-    id: 'created',
-    status: 'draft',
-    label: 'Contract Created',
-    note: `${contractTypeLabels[contract.contract_type] || contract.contract_type} contract drafted`,
-    date: contract.created_at,
+  }> = statusHistory.map((entry: any) => ({
+    id: entry.id,
+    status: entry.to_status,
+    fromStatus: entry.from_status,
+    label: entry.to_status === 'draft' ? 'Contract Created' :
+           entry.to_status === 'sent' ? 'Sent to Client' :
+           entry.to_status === 'approved' ? 'Approved' :
+           entry.to_status === 'active' ? 'Active' :
+           entry.to_status === 'rejected' ? 'Rejected' :
+           entry.to_status === 'change_requested' ? 'Change Requested' :
+           entry.to_status === 'pending-renewal' ? 'Pending Renewal' :
+           entry.to_status === 'expired' ? 'Expired' : entry.to_status,
+    note: entry.note,
+    date: entry.created_at,
     reached: true,
-    icon: PenLine,
-  });
-
-  if (currentStatusIndex >= 1 || contract.status === 'sent') {
-    lifecycleStages.push({
-      id: 'sent',
-      status: 'sent',
-      label: 'Sent to Client',
-      note: client ? `Sent to ${client.client_name}` : 'Sent to client',
-      date: contract.updated_at,
-      reached: currentStatusIndex >= 1 || contract.status === 'sent',
-      icon: Send,
-    });
-  }
-
-  if (isBranchStatus) {
-    lifecycleStages.push({
-      id: contract.status,
-      status: contract.status,
-      label: contract.status === 'rejected' ? 'Rejected' : 'Change Requested',
-      note: contract.status === 'rejected' ? 'Client rejected the contract' : 'Client requested changes',
-      date: contract.updated_at,
-      reached: true,
-      icon: contract.status === 'rejected' ? XCircle : MessageSquare,
-    });
-  } else {
-    if (currentStatusIndex >= 2) {
-      lifecycleStages.push({
-        id: 'approved',
-        status: 'approved',
-        label: 'Approved',
-        note: 'Contract approved by client',
-        date: contract.updated_at,
-        reached: true,
-        icon: CheckCircle2,
-      });
-    }
-
-    if (currentStatusIndex >= 3) {
-      lifecycleStages.push({
-        id: 'active',
-        status: 'active',
-        label: 'Active',
-        note: `Active from ${format(startDate, 'MMM dd, yyyy')}`,
-        date: contract.start_date,
-        reached: true,
-        icon: CheckCircle2,
-      });
-    }
-
-    if (contract.status === 'pending-renewal') {
-      lifecycleStages.push({
-        id: 'pending-renewal',
-        status: 'pending-renewal',
-        label: 'Pending Renewal',
-        note: `Renewal due — ends ${format(endDate, 'MMM dd, yyyy')}`,
-        date: contract.updated_at,
-        reached: true,
-        icon: RefreshCw,
-      });
-    }
-
-    if (contract.status === 'expired') {
-      lifecycleStages.push({
-        id: 'expired',
-        status: 'expired',
-        label: 'Expired',
-        note: `Contract expired on ${format(endDate, 'MMM dd, yyyy')}`,
-        date: contract.end_date,
-        reached: true,
-        icon: AlertTriangle,
-      });
-    }
-  }
-
-  // If still draft, show upcoming stages as unreached
-  if (contract.status === 'draft') {
-    lifecycleStages.push(
-      { id: 'sent-pending', status: 'sent', label: 'Send to Client', note: null, date: null, reached: false, icon: Send },
-      { id: 'approved-pending', status: 'approved', label: 'Awaiting Approval', note: null, date: null, reached: false, icon: CheckCircle2 },
-      { id: 'active-pending', status: 'active', label: 'Activate', note: null, date: null, reached: false, icon: CheckCircle2 },
-    );
-  } else if (contract.status === 'sent') {
-    lifecycleStages.push(
-      { id: 'approved-pending', status: 'approved', label: 'Awaiting Approval', note: null, date: null, reached: false, icon: CheckCircle2 },
-      { id: 'active-pending', status: 'active', label: 'Activate', note: null, date: null, reached: false, icon: CheckCircle2 },
-    );
-  } else if (contract.status === 'approved') {
-    lifecycleStages.push(
-      { id: 'active-pending', status: 'active', label: 'Activate', note: null, date: null, reached: false, icon: CheckCircle2 },
-    );
-  }
+    icon: statusIconMap[entry.to_status] || PenLine,
+  }));
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">
@@ -655,8 +604,6 @@ export default function ContractDetail() {
                   ? (statusColorMap[stage.status] || 'bg-muted text-muted-foreground')
                   : 'bg-muted/50 text-muted-foreground/50';
                 const isLast = index === lifecycleStages.length - 1;
-                // Find previous reached stage for "from" display
-                const prevReachedStage = index > 0 ? lifecycleStages[index - 1] : null;
 
                 return (
                   <div key={stage.id} className="flex gap-4 pb-6 last:pb-0">
@@ -666,7 +613,7 @@ export default function ContractDetail() {
                         <Icon className="h-4 w-4" />
                       </div>
                       {!isLast && (
-                        <div className={`w-px flex-1 mt-1 ${stage.reached ? 'bg-border' : 'bg-border/30'}`} />
+                        <div className="w-px flex-1 mt-1 bg-border" />
                       )}
                     </div>
 
@@ -674,13 +621,10 @@ export default function ContractDetail() {
                     <div className="flex-1 pt-1">
                       <div className="flex items-center gap-2">
                         <StatusBadge status={stage.status as any} />
-                        {stage.reached && prevReachedStage && (
+                        {stage.fromStatus && (
                           <span className="text-xs text-muted-foreground">
-                            from <StatusBadge status={prevReachedStage.status as any} className="text-[10px] px-1.5 py-0" />
+                            from <StatusBadge status={stage.fromStatus as any} className="text-[10px] px-1.5 py-0" />
                           </span>
-                        )}
-                        {!stage.reached && (
-                          <span className="text-xs text-muted-foreground/50">Pending</span>
                         )}
                       </div>
                       {stage.note && (
@@ -698,7 +642,7 @@ export default function ContractDetail() {
                 );
               })}
 
-              {lifecycleStages.length <= 1 && (
+              {lifecycleStages.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-4">
                   No status changes recorded yet. Changes will appear here as the contract progresses.
                 </p>
