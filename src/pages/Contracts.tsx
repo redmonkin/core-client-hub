@@ -453,6 +453,16 @@ export default function Contracts() {
           .from('contracts')
           .update({ status: 'sent' })
           .eq('id', selectedContract.id);
+
+        // Log status change
+        await supabase.from('contract_status_history' as any).insert({
+          contract_id: selectedContract.id,
+          user_id: user?.id,
+          from_status: 'draft',
+          to_status: 'sent',
+          note: `Sent to ${clientEmail}`,
+        } as any);
+
         queryClient.invalidateQueries({ queryKey: ['contracts'] });
       }
 
