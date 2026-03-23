@@ -352,8 +352,12 @@ const handler = async (req: Request): Promise<Response> => {
             if (ownerEmail) {
               const subjectMap: Record<string, string> = { approve: `${documentType === "contract" ? "Contract" : "Proposal"} Approved!`, reject: `${documentType === "contract" ? "Contract" : "Proposal"} Declined`, request_changes: "Changes Requested" };
               const colorMap: Record<string, string> = { approve: "#22c55e", reject: "#ef4444", request_changes: "#f59e0b" };
+              const safeClientName = escapeHtml(clientName);
+              const safeDocTitle = escapeHtml(docTitle);
               const messageMap: Record<string, string> = {
-                approve: `<strong>${clientName}</strong> has approved your ${documentType} <strong>"${docTitle}"</strong>.`,
+                approve: `<strong>${safeClientName}</strong> has approved your ${documentType} <strong>"${safeDocTitle}"</strong>.`,
+                reject: `<strong>${safeClientName}</strong> has declined your ${documentType} <strong>"${safeDocTitle}"</strong>.`,
+                request_changes: `<strong>${safeClientName}</strong> has requested changes to your ${documentType} <strong>"${safeDocTitle}"</strong>.`,
                 reject: `<strong>${clientName}</strong> has declined your ${documentType} <strong>"${docTitle}"</strong>.`,
                 request_changes: `<strong>${clientName}</strong> has requested changes to your ${documentType} <strong>"${docTitle}"</strong>.`,
               };
