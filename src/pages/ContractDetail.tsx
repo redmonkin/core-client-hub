@@ -308,14 +308,22 @@ export default function ContractDetail() {
 
       const { data: brandingData } = await supabase
         .from('branding_settings')
-        .select('support_email')
+        .select('support_email, company_name')
         .eq('user_id', user?.id)
         .maybeSingle();
 
       const contractTypeLabelsLocal: Record<string, string> = {
         amc: 'Annual Maintenance Contract',
-        fixed: 'Fixed',
-        retainer: 'Retainer',
+        fixed: 'Fixed Contract',
+        retainer: 'Retainer Contract',
+      };
+
+      const renewalLabelsLocal: Record<string, string> = {
+        '1-month': '1 Month',
+        '3-months': '3 Months',
+        '6-months': '6 Months',
+        '1-year': '1 Year',
+        '3-years': '3 Years',
       };
 
       const formatCurrency = (amount: number): string => {
@@ -328,14 +336,14 @@ export default function ContractDetail() {
           recipientEmail: client.email,
           recipientName: client.primary_contact_name || client.client_name,
           data: {
-            contractTitle: `${contractTypeLabelsLocal[contract.contract_type] || contract.contract_type} Contract`,
+            contractTitle: contractTypeLabelsLocal[contract.contract_type] || contract.contract_type,
             contractType: contract.contract_type,
             startDate: contract.start_date,
             endDate: contract.end_date,
             totalAmount: contract.value ? formatCurrency(contract.value) : null,
-            renewalFrequency: contract.renewal_frequency,
+            renewalFrequency: renewalLabelsLocal[contract.renewal_frequency] || contract.renewal_frequency,
             senderName: user?.user_metadata?.full_name || 'Your Team',
-            senderCompany: user?.user_metadata?.company || null,
+            senderCompany: brandingData?.company_name || null,
             supportEmail: brandingData?.support_email || null,
             portalLink,
             portalPassword: password,

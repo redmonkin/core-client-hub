@@ -279,7 +279,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const emailPayload: any = {
-      from: "Notifications <noreply@notifications.redmonk.in>",
+      from: `${data.senderCompany || "Notifications"} <noreply@notifications.redmonk.in>`,
       to: [recipientEmail],
       subject: emailContent.subject,
       html: emailContent.html,
