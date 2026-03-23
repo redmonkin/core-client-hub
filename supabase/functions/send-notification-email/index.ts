@@ -89,7 +89,7 @@ function buildProposalStatusEmail(
   };
 }
 
-function buildContractCreatedEmail(
+function buildContractEmail(
   recipientName: string,
   data: Record<string, any>
 ): { subject: string; html: string } {
@@ -99,72 +99,134 @@ function buildContractCreatedEmail(
     retainer: "Retainer",
   };
   const contractTypeLabel = typeLabels[data.contractType] || data.contractType;
+  const contractTitle = data.contractTitle || `${contractTypeLabel} Contract`;
 
-  const formattedStartDate = new Date(data.startDate).toLocaleDateString(
-    "en-US",
-    { year: "numeric", month: "long", day: "numeric" }
-  );
-  const formattedEndDate = new Date(data.endDate).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  const formattedStartDate = data.startDate
+    ? new Date(data.startDate).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+    : null;
+  const formattedEndDate = data.endDate
+    ? new Date(data.endDate).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+    : null;
+
+  const formatCurrency = (amount: number): string => {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  };
+
+  const totalAmount = data.totalAmount || (data.value ? formatCurrency(Number(data.value)) : null);
+
+  const fromName = data.senderCompany || data.senderName || "Your Team";
 
   return {
-    subject: `📄 New Contract Created — ${contractTypeLabel}`,
+    subject: `📄 Contract: ${escapeHtml(contractTitle)}`,
     html: `
       <!DOCTYPE html>
       <html>
-        <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0;">
-            <h1 style="color: white; margin: 0; font-size: 24px;">📄 New Contract</h1>
-          </div>
-          <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; border-top: none;">
-            <p style="margin-top: 0;">Dear ${recipientName},</p>
-            <p>A new contract has been created for you. Here are the details:</p>
-            <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #e5e7eb; margin: 20px 0;">
-              <table style="width: 100%; border-collapse: collapse;">
-                <tr>
-                  <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Contract Type</td>
-                  <td style="padding: 8px 0; text-align: right; font-weight: 600;">${contractTypeLabel}</td>
-                </tr>
-                <tr style="border-top: 1px solid #f3f4f6;">
-                  <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Start Date</td>
-                  <td style="padding: 8px 0; text-align: right;">${formattedStartDate}</td>
-                </tr>
-                <tr style="border-top: 1px solid #f3f4f6;">
-                  <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">End Date</td>
-                  <td style="padding: 8px 0; text-align: right;">${formattedEndDate}</td>
-                </tr>
-                ${
-                  data.value
-                    ? `<tr style="border-top: 1px solid #f3f4f6;">
-                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Value</td>
-                    <td style="padding: 8px 0; text-align: right; font-weight: 600; color: #667eea;">$${Number(data.value).toLocaleString()}</td>
-                  </tr>`
-                    : ""
-                }
-                <tr style="border-top: 1px solid #f3f4f6;">
-                  <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Renewal</td>
-                  <td style="padding: 8px 0; text-align: right;">${data.renewalFrequency}</td>
-                </tr>
-              </table>
-            </div>
-            ${
-              data.scopeOfWork
-                ? `<div style="margin: 20px 0;">
-                <h3 style="color: #374151; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Scope of Work</h3>
-                <p style="color: #6b7280; font-size: 14px;">${data.scopeOfWork.replace(/\n/g, "<br>")}</p>
-              </div>`
-                : ""
-            }
-            <p>If you have any questions, please don't hesitate to reach out.</p>
-            <p style="margin-bottom: 0;">Best regards,<br>${data.senderName || "Your Team"}</p>
-          </div>
-          <div style="text-align: center; padding: 20px; color: #9ca3af; font-size: 12px;">
-            <p style="margin: 0;">This email was sent via our contract management system.</p>
-          </div>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Contract: ${escapeHtml(contractTitle)}</title>
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #1f2937; margin: 0; padding: 0; background-color: #f3f4f6;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f3f4f6; padding: 32px 16px;">
+            <tr>
+              <td align="center">
+                <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 520px; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+                  
+                  <!-- Header -->
+                  <tr>
+                    <td style="background-color: #111827; padding: 28px 32px;">
+                      <h1 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.3px;">📄 New Contract</h1>
+                    </td>
+                  </tr>
+
+                  <!-- Body -->
+                  <tr>
+                    <td style="padding: 32px;">
+                      <p style="margin: 0 0 20px; font-size: 15px; color: #374151;">Hi ${escapeHtml(recipientName)},</p>
+                      
+                      <p style="margin: 0 0 24px; font-size: 15px; color: #374151;">A new contract has been prepared for you:</p>
+                      
+                      <!-- Contract Card -->
+                      <table width="100%" cellpadding="0" cellspacing="0" style="background: #f9fafb; border-radius: 10px; border: 1px solid #e5e7eb; margin-bottom: 24px;">
+                        <tr>
+                          <td style="padding: 20px 24px;">
+                            <h2 style="margin: 0 0 16px; font-size: 17px; font-weight: 700; color: #111827;">${escapeHtml(contractTitle)}</h2>
+                            
+                            ${totalAmount ? `
+                            <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 14px;">
+                              <tr>
+                                <td style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #6b7280; font-weight: 600; padding-bottom: 4px;">Total Value</td>
+                              </tr>
+                              <tr>
+                                <td style="font-size: 24px; font-weight: 700; color: #111827;">${escapeHtml(String(totalAmount))}</td>
+                              </tr>
+                            </table>
+                            ` : ""}
+
+                            ${formattedStartDate && formattedEndDate ? `
+                            <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 14px;">
+                              <tr>
+                                <td style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #6b7280; font-weight: 600; padding-bottom: 4px;">Duration</td>
+                              </tr>
+                              <tr>
+                                <td style="font-size: 14px; color: #374151;">${formattedStartDate} — ${formattedEndDate}</td>
+                              </tr>
+                            </table>
+                            ` : ""}
+
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                              <tr>
+                                <td style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #6b7280; font-weight: 600; padding-bottom: 4px;">Renewal</td>
+                              </tr>
+                              <tr>
+                                <td style="font-size: 14px; color: #374151;">${escapeHtml(data.renewalFrequency || "")}</td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+                      </table>
+
+                      ${data.portalLink ? `
+                      <!-- CTA Button -->
+                      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
+                        <tr>
+                          <td align="center">
+                            <a href="${data.portalLink}" style="display: inline-block; background-color: #111827; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 600; padding: 14px 32px; border-radius: 8px; letter-spacing: -0.2px;">View Full Contract →</a>
+                          </td>
+                        </tr>
+                      </table>
+
+                      ${data.portalPassword ? `
+                      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 24px;">
+                        <tr>
+                          <td align="center" style="font-size: 13px; color: #6b7280;">
+                            Access Password: <strong style="color: #111827; font-family: monospace; letter-spacing: 2px; font-size: 14px;">${escapeHtml(data.portalPassword)}</strong>
+                          </td>
+                        </tr>
+                      </table>
+                      ` : ""}
+                      ` : ""}
+
+                      <p style="margin: 0; font-size: 14px; color: #6b7280;">${data.supportEmail ? `If you have any questions, reach out to us at <a href="mailto:${escapeHtml(data.supportEmail)}" style="color: #111827; text-decoration: underline;">${escapeHtml(data.supportEmail)}</a>.` : `If you have any questions, feel free to reach out.`}</p>
+                    </td>
+                  </tr>
+
+                  <!-- Footer -->
+                  <tr>
+                    <td style="padding: 20px 32px; border-top: 1px solid #e5e7eb; background: #f9fafb;">
+                      <p style="margin: 0; font-size: 13px; color: #9ca3af; text-align: center;">Sent by ${escapeHtml(fromName)}</p>
+                    </td>
+                  </tr>
+
+                </table>
+              </td>
+            </tr>
+          </table>
         </body>
       </html>
     `,
@@ -211,7 +273,7 @@ const handler = async (req: Request): Promise<Response> => {
     let emailContent: { subject: string; html: string };
 
     if (type === "contract_created" || type === "contract_sent") {
-      emailContent = buildContractCreatedEmail(recipientName, data);
+      emailContent = buildContractEmail(recipientName, data);
     } else {
       emailContent = buildProposalStatusEmail(type, recipientName, data);
     }

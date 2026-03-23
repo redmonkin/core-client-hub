@@ -421,11 +421,41 @@ export default function Contracts() {
 
     setIsSending(true);
     try {
+      // Generate portal link for the contract
+      const tokenArray = new Uint8Array(32);
+      crypto.getRandomValues(tokenArray);
+      const token = Array.from(tokenArray, b => b.toString(16).padStart(2, '0')).join('');
+      const passArray = new Uint8Array(4);
+      crypto.getRandomValues(passArray);
+      const password = Array.from(passArray, b => b.toString(36).padStart(2, '0')).join('').substring(0, 6).toUpperCase();
+      const encoder = new TextEncoder();
+      const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(password));
+      const passwordHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 30);
+      await supabase.from('contract_access_tokens').insert({
+        contract_id: selectedContract.id,
+        token,
+        expires_at: expiresAt.toISOString(),
+        password_hash: passwordHash,
+      } as any);
+      const portalLink = `${window.location.origin}/portal?token=${token}`;
+
       const { data: brandingData } = await supabase
         .from('branding_settings')
         .select('support_email')
         .eq('user_id', user?.id)
         .maybeSingle();
+
+      const contractTypeLabelsLocal: Record<string, string> = {
+        amc: "Annual Maintenance Contract",
+        fixed: "Fixed",
+        retainer: "Retainer",
+      };
+
+      const formatCurrency = (amount: number): string => {
+        return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(amount);
+      };
 
       const { error } = await supabase.functions.invoke('send-notification-email', {
         body: {
@@ -433,13 +463,17 @@ export default function Contracts() {
           recipientEmail: clientEmail,
           recipientName: clientName,
           data: {
+            contractTitle: `${contractTypeLabelsLocal[selectedContract.contract_type] || selectedContract.contract_type} Contract`,
             contractType: selectedContract.contract_type,
             startDate: selectedContract.start_date,
             endDate: selectedContract.end_date,
-            value: selectedContract.value,
+            totalAmount: selectedContract.value ? formatCurrency(selectedContract.value) : null,
             renewalFrequency: selectedContract.renewal_frequency,
             senderName: user?.user_metadata?.full_name || 'Your Team',
+            senderCompany: user?.user_metadata?.company || null,
             supportEmail: brandingData?.support_email || null,
+            portalLink,
+            portalPassword: password,
           },
           ccEmails: [...(selectedCcEmails.length > 0 ? selectedCcEmails : []), ...(user?.email ? [user.email] : [])].filter((v, i, a) => a.indexOf(v) === i),
         },

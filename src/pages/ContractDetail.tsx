@@ -289,11 +289,38 @@ export default function ContractDetail() {
     if (!contract || !client?.email) return;
     setIsSending(true);
     try {
+      // Generate portal link for the contract
+      const tokenArray = new Uint8Array(32);
+      crypto.getRandomValues(tokenArray);
+      const token = Array.from(tokenArray, b => b.toString(16).padStart(2, '0')).join('');
+      const passArray = new Uint8Array(4);
+      crypto.getRandomValues(passArray);
+      const password = Array.from(passArray, b => b.toString(36).padStart(2, '0')).join('').substring(0, 6).toUpperCase();
+      const encoder = new TextEncoder();
+      const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(password));
+      const passwordHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 30);
+      await supabase.from('contract_access_tokens' as any).insert({
+        contract_id: contract.id, token, expires_at: expiresAt.toISOString(), password_hash: passwordHash,
+      } as any);
+      const portalLink = `${window.location.origin}/portal?token=${token}`;
+
       const { data: brandingData } = await supabase
         .from('branding_settings')
         .select('support_email')
         .eq('user_id', user?.id)
         .maybeSingle();
+
+      const contractTypeLabelsLocal: Record<string, string> = {
+        amc: 'Annual Maintenance Contract',
+        fixed: 'Fixed',
+        retainer: 'Retainer',
+      };
+
+      const formatCurrency = (amount: number): string => {
+        return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(amount);
+      };
 
       const { error } = await supabase.functions.invoke('send-notification-email', {
         body: {
@@ -301,13 +328,17 @@ export default function ContractDetail() {
           recipientEmail: client.email,
           recipientName: client.primary_contact_name || client.client_name,
           data: {
+            contractTitle: `${contractTypeLabelsLocal[contract.contract_type] || contract.contract_type} Contract`,
             contractType: contract.contract_type,
             startDate: contract.start_date,
             endDate: contract.end_date,
-            value: contract.value,
+            totalAmount: contract.value ? formatCurrency(contract.value) : null,
             renewalFrequency: contract.renewal_frequency,
             senderName: user?.user_metadata?.full_name || 'Your Team',
+            senderCompany: user?.user_metadata?.company || null,
             supportEmail: brandingData?.support_email || null,
+            portalLink,
+            portalPassword: password,
           },
           ccEmails: [...(selectedCcEmails.length > 0 ? selectedCcEmails : []), ...(user?.email ? [user.email] : [])].filter((v, i, a) => a.indexOf(v) === i),
         },
