@@ -453,7 +453,7 @@ export default function ContractDetail() {
           </Link>
           <div className="flex-1 min-w-0">
             <h1 className="text-xl sm:text-2xl font-bold truncate">
-              {contractTypeLabels[contract.contract_type] || contract.contract_type} Contract
+              {contractTypeLabels[contract.contract_type] || contract.contract_type}
             </h1>
           </div>
         </div>
