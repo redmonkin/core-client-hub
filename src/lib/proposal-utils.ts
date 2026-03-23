@@ -178,8 +178,12 @@ export function replacePlaceholders(content: string, data: ProposalData, highlig
     '{{renewalFrequency}}': renewalLabels[data.renewalFrequency || ''] || data.renewalFrequency || '',
     '{{startDate}}': startDateFormatted,
     '{{endDate}}': endDateFormatted,
-    '{{clientSignature}}': data.clientSignature || '',
-    '{{mySignature}}': data.mySignature || '',
+    '{{clientSignature}}': data.clientSignature
+      ? `<span style="font-family:'Dancing Script',cursive;font-size:1.6em;color:#1a1a1a;">${data.clientSignature}</span>`
+      : '',
+    '{{mySignature}}': data.mySignature
+      ? `<span style="font-family:'Dancing Script',cursive;font-size:1.6em;color:#1a1a1a;">${data.mySignature}</span>`
+      : '',
   };
 
   let result = content;
