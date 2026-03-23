@@ -69,6 +69,8 @@ export default function ClientPortal() {
   const [isExporting, setIsExporting] = useState(false);
   const [confirmAction, setConfirmAction] = useState<'approve' | 'reject' | 'request_changes' | null>(null);
   const [changeNotes, setChangeNotes] = useState('');
+  const [signatureName, setSignatureName] = useState('');
+  const [documentType, setDocumentType] = useState<'proposal' | 'contract'>('proposal');
   
   // Password gate state
   const [passwordRequired, setPasswordRequired] = useState(false);
