@@ -269,6 +269,7 @@ export default function ContractDetail() {
       startDate: contract.start_date,
       endDate: contract.end_date,
       approvedDate: contract.status === 'approved' ? contract.updated_at : '',
+      clientSignature: (contract as any).client_signature || '',
     });
     setPreviewTemplate(contractTemplates[0]);
     setIsPreviewOpen(true);
