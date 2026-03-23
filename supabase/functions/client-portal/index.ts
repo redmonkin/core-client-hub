@@ -260,6 +260,108 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
+    // PUT - Server-side password verification
+    if (req.method === "PUT") {
+      const { password } = await req.json();
+      if (!token) {
+        return new Response(JSON.stringify({ error: "Token is required" }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+      }
+      if (!password) {
+        return new Response(JSON.stringify({ error: "Password is required" }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+      }
+
+      // Look up access token
+      let accessToken: any = null;
+      let documentType: "proposal" | "contract" = "proposal";
+      const { data: pToken } = await supabase.from("proposal_access_tokens").select("*").eq("token", token).maybeSingle();
+      if (pToken) { accessToken = pToken; documentType = "proposal"; }
+      else {
+        const { data: cToken } = await supabase.from("contract_access_tokens").select("*").eq("token", token).maybeSingle();
+        if (cToken) { accessToken = cToken; documentType = "contract"; }
+      }
+
+      if (!accessToken) {
+        return new Response(JSON.stringify({ error: "Invalid or expired link" }), { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } });
+      }
+      if (new Date(accessToken.expires_at) < new Date()) {
+        return new Response(JSON.stringify({ error: "This link has expired" }), { status: 410, headers: { "Content-Type": "application/json", ...corsHeaders } });
+      }
+
+      // Hash the password server-side and compare
+      const encoder = new TextEncoder();
+      const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(password));
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const computedHash = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+
+      if (computedHash !== accessToken.password_hash) {
+        return new Response(JSON.stringify({ error: "Incorrect password" }), { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } });
+      }
+
+      // Password verified — return the full document data (same as GET with valid password)
+      // Re-use GET logic by constructing internal URL with verified hash
+      const internalUrl = new URL(req.url);
+      internalUrl.searchParams.set("ph", computedHash);
+      // Fetch document data directly
+      if (documentType === "proposal") {
+        const { data: proposal, error: proposalError } = await supabase
+          .from("proposals")
+          .select("id, title, scope_of_work, cost_breakdown, validity_date, status, client_id, project_id, user_id, created_at, customer_goals, duration")
+          .eq("id", accessToken.proposal_id)
+          .single();
+        if (proposalError || !proposal) {
+          return new Response(JSON.stringify({ error: "Proposal not found" }), { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } });
+        }
+        const { data: client } = await supabase.from("clients").select("client_name, company_name, email, phone, designation, billing_address").eq("id", proposal.client_id).single();
+        let projectName = null;
+        if (proposal.project_id) {
+          const { data: project } = await supabase.from("projects").select("project_name").eq("id", proposal.project_id).single();
+          projectName = project?.project_name || null;
+        }
+        const { data: branding } = await supabase.from("branding_settings").select("*").eq("user_id", proposal.user_id).maybeSingle();
+        const { data: template } = await supabase.from("templates").select("content").eq("user_id", proposal.user_id).eq("type", documentType === "proposal" ? "proposal" : "contract").maybeSingle();
+        if (!accessToken.viewed_at) {
+          await supabase.from("proposal_access_tokens").update({ viewed_at: new Date().toISOString() }).eq("id", accessToken.id);
+        }
+        return new Response(JSON.stringify({
+          proposal: { ...proposal, client_name: client?.client_name, company_name: client?.company_name, client_email: client?.email, client_phone: client?.phone, client_designation: client?.designation, client_address: client?.billing_address, project_name: projectName },
+          branding: branding || null, template: template || null, document_type: documentType,
+        }), { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } });
+      } else {
+        const { data: contract, error: contractError } = await supabase
+          .from("contracts")
+          .select("id, contract_type, scope_of_work, cost_breakdown, start_date, end_date, value, renewal_frequency, status, client_id, project_id, user_id, created_at, template_id, client_signature, title")
+          .eq("id", accessToken.contract_id)
+          .single();
+        if (contractError || !contract) {
+          return new Response(JSON.stringify({ error: "Contract not found" }), { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } });
+        }
+        const { data: client } = await supabase.from("clients").select("client_name, company_name, email, phone, designation, billing_address").eq("id", contract.client_id).single();
+        let projectName = null;
+        if (contract.project_id) {
+          const { data: project } = await supabase.from("projects").select("project_name").eq("id", contract.project_id).single();
+          projectName = project?.project_name || null;
+        }
+        const { data: branding } = await supabase.from("branding_settings").select("*").eq("user_id", contract.user_id).maybeSingle();
+        const templateType = "contract";
+        let template = null;
+        if (contract.template_id) {
+          const { data: t } = await supabase.from("templates").select("content").eq("id", contract.template_id).maybeSingle();
+          template = t;
+        }
+        if (!template) {
+          const { data: t } = await supabase.from("templates").select("content").eq("user_id", contract.user_id).eq("type", templateType).maybeSingle();
+          template = t;
+        }
+        if (!accessToken.viewed_at) {
+          await supabase.from("contract_access_tokens").update({ viewed_at: new Date().toISOString() }).eq("id", accessToken.id);
+        }
+        return new Response(JSON.stringify({
+          proposal: { ...contract, client_name: client?.client_name, company_name: client?.company_name, client_email: client?.email, client_phone: client?.phone, client_designation: client?.designation, client_address: client?.billing_address, project_name: projectName, title: (contract as any).title || `${contract.contract_type.toUpperCase()} Contract` },
+          branding: branding || null, template: template || null, document_type: documentType,
+        }), { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } });
+      }
+    }
+
     // POST - Update proposal status (approve/reject)
     if (req.method === "POST") {
       const { token: bodyToken, action, notes, signature_name }: UpdateProposalRequest = await req.json();
