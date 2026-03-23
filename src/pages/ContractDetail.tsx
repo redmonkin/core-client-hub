@@ -604,8 +604,6 @@ export default function ContractDetail() {
                   ? (statusColorMap[stage.status] || 'bg-muted text-muted-foreground')
                   : 'bg-muted/50 text-muted-foreground/50';
                 const isLast = index === lifecycleStages.length - 1;
-                // Find previous reached stage for "from" display
-                const prevReachedStage = index > 0 ? lifecycleStages[index - 1] : null;
 
                 return (
                   <div key={stage.id} className="flex gap-4 pb-6 last:pb-0">
@@ -615,7 +613,7 @@ export default function ContractDetail() {
                         <Icon className="h-4 w-4" />
                       </div>
                       {!isLast && (
-                        <div className={`w-px flex-1 mt-1 ${stage.reached ? 'bg-border' : 'bg-border/30'}`} />
+                        <div className="w-px flex-1 mt-1 bg-border" />
                       )}
                     </div>
 
@@ -623,13 +621,10 @@ export default function ContractDetail() {
                     <div className="flex-1 pt-1">
                       <div className="flex items-center gap-2">
                         <StatusBadge status={stage.status as any} />
-                        {stage.reached && prevReachedStage && (
+                        {stage.fromStatus && (
                           <span className="text-xs text-muted-foreground">
-                            from <StatusBadge status={prevReachedStage.status as any} className="text-[10px] px-1.5 py-0" />
+                            from <StatusBadge status={stage.fromStatus as any} className="text-[10px] px-1.5 py-0" />
                           </span>
-                        )}
-                        {!stage.reached && (
-                          <span className="text-xs text-muted-foreground/50">Pending</span>
                         )}
                       </div>
                       {stage.note && (
