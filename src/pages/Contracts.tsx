@@ -363,8 +363,13 @@ export default function Contracts() {
       toast.error('No contract templates found. Create a template first.');
       return;
     }
+
+    const savedTemplate = contract.template_id
+      ? contractTemplates.find((template) => template.id === contract.template_id)
+      : null;
+
     setPreviewData(buildContractPreviewData(contract));
-    setPreviewTemplate(contractTemplates[0]);
+    setPreviewTemplate(savedTemplate || contractTemplates[0]);
     setIsPreviewOpen(true);
   };
 
