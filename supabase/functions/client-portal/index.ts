@@ -12,6 +12,7 @@ interface UpdateProposalRequest {
   token: string;
   action: "approve" | "reject" | "request_changes";
   notes?: string;
+  signature_name?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
