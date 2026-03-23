@@ -303,8 +303,19 @@ export default function ContractDetail() {
 
       if (contract.status === 'draft') {
         await supabase.from('contracts').update({ status: 'sent' }).eq('id', contract.id);
+
+        // Log status change
+        await supabase.from('contract_status_history' as any).insert({
+          contract_id: contract.id,
+          user_id: user?.id,
+          from_status: 'draft',
+          to_status: 'sent',
+          note: `Sent to ${client.email}`,
+        } as any);
+
         refetchContract();
         queryClient.invalidateQueries({ queryKey: ['contracts'] });
+        queryClient.invalidateQueries({ queryKey: ['contract-status-history', id] });
       }
 
       const ccNote = selectedCcEmails.length > 0 ? ` (CC: ${selectedCcEmails.join(', ')})` : '';
