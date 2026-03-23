@@ -189,10 +189,19 @@ export default function Contracts() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (data, variables) => {
+    onSuccess: async (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["contracts"] });
       setIsDialogOpen(false);
       uiToast({ title: "Contract created successfully" });
+
+      // Log initial status in history
+      await supabase.from('contract_status_history' as any).insert({
+        contract_id: data.id,
+        user_id: user?.id,
+        from_status: null,
+        to_status: variables.status || 'draft',
+        note: 'Contract created',
+      } as any);
 
       const client = clients.find(c => c.id === variables.client_id);
       if (client?.email) {
