@@ -189,6 +189,44 @@ export type Database = {
           },
         ]
       }
+      contract_status_history: {
+        Row: {
+          contract_id: string
+          created_at: string
+          from_status: string | null
+          id: string
+          note: string | null
+          to_status: string
+          user_id: string
+        }
+        Insert: {
+          contract_id: string
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          to_status: string
+          user_id: string
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          to_status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_status_history_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contracts: {
         Row: {
           client_id: string
