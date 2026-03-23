@@ -377,23 +377,9 @@ export default function ContractDetail() {
     setIsShareDialogOpen(true);
     setIsGeneratingLink(true);
     try {
-      const tokenArray = new Uint8Array(32);
-      crypto.getRandomValues(tokenArray);
-      const token = Array.from(tokenArray, b => b.toString(16).padStart(2, '0')).join('');
-      const passArray = new Uint8Array(4);
-      crypto.getRandomValues(passArray);
-      const password = Array.from(passArray, b => b.toString(36).padStart(2, '0')).join('').substring(0, 6).toUpperCase();
-      const encoder = new TextEncoder();
-      const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(password));
-      const passwordHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 30);
-      const { error } = await supabase.from('contract_access_tokens' as any).insert({
-        contract_id: contract.id, token, expires_at: expiresAt.toISOString(), password_hash: passwordHash,
-      } as any);
-      if (error) throw error;
-      setShareLink(`${window.location.origin}/portal?token=${token}`);
-      setSharePassword(password);
+      const portal = await createContractPortalAccess(contract.id, window.location.origin);
+      setShareLink(portal.link);
+      setSharePassword(portal.password);
     } catch (error: any) {
       toast.error('Failed to generate share link');
       setIsShareDialogOpen(false);
