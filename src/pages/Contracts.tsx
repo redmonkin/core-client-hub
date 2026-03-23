@@ -45,6 +45,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { toast } from "sonner";
 import { ContractStatus } from "@/lib/types";
+import { createContractPortalAccess } from "@/lib/contract-portal-access";
 
 type Contract = {
   id: string;
