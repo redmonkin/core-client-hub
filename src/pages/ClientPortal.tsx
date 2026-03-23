@@ -292,6 +292,7 @@ export default function ClientPortal() {
       renewalFrequency: (proposal as any).renewal_frequency || '',
       startDate: (proposal as any).start_date || '',
       endDate: (proposal as any).end_date || '',
+      clientSignature: (proposal as any).client_signature || '',
     };
     return replacePlaceholders(template.content, proposalData, false);
   };
