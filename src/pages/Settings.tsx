@@ -966,6 +966,35 @@ export default function Settings() {
                 "Save Branding"
               )}
             </Button>
+
+            {/* Portfolio Link */}
+            {user && (
+              <div className="mt-4 rounded-lg border border-border bg-muted/30 p-4">
+                <Label className="text-xs text-muted-foreground uppercase tracking-wide">Public Portfolio Link</Label>
+                <div className="mt-2 flex items-center gap-2">
+                  <Input
+                    readOnly
+                    value={`${window.location.origin}/portfolio/${user.id}`}
+                    className="text-sm bg-background"
+                    onClick={(e) => (e.target as HTMLInputElement).select()}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/portfolio/${user.id}`);
+                      toast({ title: "Copied!", description: "Portfolio link copied to clipboard" });
+                    }}
+                  >
+                    Copy
+                  </Button>
+                </div>
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  Share this link so clients can view your portfolio and request proposals.
+                </p>
+              </div>
+            )}
           </form>
         </CardContent>
       </Card>
