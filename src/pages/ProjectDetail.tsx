@@ -1,7 +1,9 @@
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Calendar, FolderKanban, FileText, FileSignature, Building2, Clock, StickyNote } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { ArrowLeft, Calendar, FolderKanban, FileText, FileSignature, Building2, Clock, StickyNote, Star, StarOff, Upload, Image as ImageIcon, Loader2, X } from 'lucide-react';
+
 import { format } from 'date-fns';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Badge } from '@/components/ui/badge';
@@ -9,11 +11,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
+import { Label } from '@/components/ui/label';
 import { ProjectTimesheets } from '@/components/timesheets/ProjectTimesheets';
 import { ProjectNotes } from '@/components/notes/ProjectNotes';
+import { toast } from 'sonner';
 
 export default function ProjectDetail() {
   const { id } = useParams();
+  const queryClient = useQueryClient();
+  const featureImageRef = useRef<HTMLInputElement>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const { data: project, isLoading } = useQuery({
     queryKey: ['project', id],
@@ -69,6 +76,57 @@ export default function ProjectDetail() {
     enabled: !!id,
   });
 
+  const toggleFeatured = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from('projects')
+        .update({ is_featured: !project?.is_featured })
+        .eq('id', id!);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project', id] });
+      toast.success(project?.is_featured ? 'Removed from portfolio' : 'Added to portfolio');
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const handleFeatureImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { toast.error('Please upload an image'); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error('Image must be less than 5MB'); return; }
+
+    setUploadingImage(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `${id}/feature.${ext}`;
+      const { error: uploadError } = await supabase.storage.from('project-files').upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage.from('project-files').getPublicUrl(path);
+      const url = `${publicUrl}?t=${Date.now()}`;
+
+      const { error } = await supabase.from('projects').update({ feature_image_url: url }).eq('id', id!);
+      if (error) throw error;
+
+      queryClient.invalidateQueries({ queryKey: ['project', id] });
+      toast.success('Feature image updated');
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setUploadingImage(false);
+      if (featureImageRef.current) featureImageRef.current.value = '';
+    }
+  };
+
+  const removeFeatureImage = async () => {
+    const { error } = await supabase.from('projects').update({ feature_image_url: null }).eq('id', id!);
+    if (error) { toast.error(error.message); return; }
+    queryClient.invalidateQueries({ queryKey: ['project', id] });
+    toast.success('Feature image removed');
+  };
+
   if (isLoading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
@@ -106,10 +164,53 @@ export default function ProjectDetail() {
             <Badge variant="secondary" className="capitalize">{project.project_type}</Badge>
           </div>
         </div>
+        <Button
+          variant={project.is_featured ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => toggleFeatured.mutate()}
+          disabled={toggleFeatured.isPending}
+          className="gap-2"
+        >
+          {project.is_featured ? <Star className="h-4 w-4" /> : <StarOff className="h-4 w-4" />}
+          {project.is_featured ? 'Featured' : 'Add to Portfolio'}
+        </Button>
       </div>
 
-      {/* Project Info Card */}
-      <Card>
+      {/* Feature Image + Project Info */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Feature Image */}
+        <Card className="lg:col-span-1">
+          <CardContent className="p-4">
+            <Label className="text-sm font-medium text-muted-foreground mb-2 block">Feature Image</Label>
+            <div className="aspect-video rounded-lg bg-muted/50 flex items-center justify-center overflow-hidden relative group">
+              {project.feature_image_url ? (
+                <>
+                  <img src={project.feature_image_url} alt="Feature" className="h-full w-full object-cover" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                    <Button size="sm" variant="secondary" onClick={() => featureImageRef.current?.click()}>
+                      <Upload className="h-3.5 w-3.5 mr-1" />Replace
+                    </Button>
+                    <Button size="sm" variant="destructive" onClick={removeFeatureImage}>
+                      <X className="h-3.5 w-3.5 mr-1" />Remove
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <button
+                  onClick={() => featureImageRef.current?.click()}
+                  className="flex flex-col items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {uploadingImage ? <Loader2 className="h-8 w-8 animate-spin" /> : <ImageIcon className="h-8 w-8" />}
+                  <span className="text-xs">{uploadingImage ? 'Uploading...' : 'Add Feature Image'}</span>
+                </button>
+              )}
+            </div>
+            <input ref={featureImageRef} type="file" accept="image/*" onChange={handleFeatureImageUpload} className="hidden" />
+          </CardContent>
+        </Card>
+
+        {/* Project Info Card */}
+        <Card className="lg:col-span-2">
         <CardContent className="p-6">
           <div className="flex flex-wrap gap-x-10 gap-y-4">
             {client && (
@@ -139,6 +240,7 @@ export default function ProjectDetail() {
           </div>
         </CardContent>
       </Card>
+      </div>
 
       {/* Tabs */}
       <Tabs defaultValue="timesheets" className="w-full">

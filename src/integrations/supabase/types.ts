@@ -424,7 +424,9 @@ export type Database = {
           client_id: string
           created_at: string
           end_date: string | null
+          feature_image_url: string | null
           id: string
+          is_featured: boolean
           project_name: string
           project_type: string
           start_date: string | null
@@ -436,7 +438,9 @@ export type Database = {
           client_id: string
           created_at?: string
           end_date?: string | null
+          feature_image_url?: string | null
           id?: string
+          is_featured?: boolean
           project_name: string
           project_type: string
           start_date?: string | null
@@ -448,7 +452,9 @@ export type Database = {
           client_id?: string
           created_at?: string
           end_date?: string | null
+          feature_image_url?: string | null
           id?: string
+          is_featured?: boolean
           project_name?: string
           project_type?: string
           start_date?: string | null
