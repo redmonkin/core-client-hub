@@ -162,10 +162,53 @@ export default function ProjectDetail() {
             <Badge variant="secondary" className="capitalize">{project.project_type}</Badge>
           </div>
         </div>
+        <Button
+          variant={project.is_featured ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => toggleFeatured.mutate()}
+          disabled={toggleFeatured.isPending}
+          className="gap-2"
+        >
+          {project.is_featured ? <Star className="h-4 w-4" /> : <StarOff className="h-4 w-4" />}
+          {project.is_featured ? 'Featured' : 'Add to Portfolio'}
+        </Button>
       </div>
 
-      {/* Project Info Card */}
-      <Card>
+      {/* Feature Image + Project Info */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Feature Image */}
+        <Card className="lg:col-span-1">
+          <CardContent className="p-4">
+            <Label className="text-sm font-medium text-muted-foreground mb-2 block">Feature Image</Label>
+            <div className="aspect-video rounded-lg bg-muted/50 flex items-center justify-center overflow-hidden relative group">
+              {project.feature_image_url ? (
+                <>
+                  <img src={project.feature_image_url} alt="Feature" className="h-full w-full object-cover" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                    <Button size="sm" variant="secondary" onClick={() => featureImageRef.current?.click()}>
+                      <Upload className="h-3.5 w-3.5 mr-1" />Replace
+                    </Button>
+                    <Button size="sm" variant="destructive" onClick={removeFeatureImage}>
+                      <X className="h-3.5 w-3.5 mr-1" />Remove
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <button
+                  onClick={() => featureImageRef.current?.click()}
+                  className="flex flex-col items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {uploadingImage ? <Loader2 className="h-8 w-8 animate-spin" /> : <ImageIcon className="h-8 w-8" />}
+                  <span className="text-xs">{uploadingImage ? 'Uploading...' : 'Add Feature Image'}</span>
+                </button>
+              )}
+            </div>
+            <input ref={featureImageRef} type="file" accept="image/*" onChange={handleFeatureImageUpload} className="hidden" />
+          </CardContent>
+        </Card>
+
+        {/* Project Info Card */}
+        <Card className="lg:col-span-2">
         <CardContent className="p-6">
           <div className="flex flex-wrap gap-x-10 gap-y-4">
             {client && (
