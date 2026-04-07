@@ -334,7 +334,7 @@ export default function Contracts() {
     const client = clients.find(c => c.id === contract.client_id);
     const project = projects.find(p => p.id === contract.project_id);
     return {
-      title: `${contractTypeLabels[contract.contract_type] || contract.contract_type} Contract`,
+      title: contractTypeLabels[contract.contract_type] || contract.contract_type,
       clientName: client?.primary_contact_name || client?.client_name || '',
       clientDesignation: client?.designation || '',
       clientEmail: client?.email || '',
