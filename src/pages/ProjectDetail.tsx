@@ -16,6 +16,9 @@ import { toast } from 'sonner';
 
 export default function ProjectDetail() {
   const { id } = useParams();
+  const queryClient = useQueryClient();
+  const featureImageRef = useRef<HTMLInputElement>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const { data: project, isLoading } = useQuery({
     queryKey: ['project', id],
