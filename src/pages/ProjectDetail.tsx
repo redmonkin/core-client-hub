@@ -238,6 +238,7 @@ export default function ProjectDetail() {
           </div>
         </CardContent>
       </Card>
+      </div>
 
       {/* Tabs */}
       <Tabs defaultValue="timesheets" className="w-full">
