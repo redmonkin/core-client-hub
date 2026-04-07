@@ -74,6 +74,57 @@ export default function ProjectDetail() {
     enabled: !!id,
   });
 
+  const toggleFeatured = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from('projects')
+        .update({ is_featured: !project?.is_featured })
+        .eq('id', id!);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project', id] });
+      toast.success(project?.is_featured ? 'Removed from portfolio' : 'Added to portfolio');
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const handleFeatureImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { toast.error('Please upload an image'); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error('Image must be less than 5MB'); return; }
+
+    setUploadingImage(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `${id}/feature.${ext}`;
+      const { error: uploadError } = await supabase.storage.from('project-files').upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage.from('project-files').getPublicUrl(path);
+      const url = `${publicUrl}?t=${Date.now()}`;
+
+      const { error } = await supabase.from('projects').update({ feature_image_url: url }).eq('id', id!);
+      if (error) throw error;
+
+      queryClient.invalidateQueries({ queryKey: ['project', id] });
+      toast.success('Feature image updated');
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setUploadingImage(false);
+      if (featureImageRef.current) featureImageRef.current.value = '';
+    }
+  };
+
+  const removeFeatureImage = async () => {
+    const { error } = await supabase.from('projects').update({ feature_image_url: null }).eq('id', id!);
+    if (error) { toast.error(error.message); return; }
+    queryClient.invalidateQueries({ queryKey: ['project', id] });
+    toast.success('Feature image removed');
+  };
+
   if (isLoading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
