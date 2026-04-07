@@ -255,7 +255,7 @@ export default function ContractDetail() {
       : null;
 
     setPreviewData({
-      title: `${contractTypeLabels[contract.contract_type] || contract.contract_type} Contract`,
+      title: contractTypeLabels[contract.contract_type] || contract.contract_type,
       clientName: client?.primary_contact_name || client?.client_name || '',
       clientDesignation: client?.designation || '',
       clientEmail: client?.email || '',

@@ -648,7 +648,7 @@ export default function Contracts() {
                   <div className="min-w-0">
                     <Link to={`/contracts/${contract.id}`}>
                       <h3 className="truncate font-medium text-foreground group-hover:text-primary transition-colors cursor-pointer">
-                        {contractTypeLabels[contract.contract_type] || contract.contract_type} Contract
+                        {contractTypeLabels[contract.contract_type] || contract.contract_type}
                       </h3>
                     </Link>
                     <p className="mt-0.5 text-xs text-muted-foreground">
