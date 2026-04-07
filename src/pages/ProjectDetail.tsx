@@ -1,7 +1,8 @@
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Calendar, FolderKanban, FileText, FileSignature, Building2, Clock, StickyNote } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { ArrowLeft, Calendar, FolderKanban, FileText, FileSignature, Building2, Clock, StickyNote, Star, StarOff, Upload, Image as ImageIcon, Loader2, X } from 'lucide-react';
 import { format } from 'date-fns';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { ProjectTimesheets } from '@/components/timesheets/ProjectTimesheets';
 import { ProjectNotes } from '@/components/notes/ProjectNotes';
+import { toast } from 'sonner';
 
 export default function ProjectDetail() {
   const { id } = useParams();
