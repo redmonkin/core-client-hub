@@ -334,7 +334,7 @@ export default function Contracts() {
     const client = clients.find(c => c.id === contract.client_id);
     const project = projects.find(p => p.id === contract.project_id);
     return {
-      title: `${contractTypeLabels[contract.contract_type] || contract.contract_type} Contract`,
+      title: contractTypeLabels[contract.contract_type] || contract.contract_type,
       clientName: client?.primary_contact_name || client?.client_name || '',
       clientDesignation: client?.designation || '',
       clientEmail: client?.email || '',
@@ -538,7 +538,7 @@ export default function Contracts() {
 
   const contractTypeLabels: Record<string, string> = {
     amc: "Annual Maintenance Contract",
-    fixed: "Fixed",
+    fixed: "Fixed Contract",
     retainer: "Retainer",
   };
 
@@ -648,7 +648,7 @@ export default function Contracts() {
                   <div className="min-w-0">
                     <Link to={`/contracts/${contract.id}`}>
                       <h3 className="truncate font-medium text-foreground group-hover:text-primary transition-colors cursor-pointer">
-                        {contractTypeLabels[contract.contract_type] || contract.contract_type} Contract
+                        {contractTypeLabels[contract.contract_type] || contract.contract_type}
                       </h3>
                     </Link>
                     <p className="mt-0.5 text-xs text-muted-foreground">

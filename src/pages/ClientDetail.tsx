@@ -335,7 +335,7 @@ export default function ClientDetail() {
                   <CardContent className="flex items-center justify-between p-4">
                     <div>
                       <p className="font-medium capitalize text-foreground hover:text-primary transition-colors">
-                        {contract.contract_type} Contract
+                        {contract.contract_type === 'amc' ? 'Annual Maintenance Contract' : contract.contract_type === 'retainer' ? 'Retainer Contract' : contract.contract_type === 'fixed' ? 'Fixed Contract' : contract.contract_type}
                       </p>
                     <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
                       <span>₹{Number(contract.value).toLocaleString('en-IN')}</span>
