@@ -35,7 +35,7 @@ import { createContractPortalAccess } from '@/lib/contract-portal-access';
 
 const contractTypeLabels: Record<string, string> = {
   amc: 'Annual Maintenance Contract',
-  fixed: 'Fixed',
+  fixed: 'Fixed Contract',
   retainer: 'Retainer',
 };
 
