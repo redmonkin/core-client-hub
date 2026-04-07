@@ -84,6 +84,7 @@ const App = () => (
             }
           />
           <Route path="/portal" element={<ClientPortal />} />
+          <Route path="/portfolio/:userId" element={<Portfolio />} />
           <Route
             path="/dashboard"
             element={
