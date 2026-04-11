@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, User, Building2, Phone, Briefcase, Mail, Upload, Trash2, Camera, CheckCircle2, Circle } from "lucide-react";
+import { Loader2, User, Building2, Phone, Briefcase, Mail, Upload, Trash2, Camera, CheckCircle2, Circle, Link, Copy } from "lucide-react";
 
 export default function Profile() {
   const { user } = useAuth();
@@ -328,6 +328,35 @@ export default function Profile() {
             <p className="text-xs text-muted-foreground text-center">
               JPG, PNG or GIF. Max 2MB.
             </p>
+
+            {/* Public Portfolio Link */}
+            {user && (
+              <div className="mt-4 pt-4 border-t border-border">
+                <Label className="text-xs text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                  <Link className="h-3.5 w-3.5" />
+                  Public Portfolio
+                </Label>
+                <div className="mt-2 flex items-center gap-2">
+                  <Input
+                    readOnly
+                    value={`${window.location.origin}/portfolio/${user.id}`}
+                    className="text-xs h-8 bg-muted"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0 h-8 px-2"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/portfolio/${user.id}`);
+                      toast({ title: "Copied!", description: "Portfolio link copied to clipboard" });
+                    }}
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            )}
             <input
               ref={fileInputRef}
               type="file"
