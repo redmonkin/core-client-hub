@@ -36,6 +36,19 @@ export default function ProjectDetail() {
     enabled: !!id,
   });
 
+  const { data: featureImageUrl } = useQuery({
+    queryKey: ['project-feature-image', project?.feature_image_url],
+    queryFn: async () => {
+      const path = project!.feature_image_url!;
+      const { data, error } = await supabase.storage
+        .from('project-files')
+        .createSignedUrl(path, 3600);
+      if (error) throw error;
+      return data.signedUrl;
+    },
+    enabled: !!project?.feature_image_url,
+  });
+
   const { data: client } = useQuery({
     queryKey: ['project-client', project?.client_id],
     queryFn: async () => {
@@ -106,10 +119,7 @@ export default function ProjectDetail() {
       const { error: uploadError } = await supabase.storage.from('project-files').upload(path, file, { upsert: true });
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage.from('project-files').getPublicUrl(path);
-      const url = `${publicUrl}?t=${Date.now()}`;
-
-      const { error } = await supabase.from('projects').update({ feature_image_url: url }).eq('id', id!);
+      const { error } = await supabase.from('projects').update({ feature_image_url: path }).eq('id', id!);
       if (error) throw error;
 
       queryClient.invalidateQueries({ queryKey: ['project', id] });
@@ -187,7 +197,7 @@ export default function ProjectDetail() {
             <div className="aspect-video rounded-lg bg-muted/50 flex items-center justify-center overflow-hidden relative group">
               {project.feature_image_url ? (
                 <>
-                  <img src={project.feature_image_url} alt="Feature" className="h-full w-full object-cover" />
+                  <img src={featureImageUrl || ''} alt="Feature" className="h-full w-full object-cover" />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                     <Button size="sm" variant="secondary" onClick={() => featureImageRef.current?.click()}>
                       <Upload className="h-3.5 w-3.5 mr-1" />Replace
