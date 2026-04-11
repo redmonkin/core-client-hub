@@ -119,10 +119,7 @@ export default function ProjectDetail() {
       const { error: uploadError } = await supabase.storage.from('project-files').upload(path, file, { upsert: true });
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage.from('project-files').getPublicUrl(path);
-      const url = `${publicUrl}?t=${Date.now()}`;
-
-      const { error } = await supabase.from('projects').update({ feature_image_url: url }).eq('id', id!);
+      const { error } = await supabase.from('projects').update({ feature_image_url: path }).eq('id', id!);
       if (error) throw error;
 
       queryClient.invalidateQueries({ queryKey: ['project', id] });
