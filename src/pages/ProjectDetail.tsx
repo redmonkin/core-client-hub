@@ -99,8 +99,10 @@ export default function ProjectDetail() {
 
     setUploadingImage(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { toast.error('Not authenticated'); return; }
       const ext = file.name.split('.').pop();
-      const path = `${id}/feature.${ext}`;
+      const path = `${user.id}/${id}/feature.${ext}`;
       const { error: uploadError } = await supabase.storage.from('project-files').upload(path, file, { upsert: true });
       if (uploadError) throw uploadError;
 
