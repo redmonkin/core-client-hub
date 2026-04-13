@@ -36,18 +36,7 @@ export default function ProjectDetail() {
     enabled: !!id,
   });
 
-  const { data: featureImageUrl } = useQuery({
-    queryKey: ['project-feature-image', project?.feature_image_url],
-    queryFn: async () => {
-      const path = project!.feature_image_url!;
-      const { data, error } = await supabase.storage
-        .from('project-files')
-        .createSignedUrl(path, 3600);
-      if (error) throw error;
-      return data.signedUrl;
-    },
-    enabled: !!project?.feature_image_url,
-  });
+
 
   const { data: client } = useQuery({
     queryKey: ['project-client', project?.client_id],
