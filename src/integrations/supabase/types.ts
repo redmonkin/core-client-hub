@@ -101,6 +101,13 @@ export type Database = {
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "client_contacts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "public_portfolio_clients"
+            referencedColumns: ["id"]
+          },
         ]
       }
       clients: {
@@ -291,6 +298,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "contracts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "public_portfolio_clients"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "contracts_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
@@ -470,6 +484,13 @@ export type Database = {
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "public_portfolio_clients"
+            referencedColumns: ["id"]
+          },
         ]
       }
       proposal_access_tokens: {
@@ -606,6 +627,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "proposals_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "public_portfolio_clients"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "proposals_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
@@ -700,7 +728,54 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_portfolio_branding: {
+        Row: {
+          accent_color: string | null
+          company_logo_url: string | null
+          company_name: string | null
+          primary_color: string | null
+          tagline: string | null
+          user_id: string | null
+          website_url: string | null
+        }
+        Insert: {
+          accent_color?: string | null
+          company_logo_url?: string | null
+          company_name?: string | null
+          primary_color?: string | null
+          tagline?: string | null
+          user_id?: string | null
+          website_url?: string | null
+        }
+        Update: {
+          accent_color?: string | null
+          company_logo_url?: string | null
+          company_name?: string | null
+          primary_color?: string | null
+          tagline?: string | null
+          user_id?: string | null
+          website_url?: string | null
+        }
+        Relationships: []
+      }
+      public_portfolio_clients: {
+        Row: {
+          client_name: string | null
+          company_name: string | null
+          id: string | null
+        }
+        Insert: {
+          client_name?: string | null
+          company_name?: string | null
+          id?: string | null
+        }
+        Update: {
+          client_name?: string | null
+          company_name?: string | null
+          id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never
