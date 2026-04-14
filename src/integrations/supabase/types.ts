@@ -734,6 +734,7 @@ export type Database = {
           company_logo_url: string | null
           company_name: string | null
           primary_color: string | null
+          support_email: string | null
           tagline: string | null
           user_id: string | null
           website_url: string | null
@@ -743,6 +744,7 @@ export type Database = {
           company_logo_url?: string | null
           company_name?: string | null
           primary_color?: string | null
+          support_email?: string | null
           tagline?: string | null
           user_id?: string | null
           website_url?: string | null
@@ -752,6 +754,7 @@ export type Database = {
           company_logo_url?: string | null
           company_name?: string | null
           primary_color?: string | null
+          support_email?: string | null
           tagline?: string | null
           user_id?: string | null
           website_url?: string | null

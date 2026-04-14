@@ -10,8 +10,10 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Globe, Building2, Send, CheckCircle, Loader2, Image as ImageIcon } from 'lucide-react';
+import { Globe, Building2, Send, CheckCircle, Loader2, Image as ImageIcon, Mail } from 'lucide-react';
 import { toast } from 'sonner';
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 const projectTypeLabels: Record<string, string> = {
   'one-time': 'One-time',
@@ -19,13 +21,18 @@ const projectTypeLabels: Record<string, string> = {
   'retainer': 'Retainer',
 };
 
+function getStoragePublicUrl(path: string) {
+  if (!path) return '';
+  if (path.startsWith('http')) return path;
+  return `${SUPABASE_URL}/storage/v1/object/public/project-files/${path}`;
+}
+
 export default function Portfolio() {
   const { userId } = useParams();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [step, setStep] = useState<'details' | 'questionnaire' | 'success'>('details');
   const [submitting, setSubmitting] = useState(false);
 
-  // Client details form
   const [clientForm, setClientForm] = useState({
     name: '',
     email: '',
@@ -35,7 +42,6 @@ export default function Portfolio() {
     project_type: 'one-time',
   });
 
-  // Questionnaire
   const [questionnaire, setQuestionnaire] = useState<Record<string, string>>({
     'What is the primary goal of this project?': '',
     'What is your estimated budget range?': '',
@@ -49,7 +55,7 @@ export default function Portfolio() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('public_portfolio_branding' as any)
-        .select('user_id, company_name, company_logo_url, tagline, primary_color, accent_color, website_url')
+        .select('user_id, company_name, company_logo_url, tagline, primary_color, accent_color, website_url, support_email')
         .eq('user_id', userId!)
         .maybeSingle();
       if (error) throw error;
@@ -61,6 +67,7 @@ export default function Portfolio() {
         primary_color: string | null;
         accent_color: string | null;
         website_url: string | null;
+        support_email: string | null;
       } | null;
     },
     enabled: !!userId,
@@ -81,7 +88,6 @@ export default function Portfolio() {
     enabled: !!userId,
   });
 
-  // Fetch client names for featured projects
   const clientIds = [...new Set(featuredProjects.map(p => p.client_id))];
   const { data: clients = [] } = useQuery({
     queryKey: ['portfolio-clients', clientIds],
@@ -146,53 +152,72 @@ export default function Portfolio() {
 
   const primaryColor = branding?.primary_color || '#8B5CF6';
   const accentColor = branding?.accent_color || '#F59E0B';
+  const companyName = branding?.company_name || 'Our Portfolio';
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen" style={{ backgroundColor: '#fafafa' }}>
       {/* Hero Section */}
-      <header className="border-b border-border">
-        <div className="mx-auto max-w-6xl px-6 py-12">
-          <div className="flex items-center gap-5">
+      <header
+        className="relative overflow-hidden"
+        style={{
+          background: `linear-gradient(135deg, ${primaryColor} 0%, ${accentColor} 100%)`,
+        }}
+      >
+        <div className="absolute inset-0 bg-black/20" />
+        <div className="relative mx-auto max-w-6xl px-6 py-16 md:py-24">
+          <div className="flex flex-col items-center text-center gap-6">
             {branding?.company_logo_url ? (
-              <img src={branding.company_logo_url} alt="Logo" className="h-16 w-16 rounded-xl object-contain" />
+              <img
+                src={branding.company_logo_url}
+                alt={companyName}
+                className="h-20 w-20 rounded-2xl object-contain bg-white/90 p-2 shadow-lg"
+              />
             ) : (
-              <div
-                className="flex h-16 w-16 items-center justify-center rounded-xl text-2xl font-bold text-white"
-                style={{ backgroundColor: primaryColor }}
-              >
-                {(branding?.company_name || 'C').charAt(0).toUpperCase()}
+              <div className="flex h-20 w-20 items-center justify-center rounded-2xl text-3xl font-bold bg-white/90 shadow-lg"
+                style={{ color: primaryColor }}>
+                {companyName.charAt(0).toUpperCase()}
               </div>
             )}
+
             <div>
-              <h1 className="text-3xl font-bold text-foreground">
-                {branding?.company_name || 'Our Portfolio'}
+              <h1 className="text-4xl md:text-5xl font-bold text-white drop-shadow-sm">
+                {companyName}
               </h1>
               {branding?.tagline && (
-                <p className="mt-1 text-lg text-muted-foreground">{branding.tagline}</p>
+                <p className="mt-3 text-lg md:text-xl text-white/90 max-w-2xl mx-auto">
+                  {branding.tagline}
+                </p>
               )}
             </div>
-          </div>
 
-          <div className="mt-6 flex flex-wrap items-center gap-4">
-            {branding?.website_url && (
-              <a
-                href={branding.website_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <Globe className="h-4 w-4" />
-                {branding.website_url.replace(/^https?:\/\//, '')}
-              </a>
-            )}
-          </div>
+            <div className="flex flex-wrap items-center justify-center gap-4 text-white/80 text-sm">
+              {branding?.website_url && (
+                <a
+                  href={branding.website_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 hover:text-white transition-colors bg-white/10 rounded-full px-4 py-1.5 backdrop-blur-sm"
+                >
+                  <Globe className="h-4 w-4" />
+                  {branding.website_url.replace(/^https?:\/\//, '')}
+                </a>
+              )}
+              {branding?.support_email && (
+                <a
+                  href={`mailto:${branding.support_email}`}
+                  className="inline-flex items-center gap-1.5 hover:text-white transition-colors bg-white/10 rounded-full px-4 py-1.5 backdrop-blur-sm"
+                >
+                  <Mail className="h-4 w-4" />
+                  {branding.support_email}
+                </a>
+              )}
+            </div>
 
-          <div className="mt-8">
             <Button
               size="lg"
               onClick={() => setDialogOpen(true)}
-              style={{ backgroundColor: primaryColor }}
-              className="text-white hover:opacity-90 transition-opacity"
+              className="mt-2 bg-white hover:bg-white/90 shadow-lg text-base font-semibold px-8"
+              style={{ color: primaryColor }}
             >
               <Send className="mr-2 h-4 w-4" />
               Request a Proposal
@@ -202,57 +227,65 @@ export default function Portfolio() {
       </header>
 
       {/* Projects Grid */}
-      <main className="mx-auto max-w-6xl px-6 py-12">
-        <h2 className="mb-8 text-2xl font-semibold text-foreground">Featured Projects</h2>
+      <main className="mx-auto max-w-6xl px-6 py-14">
+        <h2 className="mb-10 text-2xl font-bold text-gray-900">Featured Projects</h2>
 
         {featuredProjects.length > 0 ? (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {featuredProjects.map((project) => (
-              <Card key={project.id} className="overflow-hidden group hover:shadow-lg transition-shadow">
-                {/* Feature Image */}
-                <div className="aspect-video bg-muted/50 flex items-center justify-center overflow-hidden">
-                  {project.feature_image_url ? (
-                    <img
-                      src={project.feature_image_url}
-                      alt={project.project_name}
-                      className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  ) : (
-                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                      <ImageIcon className="h-10 w-10" />
-                    </div>
-                  )}
-                </div>
-                <CardContent className="p-5">
-                  <h3 className="text-lg font-semibold text-foreground">{project.project_name}</h3>
-                  {getClientName(project.client_id) && (
-                    <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
-                      <Building2 className="h-3.5 w-3.5" />
-                      {getClientName(project.client_id)}
-                    </p>
-                  )}
-                  <div className="mt-3">
-                    <Badge variant="outline" className="text-xs">
-                      {projectTypeLabels[project.project_type] || project.project_type}
-                    </Badge>
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {featuredProjects.map((project) => {
+              const imageUrl = project.feature_image_url
+                ? getStoragePublicUrl(project.feature_image_url)
+                : '';
+              return (
+                <Card key={project.id} className="overflow-hidden group hover:shadow-xl transition-all duration-300 border-0 shadow-md bg-white">
+                  <div className="aspect-video bg-gray-100 flex items-center justify-center overflow-hidden">
+                    {imageUrl ? (
+                      <img
+                        src={imageUrl}
+                        alt={project.project_name}
+                        className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center gap-2 text-gray-300">
+                        <ImageIcon className="h-12 w-12" />
+                      </div>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+                  <CardContent className="p-5">
+                    <h3 className="text-lg font-semibold text-gray-900">{project.project_name}</h3>
+                    {getClientName(project.client_id) && (
+                      <p className="mt-1.5 flex items-center gap-1.5 text-sm text-gray-500">
+                        <Building2 className="h-3.5 w-3.5" />
+                        {getClientName(project.client_id)}
+                      </p>
+                    )}
+                    <div className="mt-3">
+                      <Badge
+                        variant="outline"
+                        className="text-xs border-0 font-medium px-3 py-1"
+                        style={{ backgroundColor: `${primaryColor}15`, color: primaryColor }}
+                      >
+                        {projectTypeLabels[project.project_type] || project.project_type}
+                      </Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-lg font-medium text-foreground">No projects to show yet</p>
-            <p className="text-muted-foreground mt-1">Check back soon for our latest work</p>
+            <Building2 className="h-12 w-12 text-gray-300 mb-4" />
+            <p className="text-lg font-medium text-gray-700">No projects to show yet</p>
+            <p className="text-gray-400 mt-1">Check back soon for our latest work</p>
           </div>
         )}
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border py-8">
-        <div className="mx-auto max-w-6xl px-6 text-center text-sm text-muted-foreground">
-          © {new Date().getFullYear()} {branding?.company_name || 'Company'}. All rights reserved.
+      <footer className="border-t border-gray-200 py-8" style={{ backgroundColor: '#f5f5f5' }}>
+        <div className="mx-auto max-w-6xl px-6 text-center text-sm text-gray-500">
+          © {new Date().getFullYear()} {companyName}. All rights reserved.
         </div>
       </footer>
 
@@ -329,7 +362,9 @@ export default function Portfolio() {
                   </Select>
                 </div>
                 <div className="flex justify-end pt-2">
-                  <Button type="submit">Next: Project Details →</Button>
+                  <Button type="submit" style={{ backgroundColor: primaryColor }} className="text-white">
+                    Next: Project Details →
+                  </Button>
                 </div>
               </form>
             </>
@@ -355,7 +390,8 @@ export default function Portfolio() {
               </div>
               <div className="flex justify-between pt-2">
                 <Button variant="outline" onClick={() => setStep('details')}>← Back</Button>
-                <Button onClick={handleSubmitQuestionnaire} disabled={submitting}>
+                <Button onClick={handleSubmitQuestionnaire} disabled={submitting}
+                  style={{ backgroundColor: primaryColor }} className="text-white">
                   {submitting ? (
                     <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Submitting...</>
                   ) : (
@@ -368,14 +404,15 @@ export default function Portfolio() {
 
           {step === 'success' && (
             <div className="flex flex-col items-center py-8 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-                <CheckCircle className="h-8 w-8 text-green-600" />
+              <div className="flex h-16 w-16 items-center justify-center rounded-full"
+                style={{ backgroundColor: `${primaryColor}15` }}>
+                <CheckCircle className="h-8 w-8" style={{ color: primaryColor }} />
               </div>
-              <h3 className="mt-4 text-xl font-semibold text-foreground">Request Submitted!</h3>
-              <p className="mt-2 text-muted-foreground max-w-sm">
+              <h3 className="mt-4 text-xl font-semibold text-gray-900">Request Submitted!</h3>
+              <p className="mt-2 text-gray-500 max-w-sm">
                 Thank you for your interest. We'll review your request and get back to you shortly.
               </p>
-              <Button className="mt-6" onClick={resetForm}>Close</Button>
+              <Button className="mt-6" onClick={resetForm} style={{ backgroundColor: primaryColor }} >Close</Button>
             </div>
           )}
         </DialogContent>
