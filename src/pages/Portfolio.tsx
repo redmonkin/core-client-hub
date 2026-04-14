@@ -185,15 +185,6 @@ export default function Portfolio() {
                 {branding.website_url.replace(/^https?:\/\//, '')}
               </a>
             )}
-            {branding?.support_email && (
-              <a
-                href={`mailto:${branding.support_email}`}
-                className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <Mail className="h-4 w-4" />
-                {branding.support_email}
-              </a>
-            )}
           </div>
 
           <div className="mt-8">
