@@ -53,7 +53,7 @@ export default function Portfolio() {
         .eq('user_id', userId!)
         .maybeSingle();
       if (error) throw error;
-      return data as {
+      return data as unknown as {
         user_id: string;
         company_name: string | null;
         company_logo_url: string | null;
@@ -92,7 +92,7 @@ export default function Portfolio() {
         .select('id, client_name, company_name')
         .in('id', clientIds);
       if (error) throw error;
-      return data as { id: string; client_name: string; company_name: string | null }[];
+      return data as unknown as { id: string; client_name: string; company_name: string | null }[];
     },
     enabled: clientIds.length > 0,
   });
