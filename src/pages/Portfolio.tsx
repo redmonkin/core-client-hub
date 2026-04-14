@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Globe, Mail, Building2, Send, CheckCircle, Loader2, Image as ImageIcon } from 'lucide-react';
+import { Globe, Building2, Send, CheckCircle, Loader2, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 const projectTypeLabels: Record<string, string> = {
