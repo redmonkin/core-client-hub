@@ -25,28 +25,43 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 1. Create client with status "pending-review"
-    const { data: client, error: clientError } = await supabase
+    // 1. Check if client already exists (by email + user_id)
+    const { data: existingClient } = await supabase
       .from("clients")
-      .insert({
-        user_id,
-        client_name: name,
-        email,
-        phone: phone || null,
-        company_name: company_name || null,
-        status: "pending-review",
-      })
-      .select()
-      .single();
+      .select("id")
+      .eq("user_id", user_id)
+      .eq("email", email)
+      .maybeSingle();
 
-    if (clientError) throw clientError;
+    let clientId: string;
+
+    if (existingClient) {
+      clientId = existingClient.id;
+    } else {
+      // Create new client
+      const { data: client, error: clientError } = await supabase
+        .from("clients")
+        .insert({
+          user_id,
+          client_name: name,
+          email,
+          phone: phone || null,
+          company_name: company_name || null,
+          status: "pending-review",
+        })
+        .select()
+        .single();
+
+      if (clientError) throw clientError;
+      clientId = client.id;
+    }
 
     // 2. Create project linked to this client
     const { data: project, error: projectError } = await supabase
       .from("projects")
       .insert({
         user_id,
-        client_id: client.id,
+        client_id: clientId,
         project_name: project_name || `${name}'s Project`,
         project_type: project_type || "one-time",
         status: "proposal",
@@ -56,25 +71,49 @@ Deno.serve(async (req) => {
 
     if (projectError) throw projectError;
 
-    // 3. Store questionnaire answers as project notes
+    // 3. Create a draft proposal so it appears on the dashboard
+    const { data: proposal, error: proposalError } = await supabase
+      .from("proposals")
+      .insert({
+        user_id,
+        client_id: clientId,
+        project_id: project.id,
+        title: project_name ? `Proposal for ${project_name}` : `Proposal for ${name}`,
+        status: "draft",
+        scope_of_work: questionnaire
+          ? Object.entries(questionnaire)
+              .filter(([, v]) => (v as string).trim())
+              .map(([q, a]) => `<p><strong>${q}</strong></p><p>${a}</p>`)
+              .join("")
+          : null,
+      })
+      .select()
+      .single();
+
+    if (proposalError) throw proposalError;
+
+    // 4. Store questionnaire answers as project notes
     if (questionnaire && Object.keys(questionnaire).length > 0) {
       const noteContent = Object.entries(questionnaire)
+        .filter(([, v]) => (v as string).trim())
         .map(([question, answer]) => `**${question}**\n${answer}`)
         .join("\n\n---\n\n");
 
-      const { error: noteError } = await supabase
-        .from("project_notes")
-        .insert({
-          project_id: project.id,
-          user_id,
-          content: `📋 Client Questionnaire Response\n\n${noteContent}`,
-        });
+      if (noteContent) {
+        const { error: noteError } = await supabase
+          .from("project_notes")
+          .insert({
+            project_id: project.id,
+            user_id,
+            content: `📋 Client Questionnaire Response\n\n${noteContent}`,
+          });
 
-      if (noteError) throw noteError;
+        if (noteError) throw noteError;
+      }
     }
 
     return new Response(
-      JSON.stringify({ success: true, client_id: client.id, project_id: project.id }),
+      JSON.stringify({ success: true, client_id: clientId, project_id: project.id, proposal_id: proposal.id }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
