@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Globe, Mail, Building2, Send, CheckCircle, Loader2, Image as ImageIcon } from 'lucide-react';
+import { Globe, Building2, Send, CheckCircle, Loader2, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 const projectTypeLabels: Record<string, string> = {
@@ -48,12 +48,20 @@ export default function Portfolio() {
     queryKey: ['portfolio-branding', userId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('branding_settings')
-        .select('*')
+        .from('public_portfolio_branding' as any)
+        .select('user_id, company_name, company_logo_url, tagline, primary_color, accent_color, website_url')
         .eq('user_id', userId!)
         .maybeSingle();
       if (error) throw error;
-      return data;
+      return data as unknown as {
+        user_id: string;
+        company_name: string | null;
+        company_logo_url: string | null;
+        tagline: string | null;
+        primary_color: string | null;
+        accent_color: string | null;
+        website_url: string | null;
+      } | null;
     },
     enabled: !!userId,
   });
@@ -80,11 +88,11 @@ export default function Portfolio() {
     queryFn: async () => {
       if (clientIds.length === 0) return [];
       const { data, error } = await supabase
-        .from('clients')
+        .from('public_portfolio_clients' as any)
         .select('id, client_name, company_name')
         .in('id', clientIds);
       if (error) throw error;
-      return data;
+      return data as unknown as { id: string; client_name: string; company_name: string | null }[];
     },
     enabled: clientIds.length > 0,
   });
@@ -175,15 +183,6 @@ export default function Portfolio() {
               >
                 <Globe className="h-4 w-4" />
                 {branding.website_url.replace(/^https?:\/\//, '')}
-              </a>
-            )}
-            {branding?.support_email && (
-              <a
-                href={`mailto:${branding.support_email}`}
-                className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <Mail className="h-4 w-4" />
-                {branding.support_email}
               </a>
             )}
           </div>
