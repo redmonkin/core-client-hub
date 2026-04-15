@@ -29,6 +29,7 @@ const statusConfig: Record<StatusType, { label: string; variant: 'default' | 'se
   change_requested: { label: 'Change Requested', variant: 'secondary' },
   expired: { label: 'Expired', variant: 'destructive' },
   'pending-renewal': { label: 'Pending Renewal', variant: 'secondary' },
+  'pending-review': { label: 'Pending Review', variant: 'outline' },
 };
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
