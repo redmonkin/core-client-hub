@@ -3,9 +3,9 @@ import { cn } from '@/lib/utils';
 
 type StatusType = 
   | 'active' | 'archived' 
-  | 'proposal' | 'planned' | 'on-hold' | 'completed' | 'cancelled' | 'maintenance'
+  | 'proposal' | 'planned' | 'on-hold' | 'completed' | 'cancelled' | 'maintenance' | 'new-request'
   | 'draft' | 'sent' | 'approved' | 'rejected' | 'change_requested'
-  | 'expired' | 'pending-renewal';
+  | 'expired' | 'pending-renewal' | 'pending-review';
 
 interface StatusBadgeProps {
   status: StatusType;
@@ -21,6 +21,7 @@ const statusConfig: Record<StatusType, { label: string; variant: 'default' | 'se
   completed: { label: 'Completed', variant: 'default' },
   cancelled: { label: 'Cancelled', variant: 'destructive' },
   maintenance: { label: 'Maintenance', variant: 'secondary' },
+  'new-request': { label: 'New Request', variant: 'outline' },
   draft: { label: 'Draft', variant: 'outline' },
   sent: { label: 'Sent', variant: 'secondary' },
   approved: { label: 'Approved', variant: 'default' },
@@ -28,6 +29,7 @@ const statusConfig: Record<StatusType, { label: string; variant: 'default' | 'se
   change_requested: { label: 'Change Requested', variant: 'secondary' },
   expired: { label: 'Expired', variant: 'destructive' },
   'pending-renewal': { label: 'Pending Renewal', variant: 'secondary' },
+  'pending-review': { label: 'Pending Review', variant: 'outline' },
 };
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
