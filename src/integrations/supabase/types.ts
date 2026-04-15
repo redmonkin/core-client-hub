@@ -312,6 +312,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "contracts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "public_portfolio_projects"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "contracts_template_id_fkey"
             columns: ["template_id"]
             isOneToOne: false
@@ -429,6 +436,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_notes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "public_portfolio_projects"
             referencedColumns: ["id"]
           },
         ]
@@ -641,6 +655,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "proposals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "public_portfolio_projects"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "proposals_template_id_fkey"
             columns: ["template_id"]
             isOneToOne: false
@@ -724,6 +745,13 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "timesheets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "public_portfolio_projects"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
@@ -778,6 +806,48 @@ export type Database = {
           id?: string | null
         }
         Relationships: []
+      }
+      public_portfolio_projects: {
+        Row: {
+          client_id: string | null
+          feature_image_url: string | null
+          id: string | null
+          is_featured: boolean | null
+          project_name: string | null
+          user_id: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          feature_image_url?: string | null
+          id?: string | null
+          is_featured?: boolean | null
+          project_name?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          feature_image_url?: string | null
+          id?: string | null
+          is_featured?: boolean | null
+          project_name?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "public_portfolio_clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {
