@@ -54,7 +54,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 
-type ProjectStatus = 'proposal' | 'planned' | 'active' | 'on-hold' | 'completed' | 'cancelled' | 'maintenance';
+type ProjectStatus = 'proposal' | 'planned' | 'active' | 'on-hold' | 'completed' | 'cancelled' | 'maintenance' | 'new-request';
 type ProjectType = 'one-time' | 'amc' | 'retainer';
 
 type Project = {
@@ -330,6 +330,7 @@ export default function Projects() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="new-request">New Request</SelectItem>
                       <SelectItem value="proposal">Proposal</SelectItem>
                       <SelectItem value="planned">Planned</SelectItem>
                       <SelectItem value="active">Active</SelectItem>
@@ -370,6 +371,7 @@ export default function Projects() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="new-request">New Request</SelectItem>
             <SelectItem value="proposal">Proposal</SelectItem>
             <SelectItem value="planned">Planned</SelectItem>
             <SelectItem value="active">Active</SelectItem>
@@ -428,7 +430,7 @@ export default function Projects() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <StatusBadge status={project.status as 'proposal' | 'active' | 'planned' | 'on-hold' | 'completed' | 'cancelled' | 'maintenance'} />
+                    <StatusBadge status={project.status as 'proposal' | 'active' | 'planned' | 'on-hold' | 'completed' | 'cancelled' | 'maintenance' | 'new-request'} />
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
@@ -553,6 +555,7 @@ export default function Projects() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="new-request">New Request</SelectItem>
                   <SelectItem value="proposal">Proposal</SelectItem>
                   <SelectItem value="planned">Planned</SelectItem>
                   <SelectItem value="active">Active</SelectItem>
