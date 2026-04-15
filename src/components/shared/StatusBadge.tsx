@@ -21,6 +21,7 @@ const statusConfig: Record<StatusType, { label: string; variant: 'default' | 'se
   completed: { label: 'Completed', variant: 'default' },
   cancelled: { label: 'Cancelled', variant: 'destructive' },
   maintenance: { label: 'Maintenance', variant: 'secondary' },
+  'new-request': { label: 'New Request', variant: 'outline' },
   draft: { label: 'Draft', variant: 'outline' },
   sent: { label: 'Sent', variant: 'secondary' },
   approved: { label: 'Approved', variant: 'default' },
