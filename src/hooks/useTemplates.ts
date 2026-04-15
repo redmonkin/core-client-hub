@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { useWorkspaceUser } from './useWorkspaceUser';
 import { toast } from 'sonner';
 
 export type TemplateType = 'proposal' | 'contract';

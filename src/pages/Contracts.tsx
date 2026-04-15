@@ -42,6 +42,7 @@ import { ProposalData } from "@/lib/proposal-utils";
 import { useTemplates, Template } from "@/hooks/useTemplates";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useWorkspaceUser } from "@/hooks/useWorkspaceUser";
 import { useToast } from "@/hooks/use-toast";
 import { toast } from "sonner";
 import { ContractStatus } from "@/lib/types";
