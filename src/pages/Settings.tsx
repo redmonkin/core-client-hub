@@ -20,7 +20,9 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useWorkspaceUser } from "@/hooks/useWorkspaceUser";
 import { Bell, Eye, CheckCircle, XCircle, Calendar, Loader2, User, Lock, Mail, Trash2, AlertTriangle, Upload, Palette, Globe, Building2 } from "lucide-react";
+import { TeamManagement } from "@/components/settings/TeamManagement";
 
 interface BrandingSettings {
   id?: string;
@@ -61,6 +63,7 @@ const defaultPreferences: NotificationPreferences = {
 export default function Settings() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { workspaceUserId } = useWorkspaceUser();
   const [preferences, setPreferences] = useState<NotificationPreferences>(defaultPreferences);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -200,7 +203,7 @@ export default function Settings() {
       if (!user) return;
 
       const brandingData = {
-        user_id: user.id,
+        user_id: workspaceUserId!,
         company_name: branding.company_name || null,
         company_logo_url: branding.company_logo_url || null,
         primary_color: branding.primary_color,
@@ -250,7 +253,7 @@ export default function Settings() {
       } else {
         const { data: newPrefs, error: insertError } = await supabase
           .from("notification_preferences")
-          .insert({ user_id: user.id, ...defaultPreferences })
+          .insert({ user_id: workspaceUserId!, ...defaultPreferences })
           .select()
           .single();
 
@@ -1037,6 +1040,9 @@ export default function Settings() {
           ))}
         </CardContent>
       </Card>
+
+      {/* Team Management */}
+      <TeamManagement />
 
       {/* Danger Zone */}
       <Card className="border-destructive/50">

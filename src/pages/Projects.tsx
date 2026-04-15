@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useWorkspaceUser } from '@/hooks/useWorkspaceUser';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { EmptyState } from '@/components/shared/EmptyState';
@@ -87,6 +88,7 @@ export default function Projects() {
   const [editProject, setEditProject] = useState(emptyProject);
 
   const { user } = useAuth();
+  const { workspaceUserId } = useWorkspaceUser();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -118,7 +120,7 @@ export default function Projects() {
     mutationFn: async (project: typeof newProject) => {
       const { error } = await supabase.from('projects').insert({
         ...project,
-        user_id: user?.id,
+        user_id: workspaceUserId,
         start_date: project.start_date || null,
         end_date: project.end_date || null,
       });

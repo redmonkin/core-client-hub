@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useWorkspaceUser } from '@/hooks/useWorkspaceUser';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
@@ -25,6 +26,7 @@ interface ProjectNotesProps {
 
 export function ProjectNotes({ projectId }: ProjectNotesProps) {
   const { user } = useAuth();
+  const { workspaceUserId } = useWorkspaceUser();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [content, setContent] = useState('');
@@ -73,7 +75,7 @@ export function ProjectNotes({ projectId }: ProjectNotesProps) {
 
       const { error } = await supabase.from('project_notes').insert({
         project_id: projectId,
-        user_id: user?.id,
+        user_id: workspaceUserId,
         content: content.trim() || (fileName ? `Attached: ${fileName}` : ''),
         file_url: fileUrl,
         file_name: fileName,

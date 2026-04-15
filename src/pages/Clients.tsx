@@ -41,6 +41,7 @@ import {
 } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useWorkspaceUser } from '@/hooks/useWorkspaceUser';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -60,6 +61,7 @@ interface Client {
 
 export default function Clients() {
   const { user } = useAuth();
+  const { workspaceUserId } = useWorkspaceUser();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'archived'>('all');
@@ -129,7 +131,7 @@ export default function Clients() {
   const createClient = useMutation({
     mutationFn: async (clientData: typeof formData) => {
       const { error } = await supabase.from('clients').insert({
-        user_id: user!.id,
+        user_id: workspaceUserId!,
         client_name: clientData.clientName,
         designation: clientData.designation || null,
         email: clientData.email || null,
