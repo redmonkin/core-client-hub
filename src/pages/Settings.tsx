@@ -252,7 +252,7 @@ export default function Settings() {
       } else {
         const { data: newPrefs, error: insertError } = await supabase
           .from("notification_preferences")
-          .insert({ user_id: user.id, ...defaultPreferences })
+          .insert({ user_id: workspaceUserId!, ...defaultPreferences })
           .select()
           .single();
 
