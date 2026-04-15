@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspaceUser } from "@/hooks/useWorkspaceUser";
 import { Bell, Eye, CheckCircle, XCircle, Calendar, Loader2, User, Lock, Mail, Trash2, AlertTriangle, Upload, Palette, Globe, Building2 } from "lucide-react";
+import { TeamManagement } from "@/components/settings/TeamManagement";
 
 interface BrandingSettings {
   id?: string;
@@ -1039,6 +1040,9 @@ export default function Settings() {
           ))}
         </CardContent>
       </Card>
+
+      {/* Team Management */}
+      <TeamManagement />
 
       {/* Danger Zone */}
       <Card className="border-destructive/50">
