@@ -3,9 +3,9 @@ import { cn } from '@/lib/utils';
 
 type StatusType = 
   | 'active' | 'archived' 
-  | 'proposal' | 'planned' | 'on-hold' | 'completed' | 'cancelled' | 'maintenance'
+  | 'proposal' | 'planned' | 'on-hold' | 'completed' | 'cancelled' | 'maintenance' | 'new-request'
   | 'draft' | 'sent' | 'approved' | 'rejected' | 'change_requested'
-  | 'expired' | 'pending-renewal';
+  | 'expired' | 'pending-renewal' | 'pending-review';
 
 interface StatusBadgeProps {
   status: StatusType;
