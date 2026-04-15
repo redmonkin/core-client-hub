@@ -670,6 +670,39 @@ export type Database = {
           },
         ]
       }
+      team_members: {
+        Row: {
+          created_at: string
+          id: string
+          invited_email: string
+          member_id: string | null
+          owner_id: string
+          role: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invited_email: string
+          member_id?: string | null
+          owner_id: string
+          role?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invited_email?: string
+          member_id?: string | null
+          owner_id?: string
+          role?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       templates: {
         Row: {
           content: string
@@ -851,7 +884,8 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      get_accessible_user_ids: { Args: { _user_id: string }; Returns: string[] }
+      get_owner_id: { Args: { _user_id: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never
