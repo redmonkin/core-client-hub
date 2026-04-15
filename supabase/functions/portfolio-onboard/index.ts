@@ -38,7 +38,6 @@ Deno.serve(async (req) => {
     if (existingClient) {
       clientId = existingClient.id;
     } else {
-      // Create new client
       const { data: client, error: clientError } = await supabase
         .from("clients")
         .insert({
@@ -56,7 +55,7 @@ Deno.serve(async (req) => {
       clientId = client.id;
     }
 
-    // 2. Create project linked to this client
+    // 2. Create project with "new-request" status
     const { data: project, error: projectError } = await supabase
       .from("projects")
       .insert({
@@ -64,35 +63,14 @@ Deno.serve(async (req) => {
         client_id: clientId,
         project_name: project_name || `${name}'s Project`,
         project_type: project_type || "one-time",
-        status: "proposal",
+        status: "new-request",
       })
       .select()
       .single();
 
     if (projectError) throw projectError;
 
-    // 3. Create a draft proposal so it appears on the dashboard
-    const { data: proposal, error: proposalError } = await supabase
-      .from("proposals")
-      .insert({
-        user_id,
-        client_id: clientId,
-        project_id: project.id,
-        title: project_name ? `Proposal for ${project_name}` : `Proposal for ${name}`,
-        status: "draft",
-        scope_of_work: questionnaire
-          ? Object.entries(questionnaire)
-              .filter(([, v]) => (v as string).trim())
-              .map(([q, a]) => `<p><strong>${q}</strong></p><p>${a}</p>`)
-              .join("")
-          : null,
-      })
-      .select()
-      .single();
-
-    if (proposalError) throw proposalError;
-
-    // 4. Store questionnaire answers as project notes
+    // 3. Store questionnaire answers as a project note
     if (questionnaire && Object.keys(questionnaire).length > 0) {
       const noteContent = Object.entries(questionnaire)
         .filter(([, v]) => (v as string).trim())
@@ -113,7 +91,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, client_id: clientId, project_id: project.id, proposal_id: proposal.id }),
+      JSON.stringify({ success: true, client_id: clientId, project_id: project.id }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
