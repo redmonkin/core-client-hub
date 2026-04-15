@@ -707,6 +707,9 @@ export default function Settings() {
         </CardContent>
       </Card>
 
+      {/* Team Management */}
+      <TeamManagement />
+
       {/* Password Settings */}
       <Card>
         <CardHeader>
@@ -1040,9 +1043,6 @@ export default function Settings() {
           ))}
         </CardContent>
       </Card>
-
-      {/* Team Management */}
-      <TeamManagement />
 
       {/* Danger Zone */}
       <Card className="border-destructive/50">
