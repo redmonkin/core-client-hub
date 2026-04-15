@@ -203,29 +203,6 @@ export default function Contracts() {
         to_status: variables.status || 'draft',
         note: 'Contract created',
       } as any);
-
-      const client = clients.find(c => c.id === variables.client_id);
-      if (client?.email) {
-        supabase.functions.invoke('send-notification-email', {
-          body: {
-            type: 'contract_created',
-            recipientEmail: client.email,
-            recipientName: client.primary_contact_name || client.client_name,
-            data: {
-              contractType: variables.contract_type,
-              startDate: variables.start_date,
-              endDate: variables.end_date,
-              value: computeValueFromCostBreakdown(variables.cost_breakdown),
-              renewalFrequency: variables.renewal_frequency,
-              scopeOfWork: variables.scope_of_work,
-              senderName: user?.user_metadata?.full_name || 'Your Team',
-            },
-            ccEmails: user?.email ? [user.email] : undefined,
-          },
-        }).then(res => {
-          if (res.error) console.error('Failed to send contract email:', res.error);
-        });
-      }
     },
     onError: (error) => {
       uiToast({ title: "Failed to create contract", description: error.message, variant: "destructive" });
