@@ -10,10 +10,26 @@ export function useAuth() {
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        // On sign-in, activate any pending team invitations for this email
+        if (event === 'SIGNED_IN' && session?.user) {
+          setTimeout(async () => {
+            try {
+              await supabase
+                .from('team_members')
+                .update({ member_id: session.user.id, status: 'active' } as any)
+                .eq('invited_email', session.user.email!)
+                .eq('status', 'pending')
+                .is('member_id', null);
+            } catch (e) {
+              // Silent fail — trigger will handle it on signup anyway
+            }
+          }, 0);
+        }
       }
     );
 
