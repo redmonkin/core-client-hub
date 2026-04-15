@@ -26,6 +26,7 @@ interface ProjectNotesProps {
 
 export function ProjectNotes({ projectId }: ProjectNotesProps) {
   const { user } = useAuth();
+  const { workspaceUserId } = useWorkspaceUser();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [content, setContent] = useState('');
@@ -74,7 +75,7 @@ export function ProjectNotes({ projectId }: ProjectNotesProps) {
 
       const { error } = await supabase.from('project_notes').insert({
         project_id: projectId,
-        user_id: user?.id,
+        user_id: workspaceUserId,
         content: content.trim() || (fileName ? `Attached: ${fileName}` : ''),
         file_url: fileUrl,
         file_name: fileName,

@@ -121,6 +121,7 @@ export default function Contracts() {
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
 
   const { user } = useAuth();
+  const { workspaceUserId } = useWorkspaceUser();
   const { toast: uiToast } = useToast();
   const queryClient = useQueryClient();
   const { templates } = useTemplates();
@@ -173,7 +174,7 @@ export default function Contracts() {
       const { data, error } = await supabase
         .from("contracts")
         .insert({
-          user_id: user.id,
+          user_id: workspaceUserId!,
           client_id: contractData.client_id,
           project_id: contractData.project_id || null,
           contract_type: contractData.contract_type,

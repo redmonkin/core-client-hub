@@ -58,6 +58,7 @@ const emptyEntry: TimesheetEntry = {
 
 export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
   const { user } = useAuth();
+  const { workspaceUserId } = useWorkspaceUser();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -82,7 +83,7 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
     mutationFn: async (entries: TimesheetEntry[]) => {
       const rows = entries.map(e => ({
         project_id: projectId,
-        user_id: user?.id,
+        user_id: workspaceUserId,
         task: e.task,
         owner: e.owner,
         duration: parseFloat(e.duration) || 0,

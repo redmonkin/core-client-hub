@@ -88,6 +88,7 @@ export default function Projects() {
   const [editProject, setEditProject] = useState(emptyProject);
 
   const { user } = useAuth();
+  const { workspaceUserId } = useWorkspaceUser();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -119,7 +120,7 @@ export default function Projects() {
     mutationFn: async (project: typeof newProject) => {
       const { error } = await supabase.from('projects').insert({
         ...project,
-        user_id: user?.id,
+        user_id: workspaceUserId,
         start_date: project.start_date || null,
         end_date: project.end_date || null,
       });

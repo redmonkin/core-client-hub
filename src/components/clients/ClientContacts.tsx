@@ -58,6 +58,7 @@ const emptyForm: ContactFormData = {
 
 export function ClientContacts({ clientId }: { clientId: string }) {
   const { user } = useAuth();
+  const { workspaceUserId } = useWorkspaceUser();
   const queryClient = useQueryClient();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<ClientContact | null>(null);
@@ -105,7 +106,7 @@ export function ClientContacts({ clientId }: { clientId: string }) {
           .from('client_contacts')
           .insert({
             client_id: clientId,
-            user_id: user!.id,
+            user_id: workspaceUserId!,
             name: data.name,
             email: data.email || null,
             phone: data.phone || null,

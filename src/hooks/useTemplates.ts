@@ -31,6 +31,7 @@ export interface UpdateTemplateData {
 
 export function useTemplates() {
   const { user } = useAuth();
+  const { workspaceUserId } = useWorkspaceUser();
   const queryClient = useQueryClient();
 
   const templatesQuery = useQuery({
@@ -54,7 +55,7 @@ export function useTemplates() {
       const { data, error } = await supabase
         .from('templates')
         .insert({
-          user_id: user.id,
+          user_id: workspaceUserId!,
           name: templateData.name,
           type: templateData.type,
           content: templateData.content,
@@ -131,7 +132,7 @@ export function useTemplates() {
       const { data, error } = await supabase
         .from('templates')
         .insert({
-          user_id: user.id,
+          user_id: workspaceUserId!,
           name: `${template.name} (Copy)`,
           type: template.type,
           content: template.content,

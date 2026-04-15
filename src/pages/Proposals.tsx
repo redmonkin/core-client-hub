@@ -104,6 +104,7 @@ const emptyProposal: ProposalFormData = {
 
 export default function Proposals() {
   const { user } = useAuth();
+  const { workspaceUserId } = useWorkspaceUser();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ProposalStatus | 'all'>('all');
@@ -193,7 +194,7 @@ export default function Proposals() {
           validity_date: proposal.validityDate || null,
           duration: proposal.duration || null,
           status: proposal.status,
-          user_id: user?.id,
+          user_id: workspaceUserId,
           template_id: proposal.templateId || null,
         })
         .select()
