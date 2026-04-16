@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { TimesheetImportDialog } from './TimesheetImportDialog';
 import {
   Dialog,
@@ -28,6 +29,13 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Table,
   TableBody,
   TableCell,
@@ -35,7 +43,25 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+
+const TIMESHEET_STATUSES = ['pending', 'in-progress', 'completed', 'billed'] as const;
+type TimesheetStatus = typeof TIMESHEET_STATUSES[number];
+
+const STATUS_STYLES: Record<TimesheetStatus, string> = {
+  pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+  'in-progress': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+  completed: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+  billed: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
+};
+
+const STATUS_LABELS: Record<TimesheetStatus, string> = {
+  pending: 'Pending',
+  'in-progress': 'In Progress',
+  completed: 'Completed',
+  billed: 'Billed',
+};
 
 interface ProjectTimesheetsProps {
   projectId: string;
@@ -66,6 +92,7 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [entry, setEntry] = useState<TimesheetEntry>(emptyEntry);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const { data: timesheets = [], isLoading } = useQuery({
     queryKey: ['timesheets', projectId],
@@ -120,6 +147,24 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
     },
   });
 
+  const bulkStatusMutation = useMutation({
+    mutationFn: async ({ ids, status }: { ids: string[]; status: string }) => {
+      const { error } = await supabase
+        .from('timesheets')
+        .update({ status })
+        .in('id', ids);
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['timesheets', projectId] });
+      setSelectedIds(new Set());
+      toast.success(`${variables.ids.length} entries updated to "${STATUS_LABELS[variables.status as TimesheetStatus]}"`);
+    },
+    onError: (error: any) => {
+      toast.error('Failed to update: ' + error.message);
+    },
+  });
+
   const handleSubmit = () => {
     if (!entry.task || !entry.owner || !entry.duration) {
       toast.error('Please fill in task, owner, and duration');
@@ -135,6 +180,28 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
         onError: (err) => reject(err),
       });
     });
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (selectedIds.size === timesheets.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(timesheets.map(t => t.id)));
+    }
+  };
+
+  const handleBulkStatus = (status: TimesheetStatus) => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    bulkStatusMutation.mutate({ ids, status });
   };
 
   const totalHours = timesheets.reduce((sum, t) => sum + Number(t.duration), 0);
@@ -180,28 +247,75 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
         </div>
       </div>
 
+      {/* Bulk actions bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/50 px-4 py-2">
+          <span className="text-sm font-medium text-foreground">
+            {selectedIds.size} selected
+          </span>
+          <span className="text-sm text-muted-foreground">— Update status to:</span>
+          <div className="flex gap-1.5">
+            {TIMESHEET_STATUSES.map(status => (
+              <Button
+                key={status}
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs"
+                disabled={bulkStatusMutation.isPending}
+                onClick={() => handleBulkStatus(status)}
+              >
+                {STATUS_LABELS[status]}
+              </Button>
+            ))}
+          </div>
+          {bulkStatusMutation.isPending && (
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          )}
+        </div>
+      )}
+
       {/* Timesheets Table */}
       {timesheets.length > 0 ? (
         <div className="rounded-xl border border-border overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/40 hover:bg-muted/40">
+                <TableHead className="w-10">
+                  <Checkbox
+                    checked={timesheets.length > 0 && selectedIds.size === timesheets.length}
+                    onCheckedChange={toggleAll}
+                    aria-label="Select all"
+                  />
+                </TableHead>
                 <TableHead className="font-semibold">Task</TableHead>
                 <TableHead className="font-semibold">Owner</TableHead>
                 <TableHead className="font-semibold">Duration (hrs)</TableHead>
                 <TableHead className="font-semibold">Date</TableHead>
+                <TableHead className="font-semibold">Status</TableHead>
                 <TableHead className="font-semibold">Notes</TableHead>
                 <TableHead className="w-12" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {timesheets.map(ts => (
-                <TableRow key={ts.id} className="group">
+                <TableRow key={ts.id} className="group" data-state={selectedIds.has(ts.id) ? 'selected' : undefined}>
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedIds.has(ts.id)}
+                      onCheckedChange={() => toggleSelect(ts.id)}
+                      aria-label={`Select ${ts.task}`}
+                    />
+                  </TableCell>
                   <TableCell className="font-medium text-foreground">{ts.task}</TableCell>
                   <TableCell className="text-muted-foreground">{ts.owner}</TableCell>
                   <TableCell className="text-muted-foreground">{Number(ts.duration).toFixed(1)}</TableCell>
                   <TableCell className="text-muted-foreground">
                     {format(new Date(ts.date), 'MMM dd, yyyy')}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary" className={`text-xs ${STATUS_STYLES[(ts.status as TimesheetStatus) || 'pending']}`}>
+                      {STATUS_LABELS[(ts.status as TimesheetStatus) || 'pending']}
+                    </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground max-w-[200px] truncate">
                     {ts.notes || '—'}
