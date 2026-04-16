@@ -63,9 +63,9 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [entry, setEntry] = useState<TimesheetEntry>(emptyEntry);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [isImporting, setIsImporting] = useState(false);
 
   const { data: timesheets = [], isLoading } = useQuery({
     queryKey: ['timesheets', projectId],
