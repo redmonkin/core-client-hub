@@ -248,7 +248,7 @@ export function TimesheetImportDialog({ open, onOpenChange, onImport }: Timeshee
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>
             {step === 'upload' && 'Import Timesheet'}
@@ -310,8 +310,8 @@ export function TimesheetImportDialog({ open, onOpenChange, onImport }: Timeshee
             <ScrollArea className="max-h-[300px]">
               <div className="space-y-3">
                 {headers.map(header => (
-                  <div key={header} className="flex items-center gap-3">
-                    <div className="flex-1 min-w-0">
+                  <div key={header} className="grid grid-cols-[1fr_auto_140px] items-center gap-2">
+                    <div className="min-w-0">
                       <p className="text-sm font-medium truncate">{header}</p>
                       <p className="text-xs text-muted-foreground truncate">
                         e.g. {String(rawRows[0]?.[header] ?? '—')}
@@ -324,7 +324,7 @@ export function TimesheetImportDialog({ open, onOpenChange, onImport }: Timeshee
                         setMapping(prev => ({ ...prev, [header]: val === '_skip' ? '' : val as FieldName }))
                       }
                     >
-                      <SelectTrigger className="w-[160px]">
+                      <SelectTrigger className="w-full">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
