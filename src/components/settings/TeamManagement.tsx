@@ -72,10 +72,23 @@ export function TeamManagement() {
         throw error;
       }
     },
-    onSuccess: () => {
+    onSuccess: (_: void, email: string) => {
       queryClient.invalidateQueries({ queryKey: ['team-members'] });
       setInviteEmail('');
       toast.success('Team member invited successfully');
+
+      // Send invitation email
+      supabase.functions.invoke('send-notification-email', {
+        body: {
+          type: 'team_invite',
+          recipientEmail: email.trim().toLowerCase(),
+          recipientName: '',
+          data: {
+            inviterName: user?.email || 'Your team',
+            appUrl: window.location.origin,
+          },
+        },
+      }).catch((err) => console.error('Failed to send invite email:', err));
     },
     onError: (error) => {
       toast.error(error.message);
