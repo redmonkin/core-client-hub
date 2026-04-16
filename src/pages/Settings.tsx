@@ -63,7 +63,7 @@ const defaultPreferences: NotificationPreferences = {
 export default function Settings() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { workspaceUserId } = useWorkspaceUser();
+  const { workspaceUserId, loading: workspaceLoading } = useWorkspaceUser();
   const [preferences, setPreferences] = useState<NotificationPreferences>(defaultPreferences);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -92,23 +92,23 @@ export default function Settings() {
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    if (!user || workspaceLoading || !workspaceUserId) return;
+
     fetchPreferences();
     fetchBranding();
-    if (user) {
-      setFullName(user.user_metadata?.full_name || "");
-      setAvatarUrl(user.user_metadata?.avatar_url || null);
-    }
-  }, [user]);
+    setFullName(user.user_metadata?.full_name || "");
+    setAvatarUrl(user.user_metadata?.avatar_url || null);
+  }, [user, workspaceLoading, workspaceUserId]);
 
   const fetchBranding = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user || !workspaceUserId) return;
 
       const { data, error } = await supabase
         .from("branding_settings")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", workspaceUserId)
         .maybeSingle();
 
       if (error) throw error;
@@ -579,7 +579,7 @@ export default function Settings() {
     },
   ];
 
-  if (loading) {
+  if (loading || workspaceLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
