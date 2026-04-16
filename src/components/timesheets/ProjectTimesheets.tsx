@@ -61,7 +61,7 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
   const { user } = useAuth();
   const { workspaceUserId } = useWorkspaceUser();
   const queryClient = useQueryClient();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [entry, setEntry] = useState<TimesheetEntry>(emptyEntry);
