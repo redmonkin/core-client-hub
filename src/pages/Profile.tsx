@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,12 +8,39 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { Switch } from "@/components/ui/switch";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, User, Building2, Phone, Briefcase, Mail, Upload, Trash2, Camera, CheckCircle2, Circle, Link, Copy } from "lucide-react";
+import { Loader2, User, Building2, Phone, Briefcase, Mail, Upload, Trash2, Camera, CheckCircle2, Circle, Link, Copy, Lock, Bell, Eye, CheckCircle, XCircle, Calendar, AlertTriangle } from "lucide-react";
+
+interface NotificationPreferences {
+  id?: string;
+  proposal_viewed: boolean;
+  proposal_approved: boolean;
+  proposal_rejected: boolean;
+  contract_renewal: boolean;
+}
+
+const defaultPreferences: NotificationPreferences = {
+  proposal_viewed: true,
+  proposal_approved: true,
+  proposal_rejected: true,
+  contract_renewal: true,
+};
 
 export default function Profile() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -28,6 +56,20 @@ export default function Profile() {
   const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
+  // Password state
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [savingPassword, setSavingPassword] = useState(false);
+
+  // Notification state
+  const [preferences, setPreferences] = useState<NotificationPreferences>(defaultPreferences);
+  const [loadingPrefs, setLoadingPrefs] = useState(true);
+  const [savingPref, setSavingPref] = useState(false);
+
+  // Delete account state
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
   useEffect(() => {
     if (user) {
       setFullName(user.user_metadata?.full_name || "");
@@ -37,8 +79,67 @@ export default function Profile() {
       setBio(user.user_metadata?.bio || "");
       setAvatarUrl(user.user_metadata?.avatar_url || null);
       setLoading(false);
+      fetchPreferences();
     }
   }, [user]);
+
+  const fetchPreferences = async () => {
+    try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) return;
+
+      const { data, error } = await supabase
+        .from("notification_preferences")
+        .select("*")
+        .eq("user_id", currentUser.id)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        setPreferences(data);
+      } else {
+        const { data: newPrefs, error: insertError } = await supabase
+          .from("notification_preferences")
+          .insert({ user_id: currentUser.id, ...defaultPreferences })
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+        if (newPrefs) setPreferences(newPrefs);
+      }
+    } catch (error) {
+      console.error("Error fetching preferences:", error);
+    } finally {
+      setLoadingPrefs(false);
+    }
+  };
+
+  const updatePreference = async (key: keyof NotificationPreferences, value: boolean) => {
+    setSavingPref(true);
+    const newPreferences = { ...preferences, [key]: value };
+    setPreferences(newPreferences);
+
+    try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) return;
+
+      const { error } = await supabase
+        .from("notification_preferences")
+        .update({ [key]: value })
+        .eq("user_id", currentUser.id);
+
+      if (error) throw error;
+
+      toast({ title: "Saved", description: "Notification preference updated" });
+    } catch (error) {
+      console.error("Error updating preference:", error);
+      setPreferences(preferences);
+      toast({ title: "Error", description: "Failed to update preference", variant: "destructive" });
+    } finally {
+      setSavingPref(false);
+    }
+  };
 
   const profileFields = useMemo(() => [
     { key: 'avatar', label: 'Profile Photo', filled: !!avatarUrl },
@@ -74,20 +175,12 @@ export default function Profile() {
     if (!file || !user) return;
 
     if (!file.type.startsWith("image/")) {
-      toast({
-        title: "Error",
-        description: "Please upload an image file",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Please upload an image file", variant: "destructive" });
       return;
     }
 
     if (file.size > 2 * 1024 * 1024) {
-      toast({
-        title: "Error",
-        description: "Image must be less than 2MB",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Image must be less than 2MB", variant: "destructive" });
       return;
     }
 
@@ -118,22 +211,13 @@ export default function Profile() {
 
       setAvatarUrl(avatarUrlWithCache);
 
-      toast({
-        title: "Avatar Updated",
-        description: "Your profile picture has been updated",
-      });
+      toast({ title: "Avatar Updated", description: "Your profile picture has been updated" });
     } catch (error: any) {
       console.error("Error uploading avatar:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to upload avatar",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message || "Failed to upload avatar", variant: "destructive" });
     } finally {
       setUploadingAvatar(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -160,17 +244,10 @@ export default function Profile() {
 
       setAvatarUrl(null);
 
-      toast({
-        title: "Avatar Removed",
-        description: "Your profile picture has been removed",
-      });
+      toast({ title: "Avatar Removed", description: "Your profile picture has been removed" });
     } catch (error: any) {
       console.error("Error removing avatar:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to remove avatar",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message || "Failed to remove avatar", variant: "destructive" });
     } finally {
       setUploadingAvatar(false);
     }
@@ -193,21 +270,107 @@ export default function Profile() {
 
       if (error) throw error;
 
-      toast({
-        title: "Profile Updated",
-        description: "Your profile has been saved successfully",
-      });
+      toast({ title: "Profile Updated", description: "Your profile has been saved successfully" });
     } catch (error: any) {
       console.error("Error updating profile:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update profile",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message || "Failed to update profile", variant: "destructive" });
     } finally {
       setSaving(false);
     }
   };
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (newPassword !== confirmPassword) {
+      toast({ title: "Error", description: "New passwords do not match", variant: "destructive" });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast({ title: "Error", description: "Password must be at least 6 characters", variant: "destructive" });
+      return;
+    }
+
+    setSavingPassword(true);
+
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+
+      if (error) throw error;
+
+      setNewPassword("");
+      setConfirmPassword("");
+
+      toast({ title: "Password Updated", description: "Your password has been changed successfully" });
+    } catch (error: any) {
+      console.error("Error updating password:", error);
+      toast({ title: "Error", description: error.message || "Failed to update password", variant: "destructive" });
+    } finally {
+      setSavingPassword(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmation !== "DELETE") {
+      toast({ title: "Error", description: "Please type DELETE to confirm", variant: "destructive" });
+      return;
+    }
+
+    setDeleting(true);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      const response = await supabase.functions.invoke("delete-account", {
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || "Failed to delete account");
+      }
+
+      toast({ title: "Account Deleted", description: "Your account has been permanently deleted" });
+
+      await supabase.auth.signOut();
+      navigate("/");
+    } catch (error: any) {
+      console.error("Error deleting account:", error);
+      toast({ title: "Error", description: error.message || "Failed to delete account", variant: "destructive" });
+    } finally {
+      setDeleting(false);
+      setDeleteConfirmation("");
+    }
+  };
+
+  const notificationOptions = [
+    {
+      key: "proposal_viewed" as const,
+      label: "Proposal Viewed",
+      description: "Get notified when a client views your proposal",
+      icon: Eye,
+    },
+    {
+      key: "proposal_approved" as const,
+      label: "Proposal Approved",
+      description: "Get notified when a client approves your proposal",
+      icon: CheckCircle,
+    },
+    {
+      key: "proposal_rejected" as const,
+      label: "Proposal Rejected",
+      description: "Get notified when a client rejects your proposal",
+      icon: XCircle,
+    },
+    {
+      key: "contract_renewal" as const,
+      label: "Contract Renewal",
+      description: "Get reminded about upcoming contract renewals",
+      icon: Calendar,
+    },
+  ];
 
   if (loading) {
     return (
@@ -221,7 +384,7 @@ export default function Profile() {
     <div className="space-y-6 p-8">
       <PageHeader
         title="Profile"
-        description="View and edit your profile information"
+        description="Manage your personal profile, security, and notification preferences"
       />
 
       {/* Profile Completeness */}
@@ -473,6 +636,184 @@ export default function Profile() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Change Password */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Lock className="h-5 w-5 text-primary" />
+            <CardTitle>Change Password</CardTitle>
+          </div>
+          <CardDescription>
+            Update your password to keep your account secure
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleUpdatePassword} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">New Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="newPassword"
+                  type="password"
+                  placeholder="Enter new password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="pl-10"
+                  required
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm New Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="Confirm new password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="pl-10"
+                  required
+                />
+              </div>
+            </div>
+            <Button type="submit" disabled={savingPassword}>
+              {savingPassword ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                "Update Password"
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Notification Preferences */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Bell className="h-5 w-5 text-primary" />
+            <CardTitle>Notification Preferences</CardTitle>
+          </div>
+          <CardDescription>
+            Choose which notifications you want to receive
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {notificationOptions.map((option) => (
+            <div
+              key={option.key}
+              className="flex items-center justify-between space-x-4 py-3 border-b border-border last:border-0"
+            >
+              <div className="flex items-start gap-3">
+                <option.icon className="h-5 w-5 text-muted-foreground mt-0.5" />
+                <div className="space-y-1">
+                  <Label htmlFor={option.key} className="text-base font-medium">
+                    {option.label}
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    {option.description}
+                  </p>
+                </div>
+              </div>
+              <Switch
+                id={option.key}
+                checked={preferences[option.key]}
+                onCheckedChange={(checked) => updatePreference(option.key, checked)}
+                disabled={savingPref}
+              />
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      {/* Danger Zone */}
+      <Card className="border-destructive/50">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-destructive" />
+            <CardTitle className="text-destructive">Danger Zone</CardTitle>
+          </div>
+          <CardDescription>
+            Irreversible and destructive actions
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="font-medium text-foreground">Delete Account</p>
+              <p className="text-sm text-muted-foreground">
+                Permanently delete your account and all associated data. This action cannot be undone.
+              </p>
+            </div>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" className="gap-2">
+                  <Trash2 className="h-4 w-4" />
+                  Delete Account
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-destructive" />
+                    Delete Account
+                  </AlertDialogTitle>
+                  <AlertDialogDescription className="space-y-3">
+                    <p>
+                      This action is <strong>permanent and irreversible</strong>. All your data will be deleted, including:
+                    </p>
+                    <ul className="list-disc list-inside space-y-1 text-sm">
+                      <li>All clients and their information</li>
+                      <li>All projects and proposals</li>
+                      <li>All contracts and documents</li>
+                      <li>Your account and profile data</li>
+                    </ul>
+                    <div className="pt-2">
+                      <Label htmlFor="deleteConfirm" className="text-foreground">
+                        Type <strong>DELETE</strong> to confirm:
+                      </Label>
+                      <Input
+                        id="deleteConfirm"
+                        type="text"
+                        placeholder="DELETE"
+                        value={deleteConfirmation}
+                        onChange={(e) => setDeleteConfirmation(e.target.value)}
+                        className="mt-2"
+                      />
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setDeleteConfirmation("")}>
+                    Cancel
+                  </AlertDialogCancel>
+                  <Button
+                    variant="destructive"
+                    onClick={handleDeleteAccount}
+                    disabled={deleteConfirmation !== "DELETE" || deleting}
+                  >
+                    {deleting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Deleting...
+                      </>
+                    ) : (
+                      "Delete My Account"
+                    )}
+                  </Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
