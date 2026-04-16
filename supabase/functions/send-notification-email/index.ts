@@ -19,7 +19,8 @@ interface NotificationEmailRequest {
     | "proposal_rejected"
     | "proposal_change_requested"
     | "contract_created"
-    | "contract_sent";
+    | "contract_sent"
+    | "team_invite";
   recipientEmail: string;
   recipientName: string;
   data: Record<string, any>;
