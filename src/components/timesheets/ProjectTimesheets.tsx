@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Plus, Upload, Trash2, Clock, Loader2, FileSpreadsheet } from 'lucide-react';
 import { format } from 'date-fns';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -128,75 +128,13 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
     createMutation.mutate([entry]);
   };
 
-  const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsImporting(true);
-    try {
-      const XLSX = await import('xlsx');
-      const buffer = await file.arrayBuffer();
-      const workbook = XLSX.read(buffer, { type: 'array' });
-      const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
-      const rows = XLSX.utils.sheet_to_json<Record<string, any>>(sheet);
-
-      if (rows.length === 0) {
-        toast.error('No data found in file');
-        return;
-      }
-
-      // Map columns flexibly (case-insensitive)
-      const entries: TimesheetEntry[] = rows
-        .map(row => {
-          const keys = Object.keys(row);
-          const find = (names: string[]) => {
-            const key = keys.find(k => names.includes(k.toLowerCase().trim()));
-            return key ? String(row[key]).trim() : '';
-          };
-
-          const task = find(['task', 'task name', 'taskname', 'description']);
-          const owner = find(['owner', 'assignee', 'assigned to', 'name', 'member']);
-          const durationRaw = find(['duration', 'hours', 'time', 'hrs']);
-          const dateRaw = find(['date', 'day', 'entry date']);
-          const notes = find(['notes', 'note', 'remarks', 'comment', 'comments']);
-
-          // Parse date - handle Excel serial numbers
-          let date = new Date().toISOString().split('T')[0];
-          if (dateRaw) {
-            const num = Number(dateRaw);
-            if (!isNaN(num) && num > 30000) {
-              // Excel serial date
-              const d = new Date((num - 25569) * 86400 * 1000);
-              date = d.toISOString().split('T')[0];
-            } else {
-              const parsed = new Date(dateRaw);
-              if (!isNaN(parsed.getTime())) {
-                date = parsed.toISOString().split('T')[0];
-              }
-            }
-          }
-
-          return { task, owner, duration: durationRaw, date, notes };
-        })
-        .filter(e => e.task && e.owner && parseFloat(e.duration) > 0);
-
-      if (entries.length === 0) {
-        toast.error('No valid entries found. Ensure columns: Task, Owner, Duration, Date');
-        return;
-      }
-
+  const handleBulkImport = async (entries: TimesheetEntry[]) => {
+    await new Promise<void>((resolve, reject) => {
       createMutation.mutate(entries, {
-        onSuccess: () => {
-          toast.success(`${entries.length} entries imported successfully`);
-        },
+        onSuccess: () => resolve(),
+        onError: (err) => reject(err),
       });
-    } catch (error: any) {
-      toast.error('Failed to parse file: ' + error.message);
-    } finally {
-      setIsImporting(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
+    });
   };
 
   const totalHours = timesheets.reduce((sum, t) => sum + Number(t.duration), 0);
@@ -227,24 +165,12 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
           </div>
         </div>
         <div className="flex gap-2">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".csv,.xlsx,.xls"
-            className="hidden"
-            onChange={handleFileImport}
-          />
           <Button
             variant="outline"
             size="sm"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isImporting}
+            onClick={() => setIsImportOpen(true)}
           >
-            {isImporting ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Upload className="mr-2 h-4 w-4" />
-            )}
+            <Upload className="mr-2 h-4 w-4" />
             Import CSV/Excel
           </Button>
           <Button size="sm" onClick={() => setIsAddOpen(true)}>
@@ -306,7 +232,7 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
               Add entries manually or import from CSV/Excel
             </p>
             <div className="mt-4 flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+              <Button variant="outline" size="sm" onClick={() => setIsImportOpen(true)}>
                 <Upload className="mr-2 h-4 w-4" />
                 Import File
               </Button>
