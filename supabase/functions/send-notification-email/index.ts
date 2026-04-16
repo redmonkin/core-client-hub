@@ -19,7 +19,8 @@ interface NotificationEmailRequest {
     | "proposal_rejected"
     | "proposal_change_requested"
     | "contract_created"
-    | "contract_sent";
+    | "contract_sent"
+    | "team_invite";
   recipientEmail: string;
   recipientName: string;
   data: Record<string, any>;
@@ -233,6 +234,44 @@ function buildContractEmail(
   };
 }
 
+function buildTeamInviteEmail(
+  recipientName: string,
+  data: Record<string, any>
+): { subject: string; html: string } {
+  const inviterName = escapeHtml(data.inviterName || data.senderCompany || "Your team");
+  const appUrl = escapeHtml(data.appUrl || "");
+
+  return {
+    subject: `🤝 You've been invited to join ${inviterName}'s workspace`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f3f4f6;">
+          <div style="background: #0284C5; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+            <div style="font-size: 48px; margin-bottom: 8px;">🤝</div>
+            <h1 style="color: white; margin: 0; font-size: 24px;">Team Invitation</h1>
+          </div>
+          <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
+            <p style="margin-top: 0;">Hi${recipientName ? ` ${escapeHtml(recipientName)}` : ""},</p>
+            <p><strong>${inviterName}</strong> has invited you to join their workspace on Clientra.</p>
+            <p>Once you sign up or log in with this email address, you'll automatically get access to their workspace data including clients, projects, proposals, and contracts.</p>
+            ${appUrl ? `
+            <div style="text-align: center; margin: 28px 0;">
+              <a href="${appUrl}" style="display: inline-block; background-color: #0284C5; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 600; padding: 14px 32px; border-radius: 8px;">Get Started →</a>
+            </div>
+            ` : ""}
+            <p style="color: #6b7280; font-size: 14px; margin-bottom: 0;">If you weren't expecting this invitation, you can safely ignore this email.</p>
+          </div>
+          <div style="text-align: center; padding: 20px; color: #9ca3af; font-size: 12px;">
+            <p style="margin: 0;">Sent via Clientra</p>
+          </div>
+        </body>
+      </html>
+    `,
+  };
+}
+
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -274,6 +313,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (type === "contract_created" || type === "contract_sent") {
       emailContent = buildContractEmail(recipientName, data);
+    } else if (type === "team_invite") {
+      emailContent = buildTeamInviteEmail(recipientName, data);
     } else {
       emailContent = buildProposalStatusEmail(type, recipientName, data);
     }
