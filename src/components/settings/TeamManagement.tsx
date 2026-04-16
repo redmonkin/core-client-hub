@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Users, Plus, Trash2, Loader2, Mail, Shield } from 'lucide-react';
+import { Users, Plus, Trash2, Loader2, Mail, Shield, Copy, Check, Link2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +36,7 @@ export function TeamManagement() {
   const queryClient = useQueryClient();
   const [inviteEmail, setInviteEmail] = useState('');
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const isRoleLoading = authLoading || workspaceLoading;
 
   const { data: teamMembers = [], isLoading } = useQuery({
@@ -116,6 +117,22 @@ export function TeamManagement() {
   const handleInvite = (e: React.FormEvent) => {
     e.preventDefault();
     inviteMutation.mutate(inviteEmail);
+  };
+
+  const generateInviteLink = (memberId: string) => {
+    return `${window.location.origin}/auth?invite=${memberId}`;
+  };
+
+  const copyInviteLink = async (member: TeamMember) => {
+    const link = generateInviteLink(member.id);
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopiedId(member.id);
+      toast.success('Invite link copied to clipboard');
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      toast.error('Failed to copy link');
+    }
   };
 
   if (isRoleLoading) {
@@ -222,6 +239,19 @@ export function TeamManagement() {
                   >
                     {member.status}
                   </Badge>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => copyInviteLink(member)}
+                    title="Copy invite link"
+                  >
+                    {copiedId === member.id ? (
+                      <Check className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <Link2 className="h-4 w-4" />
+                    )}
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"
