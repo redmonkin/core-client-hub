@@ -335,6 +335,13 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Import Dialog */}
+      <TimesheetImportDialog
+        open={isImportOpen}
+        onOpenChange={setIsImportOpen}
+        onImport={handleBulkImport}
+      />
     </div>
   );
 }
