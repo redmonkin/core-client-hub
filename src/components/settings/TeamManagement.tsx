@@ -31,11 +31,12 @@ interface TeamMember {
 }
 
 export function TeamManagement() {
-  const { user } = useAuth();
-  const { isTeamMember } = useWorkspaceUser();
+  const { user, loading: authLoading } = useAuth();
+  const { isTeamMember, loading: workspaceLoading } = useWorkspaceUser();
   const queryClient = useQueryClient();
   const [inviteEmail, setInviteEmail] = useState('');
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const isRoleLoading = authLoading || workspaceLoading;
 
   const { data: teamMembers = [], isLoading } = useQuery({
     queryKey: ['team-members'],
@@ -48,7 +49,7 @@ export function TeamManagement() {
       if (error) throw error;
       return data as TeamMember[];
     },
-    enabled: !!user && !isTeamMember,
+    enabled: !!user && !isTeamMember && !isRoleLoading,
   });
 
   const inviteMutation = useMutation({
@@ -103,6 +104,25 @@ export function TeamManagement() {
     e.preventDefault();
     inviteMutation.mutate(inviteEmail);
   };
+
+  if (isRoleLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Users className="h-5 w-5 text-primary" />
+            <CardTitle>Team Management</CardTitle>
+          </div>
+          <CardDescription>
+            Loading team settings...
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
 
   // Team members can't manage the team
   if (isTeamMember) {
