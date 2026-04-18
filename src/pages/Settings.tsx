@@ -20,6 +20,7 @@ interface BrandingSettings {
   tagline: string;
   website_url: string;
   support_email: string;
+  slug: string;
 }
 
 const defaultBranding: BrandingSettings = {
@@ -30,6 +31,7 @@ const defaultBranding: BrandingSettings = {
   tagline: "",
   website_url: "",
   support_email: "",
+  slug: "",
 };
 
 export default function Settings() {
@@ -71,6 +73,7 @@ export default function Settings() {
           tagline: data.tagline || "",
           website_url: data.website_url || "",
           support_email: data.support_email || "",
+          slug: ((data as any).slug as string) || "",
         });
       }
     } catch (error) {
@@ -136,7 +139,7 @@ export default function Settings() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const brandingData = {
+      const brandingData: any = {
         user_id: workspaceUserId!,
         company_name: branding.company_name || null,
         company_logo_url: branding.company_logo_url || null,
@@ -145,6 +148,7 @@ export default function Settings() {
         tagline: branding.tagline || null,
         website_url: branding.website_url || null,
         support_email: branding.support_email || null,
+        slug: branding.slug ? branding.slug.trim().toLowerCase() : null,
       };
 
       const { error } = await supabase
