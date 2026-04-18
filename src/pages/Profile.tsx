@@ -57,6 +57,7 @@ export default function Profile() {
   const [phone, setPhone] = useState("");
   const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [portfolioSlug, setPortfolioSlug] = useState<string>("");
 
   // Password state
   const [newPassword, setNewPassword] = useState("");
@@ -84,6 +85,18 @@ export default function Profile() {
       fetchPreferences();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (!workspaceUserId) return;
+    (async () => {
+      const { data } = await supabase
+        .from("branding_settings")
+        .select("slug" as any)
+        .eq("user_id", workspaceUserId)
+        .maybeSingle();
+      setPortfolioSlug(((data as any)?.slug as string) || "");
+    })();
+  }, [workspaceUserId]);
 
   const fetchPreferences = async () => {
     try {
@@ -495,33 +508,42 @@ export default function Profile() {
             </p>
 
             {/* Public Portfolio Link */}
-            {workspaceUserId && (
-              <div className="mt-4 pt-4 border-t border-border">
-                <Label className="text-xs text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-                  <Link className="h-3.5 w-3.5" />
-                  Public Portfolio
-                </Label>
-                <div className="mt-2 flex items-center gap-2">
-                  <Input
-                    readOnly
-                    value={`${window.location.origin}/portfolio/${workspaceUserId}`}
-                    className="text-xs h-8 bg-muted"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="shrink-0 h-8 px-2"
-                    onClick={() => {
-                      navigator.clipboard.writeText(`${window.location.origin}/portfolio/${workspaceUserId}`);
-                      toast({ title: "Copied!", description: "Portfolio link copied to clipboard" });
-                    }}
-                  >
-                    <Copy className="h-3.5 w-3.5" />
-                  </Button>
+            {workspaceUserId && (() => {
+              const portfolioPath = portfolioSlug || workspaceUserId;
+              const portfolioUrl = `${window.location.origin}/portfolio/${portfolioPath}`;
+              return (
+                <div className="mt-4 pt-4 border-t border-border">
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                    <Link className="h-3.5 w-3.5" />
+                    Public Portfolio
+                  </Label>
+                  <div className="mt-2 flex items-center gap-2">
+                    <Input
+                      readOnly
+                      value={portfolioUrl}
+                      className="text-xs h-8 bg-muted"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0 h-8 px-2"
+                      onClick={() => {
+                        navigator.clipboard.writeText(portfolioUrl);
+                        toast({ title: "Copied!", description: "Portfolio link copied to clipboard" });
+                      }}
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                  {!portfolioSlug && (
+                    <p className="mt-1.5 text-[11px] text-muted-foreground">
+                      Set a custom slug in Workspace Settings → Branding for a cleaner URL.
+                    </p>
+                  )}
                 </div>
-              </div>
-            )}
+              );
+            })()}
             <input
               ref={fileInputRef}
               type="file"

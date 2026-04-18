@@ -20,6 +20,7 @@ interface BrandingSettings {
   tagline: string;
   website_url: string;
   support_email: string;
+  slug: string;
 }
 
 const defaultBranding: BrandingSettings = {
@@ -30,6 +31,7 @@ const defaultBranding: BrandingSettings = {
   tagline: "",
   website_url: "",
   support_email: "",
+  slug: "",
 };
 
 export default function Settings() {
@@ -71,6 +73,7 @@ export default function Settings() {
           tagline: data.tagline || "",
           website_url: data.website_url || "",
           support_email: data.support_email || "",
+          slug: ((data as any).slug as string) || "",
         });
       }
     } catch (error) {
@@ -136,7 +139,7 @@ export default function Settings() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const brandingData = {
+      const brandingData: any = {
         user_id: workspaceUserId!,
         company_name: branding.company_name || null,
         company_logo_url: branding.company_logo_url || null,
@@ -145,6 +148,7 @@ export default function Settings() {
         tagline: branding.tagline || null,
         website_url: branding.website_url || null,
         support_email: branding.support_email || null,
+        slug: branding.slug ? branding.slug.trim().toLowerCase() : null,
       };
 
       const { error } = await supabase
@@ -386,34 +390,68 @@ export default function Settings() {
               )}
             </Button>
 
-            {/* Portfolio Link */}
-            {workspaceUserId && (
-              <div className="mt-4 rounded-lg border border-border bg-muted/30 p-4">
-                <Label className="text-xs text-muted-foreground uppercase tracking-wide">Public Portfolio Link</Label>
-                <div className="mt-2 flex items-center gap-2">
-                  <Input
-                    readOnly
-                    value={`${window.location.origin}/portfolio/${workspaceUserId}`}
-                    className="text-sm bg-background"
-                    onClick={(e) => (e.target as HTMLInputElement).select()}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      navigator.clipboard.writeText(`${window.location.origin}/portfolio/${workspaceUserId}`);
-                      toast({ title: "Copied!", description: "Portfolio link copied to clipboard" });
-                    }}
-                  >
-                    Copy
-                  </Button>
+            {/* Portfolio Link & Slug */}
+            {workspaceUserId && (() => {
+              const slugValue = (branding.slug || "").trim().toLowerCase();
+              const portfolioPath = slugValue || workspaceUserId;
+              const portfolioUrl = `${window.location.origin}/portfolio/${portfolioPath}`;
+              return (
+                <div className="mt-4 rounded-lg border border-border bg-muted/30 p-4 space-y-3">
+                  <div>
+                    <Label htmlFor="portfolioSlug" className="text-xs text-muted-foreground uppercase tracking-wide">
+                      Portfolio URL Slug
+                    </Label>
+                    <div className="mt-2 flex items-center gap-0">
+                      <span className="inline-flex items-center h-10 px-3 rounded-l-md border border-r-0 border-input bg-muted text-sm text-muted-foreground whitespace-nowrap">
+                        {window.location.origin.replace(/^https?:\/\//, "")}/portfolio/
+                      </span>
+                      <Input
+                        id="portfolioSlug"
+                        value={branding.slug}
+                        onChange={(e) =>
+                          setBranding(prev => ({
+                            ...prev,
+                            slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""),
+                          }))
+                        }
+                        placeholder="your-brand"
+                        maxLength={40}
+                        className="rounded-l-none"
+                      />
+                    </div>
+                    <p className="mt-1.5 text-xs text-muted-foreground">
+                      3–40 lowercase letters, numbers or hyphens. Save branding to apply.
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs text-muted-foreground uppercase tracking-wide">Public Portfolio Link</Label>
+                    <div className="mt-2 flex items-center gap-2">
+                      <Input
+                        readOnly
+                        value={portfolioUrl}
+                        className="text-sm bg-background"
+                        onClick={(e) => (e.target as HTMLInputElement).select()}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          navigator.clipboard.writeText(portfolioUrl);
+                          toast({ title: "Copied!", description: "Portfolio link copied to clipboard" });
+                        }}
+                      >
+                        Copy
+                      </Button>
+                    </div>
+                    <p className="mt-1.5 text-xs text-muted-foreground">
+                      Share this link so clients can view your portfolio and request proposals.
+                    </p>
+                  </div>
                 </div>
-                <p className="mt-1.5 text-xs text-muted-foreground">
-                  Share this link so clients can view your portfolio and request proposals.
-                </p>
-              </div>
-            )}
+              );
+            })()}
           </form>
         </CardContent>
       </Card>

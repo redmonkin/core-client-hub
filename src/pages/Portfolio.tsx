@@ -57,8 +57,10 @@ function getStoragePublicUrl(path: string) {
   return `${SUPABASE_URL}/storage/v1/object/public/project-files/${path}`;
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export default function Portfolio() {
-  const { userId } = useParams();
+  const { userId: routeParam } = useParams();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [step, setStep] = useState<'details' | 'questionnaire' | 'success'>('details');
   const [submitting, setSubmitting] = useState(false);
@@ -84,16 +86,20 @@ export default function Portfolio() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: branding } = useQuery({
-    queryKey: ['portfolio-branding', userId],
+    queryKey: ['portfolio-branding', routeParam],
     queryFn: async () => {
-      const { data, error } = await supabase
+      if (!routeParam) return null;
+      const isUuid = UUID_RE.test(routeParam);
+      const query = supabase
         .from('public_portfolio_branding' as any)
-        .select('user_id, company_name, company_logo_url, tagline, primary_color, accent_color, website_url, support_email')
-        .eq('user_id', userId!)
-        .maybeSingle();
+        .select('user_id, slug, company_name, company_logo_url, tagline, primary_color, accent_color, website_url, support_email');
+      const { data, error } = isUuid
+        ? await query.eq('user_id', routeParam).maybeSingle()
+        : await query.eq('slug', routeParam.toLowerCase()).maybeSingle();
       if (error) throw error;
       return data as unknown as {
         user_id: string;
+        slug: string | null;
         company_name: string | null;
         company_logo_url: string | null;
         tagline: string | null;
@@ -103,8 +109,11 @@ export default function Portfolio() {
         support_email: string | null;
       } | null;
     },
-    enabled: !!userId,
+    enabled: !!routeParam,
   });
+
+  // Resolved owner user_id (used for projects + onboarding edge function)
+  const userId = branding?.user_id;
 
   const { data: featuredProjects = [] } = useQuery({
     queryKey: ['portfolio-projects', userId],
