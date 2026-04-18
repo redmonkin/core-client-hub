@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,8 +10,38 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Globe, Building2, Send, CheckCircle, Loader2, Image as ImageIcon, Mail } from 'lucide-react';
+import { Globe, Building2, Send, CheckCircle, Loader2, Image as ImageIcon, Mail, Paperclip, X } from 'lucide-react';
 import { toast } from 'sonner';
+
+const BUDGET_OPTIONS = [
+  { value: '10k-25k', label: '₹10,000 – ₹25,000' },
+  { value: '25k-50k', label: '₹25,000 – ₹50,000' },
+  { value: '50k-100k', label: '₹50,000 – ₹1,00,000' },
+  { value: '100k-300k', label: '₹1,00,000 – ₹3,00,000' },
+  { value: '300k+', label: '₹3,00,000+' },
+];
+
+const REFERRAL_OPTIONS = ['Friends', 'Co-Worker', 'At an Event', 'Social Media', 'Others'];
+
+const MAX_FILE_MB = 5;
+const ALLOWED_MIME = [
+  'image/png', 'image/jpeg', 'image/webp', 'image/gif',
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'text/plain', 'text/csv',
+];
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
