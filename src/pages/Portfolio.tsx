@@ -150,9 +150,42 @@ export default function Portfolio() {
     setStep('questionnaire');
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!ALLOWED_MIME.includes(file.type)) {
+      toast.error('Unsupported file type');
+      return;
+    }
+    if (file.size > MAX_FILE_MB * 1024 * 1024) {
+      toast.error(`File too large (max ${MAX_FILE_MB}MB)`);
+      return;
+    }
+    setAttachment(file);
+  };
+
   const handleSubmitQuestionnaire = async () => {
     setSubmitting(true);
     try {
+      const budgetLabel = BUDGET_OPTIONS.find(o => o.value === questionnaire.budget)?.label || '';
+      const timelineText = questionnaire.timelineWeeks
+        ? `${questionnaire.timelineWeeks} week${Number(questionnaire.timelineWeeks) === 1 ? '' : 's'}`
+        : '';
+
+      const answers: Record<string, string> = {
+        'What is the primary goal of this project?': questionnaire.primaryGoal.trim(),
+        'What is your estimated budget range?': budgetLabel,
+        'What is your expected timeline?': timelineText,
+        'Do you have any specific requirements or preferences?': questionnaire.requirements.trim(),
+        'How did you hear about us?': questionnaire.referral,
+      };
+
+      let attachmentPayload: { name: string; type: string; data: string } | undefined;
+      if (attachment) {
+        const data = await fileToBase64(attachment);
+        attachmentPayload = { name: attachment.name, type: attachment.type, data };
+      }
+
       const { error } = await supabase.functions.invoke('portfolio-onboard', {
         body: {
           user_id: userId,
@@ -163,8 +196,9 @@ export default function Portfolio() {
           project_name: clientForm.project_name.trim(),
           project_type: clientForm.project_type,
           questionnaire: Object.fromEntries(
-            Object.entries(questionnaire).filter(([, v]) => v.trim())
+            Object.entries(answers).filter(([, v]) => v && v.trim())
           ),
+          attachment: attachmentPayload,
         },
       });
       if (error) throw error;
@@ -179,7 +213,9 @@ export default function Portfolio() {
   const resetForm = () => {
     setStep('details');
     setClientForm({ name: '', email: '', phone: '', company_name: '', project_name: '', project_type: 'one-time' });
-    setQuestionnaire(Object.fromEntries(Object.keys(questionnaire).map(k => [k, ''])));
+    setQuestionnaire({ primaryGoal: '', budget: '', timelineWeeks: '', requirements: '', referral: '' });
+    setAttachment(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
     setDialogOpen(false);
   };
 
