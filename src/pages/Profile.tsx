@@ -507,43 +507,6 @@ export default function Profile() {
               JPG, PNG or GIF. Max 2MB.
             </p>
 
-            {/* Public Portfolio Link */}
-            {workspaceUserId && (() => {
-              const portfolioPath = portfolioSlug || workspaceUserId;
-              const portfolioUrl = `${window.location.origin}/portfolio/${portfolioPath}`;
-              return (
-                <div className="mt-4 pt-4 border-t border-border">
-                  <Label className="text-xs text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-                    <Link className="h-3.5 w-3.5" />
-                    Public Portfolio
-                  </Label>
-                  <div className="mt-2 flex items-center gap-2">
-                    <Input
-                      readOnly
-                      value={portfolioUrl}
-                      className="text-xs h-8 bg-muted"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="shrink-0 h-8 px-2"
-                      onClick={() => {
-                        navigator.clipboard.writeText(portfolioUrl);
-                        toast({ title: "Copied!", description: "Portfolio link copied to clipboard" });
-                      }}
-                    >
-                      <Copy className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                  {!portfolioSlug && (
-                    <p className="mt-1.5 text-[11px] text-muted-foreground">
-                      Set a custom slug in Workspace Settings → Branding for a cleaner URL.
-                    </p>
-                  )}
-                </div>
-              );
-            })()}
             <input
               ref={fileInputRef}
               type="file"
