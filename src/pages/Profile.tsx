@@ -57,6 +57,7 @@ export default function Profile() {
   const [phone, setPhone] = useState("");
   const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [portfolioSlug, setPortfolioSlug] = useState<string>("");
 
   // Password state
   const [newPassword, setNewPassword] = useState("");
@@ -84,6 +85,18 @@ export default function Profile() {
       fetchPreferences();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (!workspaceUserId) return;
+    (async () => {
+      const { data } = await supabase
+        .from("branding_settings")
+        .select("slug" as any)
+        .eq("user_id", workspaceUserId)
+        .maybeSingle();
+      setPortfolioSlug(((data as any)?.slug as string) || "");
+    })();
+  }, [workspaceUserId]);
 
   const fetchPreferences = async () => {
     try {
