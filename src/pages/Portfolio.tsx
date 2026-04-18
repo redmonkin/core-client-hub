@@ -445,17 +445,122 @@ export default function Portfolio() {
                 <DialogTitle>Tell us about your project</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
-                {Object.keys(questionnaire).map((question) => (
-                  <div key={question} className="space-y-2">
-                    <Label className="text-sm">{question}</Label>
-                    <Textarea
-                      value={questionnaire[question]}
-                      onChange={(e) => setQuestionnaire(p => ({ ...p, [question]: e.target.value }))}
-                      placeholder="Your answer..."
-                      className="min-h-[70px] resize-none"
+                <div className="space-y-2">
+                  <Label className="text-sm">What is the primary goal of this project?</Label>
+                  <Textarea
+                    value={questionnaire.primaryGoal}
+                    onChange={(e) => setQuestionnaire(p => ({ ...p, primaryGoal: e.target.value }))}
+                    placeholder="Describe what you want to achieve..."
+                    className="min-h-[90px] resize-y"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm">What is your estimated budget range?</Label>
+                  <Select
+                    value={questionnaire.budget}
+                    onValueChange={(v) => setQuestionnaire(p => ({ ...p, budget: v }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a budget range" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {BUDGET_OPTIONS.map(o => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm">Expected timeline (in weeks)</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min={1}
+                      max={104}
+                      value={questionnaire.timelineWeeks}
+                      onChange={(e) => setQuestionnaire(p => ({ ...p, timelineWeeks: e.target.value }))}
+                      placeholder="e.g. 4"
+                      className="w-32"
                     />
+                    <span className="text-sm text-muted-foreground">weeks</span>
                   </div>
-                ))}
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm">Do you have any specific requirements or preferences?</Label>
+                  <Textarea
+                    value={questionnaire.requirements}
+                    onChange={(e) => setQuestionnaire(p => ({ ...p, requirements: e.target.value }))}
+                    placeholder="Share any details, references, must-haves..."
+                    className="min-h-[90px] resize-y"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm">How did you hear about us?</Label>
+                  <Select
+                    value={questionnaire.referral}
+                    onValueChange={(v) => setQuestionnaire(p => ({ ...p, referral: v }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select an option" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {REFERRAL_OPTIONS.map(o => (
+                        <SelectItem key={o} value={o}>{o}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm">Attach a file (optional)</Label>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    accept={ALLOWED_MIME.join(',')}
+                    onChange={handleFileSelect}
+                  />
+                  {attachment ? (
+                    <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/30 px-3 py-2 text-sm">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <span className="truncate">{attachment.name}</span>
+                        <span className="text-xs text-muted-foreground shrink-0">
+                          ({(attachment.size / 1024).toFixed(0)} KB)
+                        </span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => {
+                          setAttachment(null);
+                          if (fileInputRef.current) fileInputRef.current.value = '';
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full justify-start"
+                    >
+                      <Paperclip className="mr-2 h-4 w-4" />
+                      Choose file (max {MAX_FILE_MB}MB)
+                    </Button>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Images, PDF, Word, Excel, or text files.
+                  </p>
+                </div>
               </div>
               <div className="flex justify-between pt-2">
                 <Button variant="outline" onClick={() => setStep('details')}>← Back</Button>
