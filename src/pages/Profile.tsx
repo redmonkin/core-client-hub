@@ -43,6 +43,7 @@ const defaultPreferences: NotificationPreferences = {
 export default function Profile() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { workspaceUserId } = useWorkspaceUser();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
