@@ -72,13 +72,16 @@ export default function Portfolio() {
     project_type: 'one-time',
   });
 
-  const [questionnaire, setQuestionnaire] = useState<Record<string, string>>({
-    'What is the primary goal of this project?': '',
-    'What is your estimated budget range?': '',
-    'What is your expected timeline?': '',
-    'Do you have any specific requirements or preferences?': '',
-    'How did you hear about us?': '',
+  const [questionnaire, setQuestionnaire] = useState({
+    primaryGoal: '',
+    budget: '',
+    timelineWeeks: '',
+    requirements: '',
+    referral: '',
   });
+
+  const [attachment, setAttachment] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: branding } = useQuery({
     queryKey: ['portfolio-branding', userId],
