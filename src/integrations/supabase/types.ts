@@ -22,6 +22,7 @@ export type Database = {
           created_at: string
           id: string
           primary_color: string | null
+          slug: string | null
           support_email: string | null
           tagline: string | null
           updated_at: string
@@ -35,6 +36,7 @@ export type Database = {
           created_at?: string
           id?: string
           primary_color?: string | null
+          slug?: string | null
           support_email?: string | null
           tagline?: string | null
           updated_at?: string
@@ -48,6 +50,7 @@ export type Database = {
           created_at?: string
           id?: string
           primary_color?: string | null
+          slug?: string | null
           support_email?: string | null
           tagline?: string | null
           updated_at?: string
@@ -798,6 +801,7 @@ export type Database = {
           company_logo_url: string | null
           company_name: string | null
           primary_color: string | null
+          slug: string | null
           support_email: string | null
           tagline: string | null
           user_id: string | null
@@ -808,6 +812,7 @@ export type Database = {
           company_logo_url?: string | null
           company_name?: string | null
           primary_color?: string | null
+          slug?: string | null
           support_email?: string | null
           tagline?: string | null
           user_id?: string | null
@@ -818,6 +823,7 @@ export type Database = {
           company_logo_url?: string | null
           company_name?: string | null
           primary_color?: string | null
+          slug?: string | null
           support_email?: string | null
           tagline?: string | null
           user_id?: string | null
