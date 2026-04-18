@@ -387,13 +387,13 @@ export default function Settings() {
             </Button>
 
             {/* Portfolio Link */}
-            {user && (
+            {workspaceUserId && (
               <div className="mt-4 rounded-lg border border-border bg-muted/30 p-4">
                 <Label className="text-xs text-muted-foreground uppercase tracking-wide">Public Portfolio Link</Label>
                 <div className="mt-2 flex items-center gap-2">
                   <Input
                     readOnly
-                    value={`${window.location.origin}/portfolio/${user.id}`}
+                    value={`${window.location.origin}/portfolio/${workspaceUserId}`}
                     className="text-sm bg-background"
                     onClick={(e) => (e.target as HTMLInputElement).select()}
                   />
@@ -402,7 +402,7 @@ export default function Settings() {
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      navigator.clipboard.writeText(`${window.location.origin}/portfolio/${user.id}`);
+                      navigator.clipboard.writeText(`${window.location.origin}/portfolio/${workspaceUserId}`);
                       toast({ title: "Copied!", description: "Portfolio link copied to clipboard" });
                     }}
                   >
