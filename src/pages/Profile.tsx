@@ -22,6 +22,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useWorkspaceUser } from "@/hooks/useWorkspaceUser";
 import { Loader2, User, Building2, Phone, Briefcase, Mail, Upload, Trash2, Camera, CheckCircle2, Circle, Link, Copy, Lock, Bell, Eye, CheckCircle, XCircle, Calendar, AlertTriangle } from "lucide-react";
 
 interface NotificationPreferences {
@@ -493,7 +494,7 @@ export default function Profile() {
             </p>
 
             {/* Public Portfolio Link */}
-            {user && (
+            {workspaceUserId && (
               <div className="mt-4 pt-4 border-t border-border">
                 <Label className="text-xs text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
                   <Link className="h-3.5 w-3.5" />
@@ -502,7 +503,7 @@ export default function Profile() {
                 <div className="mt-2 flex items-center gap-2">
                   <Input
                     readOnly
-                    value={`${window.location.origin}/portfolio/${user.id}`}
+                    value={`${window.location.origin}/portfolio/${workspaceUserId}`}
                     className="text-xs h-8 bg-muted"
                   />
                   <Button
@@ -511,7 +512,7 @@ export default function Profile() {
                     size="sm"
                     className="shrink-0 h-8 px-2"
                     onClick={() => {
-                      navigator.clipboard.writeText(`${window.location.origin}/portfolio/${user.id}`);
+                      navigator.clipboard.writeText(`${window.location.origin}/portfolio/${workspaceUserId}`);
                       toast({ title: "Copied!", description: "Portfolio link copied to clipboard" });
                     }}
                   >
