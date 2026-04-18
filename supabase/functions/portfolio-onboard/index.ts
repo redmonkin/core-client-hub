@@ -5,6 +5,21 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const MAX_FILE_BYTES = 5 * 1024 * 1024; // 5 MB
+const ALLOWED_MIME = [
+  "image/png", "image/jpeg", "image/webp", "image/gif",
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "text/plain", "text/csv",
+];
+
+function sanitizeFileName(name: string): string {
+  return name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -16,7 +31,7 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     const body = await req.json();
-    const { user_id, name, email, phone, company_name, project_name, project_type, questionnaire } = body;
+    const { user_id, name, email, phone, company_name, project_name, project_type, questionnaire, attachment } = body;
 
     // Input validation
     if (!user_id || typeof user_id !== "string" || user_id.length > 100) {
@@ -105,7 +120,38 @@ Deno.serve(async (req) => {
 
     if (projectError) throw projectError;
 
-    // 3. Store questionnaire answers as a project note
+    // 3. Optional file attachment upload
+    let attachmentInfo: { url: string; name: string; type: string } | null = null;
+    if (attachment && typeof attachment === "object" && attachment.data && attachment.name && attachment.type) {
+      const fileType = String(attachment.type);
+      const fileName = sanitizeFileName(String(attachment.name));
+      if (!ALLOWED_MIME.includes(fileType)) {
+        return new Response(
+          JSON.stringify({ error: "File type not allowed" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      try {
+        const base64 = String(attachment.data).split(",").pop() || "";
+        const binary = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+        if (binary.byteLength > MAX_FILE_BYTES) {
+          return new Response(
+            JSON.stringify({ error: "File too large (max 5MB)" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        const path = `${user_id}/portfolio-leads/${project.id}/${Date.now()}_${fileName}`;
+        const { error: upErr } = await supabase.storage
+          .from("project-files")
+          .upload(path, binary, { contentType: fileType, upsert: false });
+        if (upErr) throw upErr;
+        attachmentInfo = { url: path, name: fileName, type: fileType };
+      } catch (e) {
+        console.error("Attachment upload failed:", e);
+      }
+    }
+
+    // 4. Store questionnaire answers as a project note
     if (questionnaire && typeof questionnaire === "object" && Object.keys(questionnaire).length > 0) {
       const noteContent = Object.entries(questionnaire)
         .filter(([, v]) => typeof v === "string" && (v as string).trim())
@@ -116,17 +162,31 @@ Deno.serve(async (req) => {
         })
         .join("\n\n---\n\n");
 
-      if (noteContent) {
+      if (noteContent || attachmentInfo) {
         const { error: noteError } = await supabase
           .from("project_notes")
           .insert({
             project_id: project.id,
             user_id,
             content: `📋 Client Questionnaire Response\n\n${noteContent}`,
+            file_url: attachmentInfo?.url ?? null,
+            file_name: attachmentInfo?.name ?? null,
+            file_type: attachmentInfo?.type ?? null,
           });
 
         if (noteError) throw noteError;
       }
+    } else if (attachmentInfo) {
+      await supabase
+        .from("project_notes")
+        .insert({
+          project_id: project.id,
+          user_id,
+          content: `📎 Client uploaded an attachment`,
+          file_url: attachmentInfo.url,
+          file_name: attachmentInfo.name,
+          file_type: attachmentInfo.type,
+        });
     }
 
     return new Response(

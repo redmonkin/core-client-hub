@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,8 +10,38 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Globe, Building2, Send, CheckCircle, Loader2, Image as ImageIcon, Mail } from 'lucide-react';
+import { Globe, Building2, Send, CheckCircle, Loader2, Image as ImageIcon, Mail, Paperclip, X } from 'lucide-react';
 import { toast } from 'sonner';
+
+const BUDGET_OPTIONS = [
+  { value: '10k-25k', label: '₹10,000 – ₹25,000' },
+  { value: '25k-50k', label: '₹25,000 – ₹50,000' },
+  { value: '50k-100k', label: '₹50,000 – ₹1,00,000' },
+  { value: '100k-300k', label: '₹1,00,000 – ₹3,00,000' },
+  { value: '300k+', label: '₹3,00,000+' },
+];
+
+const REFERRAL_OPTIONS = ['Friends', 'Co-Worker', 'At an Event', 'Social Media', 'Others'];
+
+const MAX_FILE_MB = 5;
+const ALLOWED_MIME = [
+  'image/png', 'image/jpeg', 'image/webp', 'image/gif',
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'text/plain', 'text/csv',
+];
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
@@ -42,13 +72,16 @@ export default function Portfolio() {
     project_type: 'one-time',
   });
 
-  const [questionnaire, setQuestionnaire] = useState<Record<string, string>>({
-    'What is the primary goal of this project?': '',
-    'What is your estimated budget range?': '',
-    'What is your expected timeline?': '',
-    'Do you have any specific requirements or preferences?': '',
-    'How did you hear about us?': '',
+  const [questionnaire, setQuestionnaire] = useState({
+    primaryGoal: '',
+    budget: '',
+    timelineWeeks: '',
+    requirements: '',
+    referral: '',
   });
+
+  const [attachment, setAttachment] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: branding } = useQuery({
     queryKey: ['portfolio-branding', userId],
@@ -117,9 +150,42 @@ export default function Portfolio() {
     setStep('questionnaire');
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!ALLOWED_MIME.includes(file.type)) {
+      toast.error('Unsupported file type');
+      return;
+    }
+    if (file.size > MAX_FILE_MB * 1024 * 1024) {
+      toast.error(`File too large (max ${MAX_FILE_MB}MB)`);
+      return;
+    }
+    setAttachment(file);
+  };
+
   const handleSubmitQuestionnaire = async () => {
     setSubmitting(true);
     try {
+      const budgetLabel = BUDGET_OPTIONS.find(o => o.value === questionnaire.budget)?.label || '';
+      const timelineText = questionnaire.timelineWeeks
+        ? `${questionnaire.timelineWeeks} week${Number(questionnaire.timelineWeeks) === 1 ? '' : 's'}`
+        : '';
+
+      const answers: Record<string, string> = {
+        'What is the primary goal of this project?': questionnaire.primaryGoal.trim(),
+        'What is your estimated budget range?': budgetLabel,
+        'What is your expected timeline?': timelineText,
+        'Do you have any specific requirements or preferences?': questionnaire.requirements.trim(),
+        'How did you hear about us?': questionnaire.referral,
+      };
+
+      let attachmentPayload: { name: string; type: string; data: string } | undefined;
+      if (attachment) {
+        const data = await fileToBase64(attachment);
+        attachmentPayload = { name: attachment.name, type: attachment.type, data };
+      }
+
       const { error } = await supabase.functions.invoke('portfolio-onboard', {
         body: {
           user_id: userId,
@@ -130,8 +196,9 @@ export default function Portfolio() {
           project_name: clientForm.project_name.trim(),
           project_type: clientForm.project_type,
           questionnaire: Object.fromEntries(
-            Object.entries(questionnaire).filter(([, v]) => v.trim())
+            Object.entries(answers).filter(([, v]) => v && v.trim())
           ),
+          attachment: attachmentPayload,
         },
       });
       if (error) throw error;
@@ -146,7 +213,9 @@ export default function Portfolio() {
   const resetForm = () => {
     setStep('details');
     setClientForm({ name: '', email: '', phone: '', company_name: '', project_name: '', project_type: 'one-time' });
-    setQuestionnaire(Object.fromEntries(Object.keys(questionnaire).map(k => [k, ''])));
+    setQuestionnaire({ primaryGoal: '', budget: '', timelineWeeks: '', requirements: '', referral: '' });
+    setAttachment(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
     setDialogOpen(false);
   };
 
@@ -376,17 +445,122 @@ export default function Portfolio() {
                 <DialogTitle>Tell us about your project</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
-                {Object.keys(questionnaire).map((question) => (
-                  <div key={question} className="space-y-2">
-                    <Label className="text-sm">{question}</Label>
-                    <Textarea
-                      value={questionnaire[question]}
-                      onChange={(e) => setQuestionnaire(p => ({ ...p, [question]: e.target.value }))}
-                      placeholder="Your answer..."
-                      className="min-h-[70px] resize-none"
+                <div className="space-y-2">
+                  <Label className="text-sm">What is the primary goal of this project?</Label>
+                  <Textarea
+                    value={questionnaire.primaryGoal}
+                    onChange={(e) => setQuestionnaire(p => ({ ...p, primaryGoal: e.target.value }))}
+                    placeholder="Describe what you want to achieve..."
+                    className="min-h-[90px] resize-y"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm">What is your estimated budget range?</Label>
+                  <Select
+                    value={questionnaire.budget}
+                    onValueChange={(v) => setQuestionnaire(p => ({ ...p, budget: v }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a budget range" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {BUDGET_OPTIONS.map(o => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm">Expected timeline (in weeks)</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min={1}
+                      max={104}
+                      value={questionnaire.timelineWeeks}
+                      onChange={(e) => setQuestionnaire(p => ({ ...p, timelineWeeks: e.target.value }))}
+                      placeholder="e.g. 4"
+                      className="w-32"
                     />
+                    <span className="text-sm text-muted-foreground">weeks</span>
                   </div>
-                ))}
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm">Do you have any specific requirements or preferences?</Label>
+                  <Textarea
+                    value={questionnaire.requirements}
+                    onChange={(e) => setQuestionnaire(p => ({ ...p, requirements: e.target.value }))}
+                    placeholder="Share any details, references, must-haves..."
+                    className="min-h-[90px] resize-y"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm">How did you hear about us?</Label>
+                  <Select
+                    value={questionnaire.referral}
+                    onValueChange={(v) => setQuestionnaire(p => ({ ...p, referral: v }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select an option" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {REFERRAL_OPTIONS.map(o => (
+                        <SelectItem key={o} value={o}>{o}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm">Attach a file (optional)</Label>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    accept={ALLOWED_MIME.join(',')}
+                    onChange={handleFileSelect}
+                  />
+                  {attachment ? (
+                    <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/30 px-3 py-2 text-sm">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <span className="truncate">{attachment.name}</span>
+                        <span className="text-xs text-muted-foreground shrink-0">
+                          ({(attachment.size / 1024).toFixed(0)} KB)
+                        </span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => {
+                          setAttachment(null);
+                          if (fileInputRef.current) fileInputRef.current.value = '';
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full justify-start"
+                    >
+                      <Paperclip className="mr-2 h-4 w-4" />
+                      Choose file (max {MAX_FILE_MB}MB)
+                    </Button>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Images, PDF, Word, Excel, or text files.
+                  </p>
+                </div>
               </div>
               <div className="flex justify-between pt-2">
                 <Button variant="outline" onClick={() => setStep('details')}>← Back</Button>
