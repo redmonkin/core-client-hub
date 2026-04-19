@@ -61,9 +61,10 @@ export function ProjectNotes({ projectId }: ProjectNotesProps) {
 
       if (selectedFile) {
         const ext = selectedFile.name.split('.').pop();
-        const path = `${projectId}/${crypto.randomUUID()}.${ext}`;
+        // Path must start with the workspace owner's user id to satisfy RLS folder check
+        const path = `${workspaceUserId}/${projectId}/${crypto.randomUUID()}.${ext}`;
         const { error: uploadError } = await supabase.storage
-          .from('project-files')
+          .from('project-attachments')
           .upload(path, selectedFile);
         if (uploadError) throw uploadError;
 
@@ -125,7 +126,7 @@ export function ProjectNotes({ projectId }: ProjectNotesProps) {
       .map(n => n.file_url!);
     if (paths.length === 0) return;
     supabase.storage
-      .from('project-files')
+      .from('project-attachments')
       .createSignedUrls(paths, 3600)
       .then(({ data }) => {
         if (!data) return;
