@@ -400,7 +400,7 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
                 <Upload className="mr-2 h-4 w-4" />
                 Import File
               </Button>
-              <Button size="sm" onClick={() => setIsAddOpen(true)}>
+              <Button size="sm" onClick={openAddDialog}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Entry
               </Button>
