@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
     const safePhone = (phone && typeof phone === "string") ? phone.trim().slice(0, 50) : null;
     const safeCompany = (company_name && typeof company_name === "string") ? company_name.trim().slice(0, 255) : null;
     const safeProjectName = (project_name && typeof project_name === "string") ? project_name.trim().slice(0, 255) : `${safeName}'s Project`;
-    const safeProjectType = ["one-time", "amc", "retainer"].includes(project_type) ? project_type : "one-time";
+    const safeProjectType = ["one-time", "amc", "retainer", "hourly"].includes(project_type) ? project_type : "one-time";
 
     // 1. Check if client already exists (by email + user_id)
     const { data: existingClient } = await supabase
