@@ -142,7 +142,7 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['timesheets', projectId] });
       setIsAddOpen(false);
-      setEntry(emptyEntry);
+      setEntry({ ...emptyEntry, owner: userFirstName });
       toast.success('Timesheet entry added');
     },
     onError: (error: any) => {
