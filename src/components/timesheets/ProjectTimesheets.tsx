@@ -211,6 +211,10 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
   };
 
   const totalHours = timesheets.reduce((sum, t) => sum + Number(t.duration), 0);
+  const selectedHours = timesheets
+    .filter(t => selectedIds.has(t.id))
+    .reduce((sum, t) => sum + Number(t.duration), 0);
+  const hasSelection = selectedIds.size > 0;
 
   if (isLoading) {
     return (
@@ -230,10 +234,20 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
           </div>
           <div>
             <p className="text-sm font-medium text-foreground">
-              {timesheets.length} {timesheets.length === 1 ? 'entry' : 'entries'}
+              {hasSelection ? (
+                <>
+                  {selectedIds.size} of {timesheets.length} selected
+                </>
+              ) : (
+                <>
+                  {timesheets.length} {timesheets.length === 1 ? 'entry' : 'entries'}
+                </>
+              )}
             </p>
             <p className="text-xs text-muted-foreground">
-              {totalHours.toFixed(1)} total hours
+              {hasSelection
+                ? `${selectedHours.toFixed(1)} selected hours`
+                : `${totalHours.toFixed(1)} total hours`}
             </p>
           </div>
         </div>
