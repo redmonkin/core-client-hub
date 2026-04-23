@@ -49,6 +49,7 @@ const projectTypeLabels: Record<string, string> = {
   'one-time': 'One-time',
   'amc': 'AMC',
   'retainer': 'Retainer',
+  'hourly': 'Hourly',
 };
 
 function getStoragePublicUrl(path: string) {
@@ -436,6 +437,7 @@ export default function Portfolio() {
                       <SelectItem value="one-time">One-time Project</SelectItem>
                       <SelectItem value="amc">Annual Maintenance (AMC)</SelectItem>
                       <SelectItem value="retainer">Retainer</SelectItem>
+                      <SelectItem value="hourly">Hourly</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
