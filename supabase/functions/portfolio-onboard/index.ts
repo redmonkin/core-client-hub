@@ -142,7 +142,7 @@ Deno.serve(async (req) => {
         }
         const path = `${user_id}/portfolio-leads/${project.id}/${Date.now()}_${fileName}`;
         const { error: upErr } = await supabase.storage
-          .from("project-files")
+          .from("project-attachments")
           .upload(path, binary, { contentType: fileType, upsert: false });
         if (upErr) throw upErr;
         attachmentInfo = { url: path, name: fileName, type: fileType };

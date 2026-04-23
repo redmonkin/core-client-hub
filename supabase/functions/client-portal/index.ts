@@ -480,7 +480,7 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405, headers: { "Content-Type": "application/json", ...corsHeaders } });
   } catch (error: any) {
     console.error("Error in client-portal:", error);
-    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    return new Response(JSON.stringify({ error: "An internal error occurred" }), { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } });
   }
 };
 
