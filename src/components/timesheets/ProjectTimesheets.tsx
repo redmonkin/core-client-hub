@@ -108,7 +108,12 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
 
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
-  const [entry, setEntry] = useState<TimesheetEntry>({ ...emptyEntry, owner: userFirstName });
+  const [entry, setEntry] = useState<TimesheetEntry>({ ...emptyEntry });
+
+  const openAddDialog = () => {
+    setEntry({ ...emptyEntry, owner: userFirstName });
+    setIsAddOpen(true);
+  };
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -272,7 +277,7 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
             <Upload className="mr-2 h-4 w-4" />
             Import CSV/Excel
           </Button>
-          <Button size="sm" onClick={() => setIsAddOpen(true)}>
+          <Button size="sm" onClick={openAddDialog}>
             <Plus className="mr-2 h-4 w-4" />
             Add Entry
           </Button>
@@ -395,7 +400,7 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
                 <Upload className="mr-2 h-4 w-4" />
                 Import File
               </Button>
-              <Button size="sm" onClick={() => setIsAddOpen(true)}>
+              <Button size="sm" onClick={openAddDialog}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Entry
               </Button>
