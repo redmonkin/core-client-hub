@@ -94,9 +94,21 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
   const { workspaceUserId } = useWorkspaceUser();
   const queryClient = useQueryClient();
   
+  const userFirstName = (() => {
+    const meta = (user?.user_metadata ?? {}) as Record<string, any>;
+    const fullName: string =
+      meta.first_name ||
+      meta.full_name ||
+      meta.name ||
+      user?.email?.split('@')[0] ||
+      '';
+    const first = String(fullName).trim().split(/\s+/)[0] ?? '';
+    return first ? first.charAt(0).toUpperCase() + first.slice(1) : '';
+  })();
+
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
-  const [entry, setEntry] = useState<TimesheetEntry>(emptyEntry);
+  const [entry, setEntry] = useState<TimesheetEntry>({ ...emptyEntry, owner: userFirstName });
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -130,7 +142,7 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['timesheets', projectId] });
       setIsAddOpen(false);
-      setEntry(emptyEntry);
+      setEntry({ ...emptyEntry, owner: userFirstName });
       toast.success('Timesheet entry added');
     },
     onError: (error: any) => {
