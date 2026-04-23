@@ -56,7 +56,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 
 type ProjectStatus = 'proposal' | 'planned' | 'active' | 'on-hold' | 'completed' | 'cancelled' | 'maintenance' | 'new-request';
-type ProjectType = 'one-time' | 'amc' | 'retainer';
+type ProjectType = 'one-time' | 'amc' | 'retainer' | 'hourly';
 
 type Project = {
   id: string;
@@ -194,6 +194,7 @@ export default function Projects() {
     'one-time': 'One-time',
     'amc': 'AMC',
     'retainer': 'Retainer',
+    'hourly': 'Hourly',
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -299,6 +300,7 @@ export default function Projects() {
                       <SelectItem value="one-time">One-time</SelectItem>
                       <SelectItem value="amc">AMC</SelectItem>
                       <SelectItem value="retainer">Retainer</SelectItem>
+                      <SelectItem value="hourly">Hourly</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -524,6 +526,7 @@ export default function Projects() {
                   <SelectItem value="one-time">One-time</SelectItem>
                   <SelectItem value="amc">AMC</SelectItem>
                   <SelectItem value="retainer">Retainer</SelectItem>
+                  <SelectItem value="hourly">Hourly</SelectItem>
                 </SelectContent>
               </Select>
             </div>
