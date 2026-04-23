@@ -44,6 +44,12 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 
 const TIMESHEET_STATUSES = ['pending', 'in-progress', 'completed', 'billed'] as const;
@@ -317,8 +323,21 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
                       {STATUS_LABELS[(ts.status as TimesheetStatus) || 'pending']}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-muted-foreground max-w-[200px] truncate">
-                    {ts.notes || '—'}
+                  <TableCell className="text-muted-foreground max-w-[200px]">
+                    {ts.notes ? (
+                      <TooltipProvider delayDuration={150}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="block truncate cursor-help">{ts.notes}</span>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-sm whitespace-pre-wrap break-words">
+                            {ts.notes}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : (
+                      '—'
+                    )}
                   </TableCell>
                   <TableCell>
                     <Button
