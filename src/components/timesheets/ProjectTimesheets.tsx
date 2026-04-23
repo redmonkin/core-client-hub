@@ -108,7 +108,12 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
 
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
-  const [entry, setEntry] = useState<TimesheetEntry>({ ...emptyEntry, owner: userFirstName });
+  const [entry, setEntry] = useState<TimesheetEntry>({ ...emptyEntry });
+
+  const openAddDialog = () => {
+    setEntry({ ...emptyEntry, owner: userFirstName });
+    setIsAddOpen(true);
+  };
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
