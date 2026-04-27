@@ -246,6 +246,19 @@ export default function ContractDetail() {
     setIsEditDialogOpen(true);
   };
 
+  const handleViewFile = async () => {
+    const path = (contract as any)?.file_url;
+    if (!path) return;
+    const { data, error } = await supabase.storage
+      .from('contract-files')
+      .createSignedUrl(path, 60 * 10);
+    if (error || !data?.signedUrl) {
+      toast.error('Could not open file');
+      return;
+    }
+    window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+  };
+
   const handlePreview = () => {
     if (!contract) return;
     const contractTemplates = templates.filter(t => t.type === 'contract');
