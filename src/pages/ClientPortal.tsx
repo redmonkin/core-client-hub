@@ -159,6 +159,9 @@ export default function ClientPortal() {
       if (action === 'approve' && documentType === 'contract' && signatureName.trim()) {
         body.signature_name = signatureName.trim();
       }
+      if (verifiedPassword) {
+        body.password = verifiedPassword;
+      }
       const response = await fetch(
         `https://jizouqjrdyfshhztqucd.supabase.co/functions/v1/client-portal`,
         {
