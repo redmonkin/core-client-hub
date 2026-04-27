@@ -75,6 +75,7 @@ export default function ClientPortal() {
   // Password gate state
   const [passwordRequired, setPasswordRequired] = useState(false);
   const [password, setPassword] = useState('');
+  const [verifiedPassword, setVerifiedPassword] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState('');
   const [verifyingPassword, setVerifyingPassword] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
