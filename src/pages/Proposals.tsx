@@ -532,6 +532,9 @@ export default function Proposals() {
           senderCompany: user?.user_metadata?.company || null,
           supportEmail: brandingData?.support_email || null,
           ccEmails: [...(selectedCcEmails.length > 0 ? selectedCcEmails : []), ...(user?.email ? [user.email] : [])].filter((v, i, a) => a.indexOf(v) === i),
+          customSubject: emailSubject?.trim() || null,
+          customIntro: emailIntro?.trim() || null,
+          isReminder,
         },
       });
 
