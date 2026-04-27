@@ -581,7 +581,7 @@ export default function Contracts() {
   }
 
   return (
-    <div className="space-y-6 p-8">
+    <div className="space-y-6 p-4 sm:p-8">
       <PageHeader
         title="Contracts"
         description="Manage contracts, annual maintenance agreements, master service agreements, work orders"
@@ -647,45 +647,94 @@ export default function Contracts() {
               return (
                 <div
                   key={contract.id}
-                  className="group grid grid-cols-1 md:grid-cols-[1fr_140px_140px_100px_200px_120px_48px] items-center gap-3 md:gap-4 px-6 py-4 transition-colors hover:bg-muted/30"
+                  className="group grid grid-cols-1 md:grid-cols-[1fr_140px_140px_100px_200px_120px_48px] items-start md:items-center gap-3 md:gap-4 px-4 sm:px-6 py-4 transition-colors hover:bg-muted/30"
                 >
                   {/* Contract */}
-                  <div className="min-w-0">
-                    <Link to={`/contracts/${contract.id}`}>
-                      <h3 className="truncate font-medium text-foreground group-hover:text-primary transition-colors cursor-pointer flex items-center gap-2">
-                        {contractTypeLabels[contract.contract_type] || contract.contract_type}
-                        {contract.is_external && (
-                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5">
-                            <FileText className="h-3 w-3 mr-1" />
-                            File
-                          </Badge>
-                        )}
-                      </h3>
-                    </Link>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      Renewal: {renewalLabels[contract.renewal_frequency] || contract.renewal_frequency}
-                    </p>
+                  <div className="min-w-0 flex items-start justify-between gap-2 md:block">
+                    <div className="min-w-0 flex-1">
+                      <Link to={`/contracts/${contract.id}`}>
+                        <h3 className="truncate font-medium text-foreground group-hover:text-primary transition-colors cursor-pointer flex items-center gap-2">
+                          {contractTypeLabels[contract.contract_type] || contract.contract_type}
+                          {contract.is_external && (
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5">
+                              <FileText className="h-3 w-3 mr-1" />
+                              File
+                            </Badge>
+                          )}
+                        </h3>
+                      </Link>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        Renewal: {renewalLabels[contract.renewal_frequency] || contract.renewal_frequency}
+                      </p>
+                    </div>
+                    {/* Mobile-only inline status + actions */}
+                    <div className="flex items-center gap-1 shrink-0 md:hidden">
+                      <StatusBadge status={contract.status as ContractStatus} />
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="bg-popover">
+                          <DropdownMenuItem onClick={() => handlePreview(contract)}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            Preview
+                          </DropdownMenuItem>
+                          {!['approved', 'active'].includes(contract.status) && (
+                            <DropdownMenuItem onClick={() => handleEdit(contract)}>
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem onClick={() => handleDuplicateContract(contract)}>
+                            <Copy className="mr-2 h-4 w-4" />
+                            Duplicate
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleSendEmail(contract)}>
+                            <Send className="mr-2 h-4 w-4" />
+                            Send to Client
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleShareLink(contract)}>
+                            <LinkIcon className="mr-2 h-4 w-4" />
+                            Get Share Link
+                          </DropdownMenuItem>
+                          {!['approved', 'active'].includes(contract.status) && (
+                            <DropdownMenuItem
+                              onClick={() => handleDelete(contract)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
 
                   {/* Client */}
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex items-baseline gap-2 md:block">
+                    <span className="text-xs uppercase tracking-wider text-muted-foreground md:hidden shrink-0">Client</span>
                     <Link
                       to={`/clients/${contract.client_id}`}
-                      className="truncate text-sm text-muted-foreground hover:text-primary transition-colors block"
+                      className="truncate text-sm text-muted-foreground hover:text-primary transition-colors block min-w-0"
                     >
                       {getClientName(contract.client_id)}
                     </Link>
                   </div>
 
                   {/* Project */}
-                  <div className="min-w-0">
-                    <p className="truncate text-sm text-muted-foreground">
+                  <div className="min-w-0 flex items-baseline gap-2 md:block">
+                    <span className="text-xs uppercase tracking-wider text-muted-foreground md:hidden shrink-0">Project</span>
+                    <p className="truncate text-sm text-muted-foreground min-w-0">
                       {getProjectName(contract.project_id)}
                     </p>
                   </div>
 
                   {/* Value */}
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex items-baseline gap-2 md:block">
+                    <span className="text-xs uppercase tracking-wider text-muted-foreground md:hidden shrink-0">Value</span>
                     <span className="font-semibold text-sm text-foreground">
                       ₹{Number(contract.value).toLocaleString('en-IN')}
                     </span>
@@ -693,7 +742,8 @@ export default function Contracts() {
 
                   {/* Duration */}
                   <div className="min-w-0">
-                    <div className="flex items-center gap-1.5 text-sm">
+                    <div className="flex items-center gap-1.5 text-sm flex-wrap">
+                      <span className="text-xs uppercase tracking-wider text-muted-foreground md:hidden shrink-0">Duration</span>
                       <Calendar className="h-3.5 w-3.5 shrink-0 text-muted-foreground hidden md:block" />
                       <span className={`truncate ${isExpiringSoon ? "text-destructive font-medium" : "text-muted-foreground"}`}>
                         {format(startDate, "MMM dd")} – {format(endDate, "MMM dd, yyyy")}
@@ -704,13 +754,13 @@ export default function Contracts() {
                     )}
                   </div>
 
-                  {/* Status */}
-                  <div>
+                  {/* Status (desktop) */}
+                  <div className="hidden md:block">
                     <StatusBadge status={contract.status as ContractStatus} />
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex justify-end">
+                  {/* Actions (desktop) */}
+                  <div className="hidden md:flex justify-end">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
@@ -793,7 +843,7 @@ export default function Contracts() {
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
