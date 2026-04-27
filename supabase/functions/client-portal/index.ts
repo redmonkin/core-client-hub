@@ -287,7 +287,7 @@ const handler = async (req: Request): Promise<Response> => {
       if (documentType === "proposal") {
         const { data: proposal, error: proposalError } = await supabase
           .from("proposals")
-          .select("id, title, scope_of_work, cost_breakdown, validity_date, status, client_id, project_id, user_id, created_at, customer_goals, duration")
+          .select("id, title, scope_of_work, cost_breakdown, validity_date, status, client_id, project_id, user_id, created_at, customer_goals, duration, template_id")
           .eq("id", accessToken.proposal_id)
           .single();
         if (proposalError || !proposal) {
@@ -300,7 +300,23 @@ const handler = async (req: Request): Promise<Response> => {
           projectName = project?.project_name || null;
         }
         const { data: branding } = await supabase.from("branding_settings").select("*").eq("user_id", proposal.user_id).maybeSingle();
-        const { data: template } = await supabase.from("templates").select("content").eq("user_id", proposal.user_id).eq("type", documentType === "proposal" ? "proposal" : "contract").maybeSingle();
+        // Use the proposal's selected template if set, otherwise fall back to the most recent proposal template
+        let template: any = null;
+        if ((proposal as any).template_id) {
+          const { data: t } = await supabase.from("templates").select("content, name").eq("id", (proposal as any).template_id).maybeSingle();
+          template = t;
+        }
+        if (!template) {
+          const { data: t } = await supabase
+            .from("templates")
+            .select("content, name")
+            .eq("user_id", proposal.user_id)
+            .eq("type", "proposal")
+            .order("updated_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          template = t;
+        }
         if (!accessToken.viewed_at) {
           await supabase.from("proposal_access_tokens").update({ viewed_at: new Date().toISOString() }).eq("id", accessToken.id);
         }
