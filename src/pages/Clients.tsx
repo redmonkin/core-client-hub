@@ -411,9 +411,11 @@ export default function Clients() {
             <SelectItem value="archived">Archived</SelectItem>
           </SelectContent>
         </Select>
+        <ViewToggle mode={viewMode} onChange={setViewMode} className="h-12 self-stretch sm:self-auto" />
       </div>
 
       {filteredClients.length > 0 ? (
+        viewMode === 'grid' ? (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {filteredClients.map(client => (
             <Card key={client.id} className="group overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5">
