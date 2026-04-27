@@ -707,12 +707,14 @@ export default function Contracts() {
                 >
                   {/* Contract */}
                   <div className="min-w-0 flex items-start justify-between gap-2 lg:block">
-                    <div className="min-w-0 flex-1">
+                     <div className="min-w-0 flex-1">
                       <Link to={`/contracts/${contract.id}`}>
-                        <h3 className="truncate font-medium text-foreground group-hover:text-primary transition-colors cursor-pointer flex items-center gap-2">
-                          {contractTypeLabels[contract.contract_type] || contract.contract_type}
+                        <h3 className="font-medium text-foreground group-hover:text-primary transition-colors cursor-pointer flex items-center gap-2 min-w-0">
+                          <span className="truncate">
+                            {contractTypeLabels[contract.contract_type] || contract.contract_type}
+                          </span>
                           {contract.is_external && (
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5">
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5 shrink-0">
                               <FileText className="h-3 w-3 mr-1" />
                               File
                             </Badge>
