@@ -199,7 +199,7 @@ export default function Briefs() {
 
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-8">
       <PageHeader
         title="Briefs"
         description="Your private daily briefs — only you can see these."
