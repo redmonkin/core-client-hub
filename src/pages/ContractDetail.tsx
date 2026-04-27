@@ -309,6 +309,7 @@ export default function ContractDetail() {
       return;
     }
     setSelectedCcEmails([]);
+    setRegenerateBeforeSend(false);
     setIsSendDialogOpen(true);
   };
 
@@ -316,7 +317,9 @@ export default function ContractDetail() {
     if (!contract || !client?.email) return;
     setIsSending(true);
     try {
-      const portal = await createContractPortalAccess(contract.id, window.location.origin);
+      const portal = regenerateBeforeSend
+        ? await regenerateContractPortalAccess(contract.id, window.location.origin)
+        : await getOrCreateContractPortalAccess(contract.id, window.location.origin);
       const portalLink = portal.link;
       const password = portal.password;
 
