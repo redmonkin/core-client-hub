@@ -11,14 +11,9 @@ import { ContractStatus } from '@/lib/types';
 import { NotificationsDropdown } from '@/components/notifications/NotificationsDropdown';
 
 const contractTypeLabels: Record<string, string> = {
-  service: 'Service Agreement',
-  retainer: 'Retainer Agreement',
-  nda: 'Non-Disclosure Agreement',
-  sow: 'Statement of Work',
-  msa: 'Master Service Agreement',
-  freelance: 'Freelance Contract',
-  consulting: 'Consulting Agreement',
-  licensing: 'Licensing Agreement',
+  amc: 'Annual Maintenance Contract',
+  fixed: 'Fixed Contract',
+  retainer: 'Retainer',
 };
 
 export default function Dashboard() {
