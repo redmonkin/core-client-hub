@@ -535,53 +535,40 @@ export default function Proposals() {
   const handleShareLink = async (proposal: Proposal) => {
     setSelectedProposal(proposal);
     setShareLink('');
-    setSharePassword('');
+    setSharePassword(null);
+    setIsExistingLink(false);
     setIsShareDialogOpen(true);
     setIsGeneratingLink(true);
 
     try {
-      // Generate a secure random token
-      const tokenArray = new Uint8Array(32);
-      crypto.getRandomValues(tokenArray);
-      const token = Array.from(tokenArray, b => b.toString(16).padStart(2, '0')).join('');
-
-      // Generate a 6-character alphanumeric password
-      const passArray = new Uint8Array(4);
-      crypto.getRandomValues(passArray);
-      const password = Array.from(passArray, b => b.toString(36).padStart(2, '0')).join('').substring(0, 6).toUpperCase();
-
-      // Hash the password for storage using SHA-256
-      const encoder = new TextEncoder();
-      const data = encoder.encode(password);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const passwordHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-
-      // Set expiry to 30 days from now
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 30);
-
-      // Insert the access token with password hash
-      const { error } = await supabase
-        .from('proposal_access_tokens')
-        .insert({
-          proposal_id: proposal.id,
-          token,
-          expires_at: expiresAt.toISOString(),
-          password_hash: passwordHash,
-        });
-
-      if (error) throw error;
-
-      const link = `${window.location.origin}/portal?token=${token}`;
-      setShareLink(link);
-      setSharePassword(password);
+      const portal = await getOrCreateProposalPortalAccess(proposal.id, window.location.origin);
+      setShareLink(portal.link);
+      setSharePassword(portal.password);
+      setIsExistingLink(portal.isExisting);
     } catch (error: any) {
       console.error('Error generating share link:', error);
       toast.error('Failed to generate share link');
       setIsShareDialogOpen(false);
     } finally {
       setIsGeneratingLink(false);
+    }
+  };
+
+  const handleRegenerateShareLink = async () => {
+    if (!selectedProposal) return;
+    setIsRegenerating(true);
+    try {
+      const portal = await regenerateProposalPortalAccess(selectedProposal.id, window.location.origin);
+      setShareLink(portal.link);
+      setSharePassword(portal.password);
+      setIsExistingLink(false);
+      toast.success('New secure link generated. The old link no longer works.');
+    } catch (error: any) {
+      console.error('Error regenerating link:', error);
+      toast.error('Failed to regenerate link');
+    } finally {
+      setIsRegenerating(false);
+      setIsRegenerateConfirmOpen(false);
     }
   };
 
