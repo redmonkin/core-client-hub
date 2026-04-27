@@ -415,6 +415,7 @@ export default function Contracts() {
     }
     setSelectedContract(contract);
     setSelectedCcEmails([]);
+    setRegenerateBeforeSend(false);
     setIsSendDialogOpen(true);
   };
 
@@ -431,10 +432,12 @@ export default function Contracts() {
 
     setIsSending(true);
     try {
-      // Generate portal link for the contract
-      const portal = await createContractPortalAccess(selectedContract.id, window.location.origin);
+      // Reuse existing portal link by default; regenerate only if user opted in
+      const portal = regenerateBeforeSend
+        ? await regenerateContractPortalAccess(selectedContract.id, window.location.origin)
+        : await getOrCreateContractPortalAccess(selectedContract.id, window.location.origin);
       const portalLink = portal.link;
-      const password = portal.password;
+      const password = portal.password; // null when reusing existing token
 
       const { data: brandingData } = await supabase
         .from('branding_settings')
