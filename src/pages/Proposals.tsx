@@ -1003,41 +1003,76 @@ export default function Proposals() {
               <div>
                 <label className="text-sm font-medium text-foreground mb-1.5 block">Link</label>
                 <div className="flex items-center gap-2">
-                  <Input
-                    value={shareLink}
-                    readOnly
-                    className="flex-1"
-                  />
+                  <Input value={shareLink} readOnly className="flex-1" />
                   <Button onClick={copyShareLink} variant="secondary">
                     <Copy className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
-              <div>
-                <label className="text-sm font-medium text-foreground mb-1.5 block">Password</label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={sharePassword}
-                    readOnly
-                    className="flex-1 font-mono tracking-widest text-lg"
-                  />
-                  <Button onClick={() => { navigator.clipboard.writeText(sharePassword); toast.success('Password copied!'); }} variant="secondary">
-                    <Copy className="h-4 w-4" />
-                  </Button>
+              {sharePassword ? (
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Password</label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={sharePassword}
+                      readOnly
+                      className="flex-1 font-mono tracking-widest text-lg"
+                    />
+                    <Button onClick={() => { navigator.clipboard.writeText(sharePassword!); toast.success('Password copied!'); }} variant="secondary">
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="rounded-md border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+                  This share link is already active. The access password was shown when it was first generated and is securely hashed — it can't be retrieved. If you need a new password, regenerate the secure link.
+                </div>
+              )}
               <p className="text-sm text-muted-foreground">
-                Share both the link and password with your client. The link expires in 30 days.
+                {sharePassword
+                  ? 'Share both the link and password with your client. The link expires in 30 days.'
+                  : 'The link expires 30 days after it was first generated.'}
               </p>
             </div>
           )}
-          <DialogFooter>
-            <Button onClick={() => setIsShareDialogOpen(false)}>
-              Done
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsRegenerateConfirmOpen(true)}
+              disabled={isGeneratingLink || isRegenerating}
+            >
+              <RefreshCw className={`mr-2 h-4 w-4 ${isRegenerating ? 'animate-spin' : ''}`} />
+              Regenerate
             </Button>
+            <Button onClick={() => setIsShareDialogOpen(false)}>Done</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Regenerate confirmation */}
+      <AlertDialog open={isRegenerateConfirmOpen} onOpenChange={setIsRegenerateConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Regenerate secure link?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This will invalidate the existing link and password. Any client who already has the previous link will no longer be able to access the proposal until you share the new one.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isRegenerating}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRegenerateShareLink} disabled={isRegenerating}>
+              {isRegenerating ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Regenerating...</>
+              ) : (
+                <><RefreshCw className="mr-2 h-4 w-4" />Yes, regenerate</>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Proposal Preview Dialog */}
       <ProposalPreviewDialog
