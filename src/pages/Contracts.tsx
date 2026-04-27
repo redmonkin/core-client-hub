@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Search, FileSignature, MoreHorizontal, Calendar, Loader2, Pencil, Trash2, Eye, Copy, Send, LinkIcon, Users, FileText, RefreshCw, AlertTriangle } from "lucide-react";
-import { format, differenceInDays } from "date-fns";
+import { format, differenceInDays, differenceInCalendarDays } from "date-fns";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
@@ -106,6 +109,24 @@ function computeValueFromCostBreakdown(costBreakdown: string | null): number {
   }
 }
 
+type ContractExpiryInfo = { kind: 'expired' | 'expiring'; days: number; label: string } | null;
+
+function getContractExpiryInfo(endDate: string | null, status: string): ContractExpiryInfo {
+  if (!endDate) return null;
+  // Don't warn for terminal/non-active states
+  if (status === 'rejected' || status === 'draft') return null;
+  const days = differenceInCalendarDays(new Date(endDate), new Date());
+  if (days < 0) {
+    const abs = Math.abs(days);
+    return { kind: 'expired', days: abs, label: `Expired ${abs} day${abs === 1 ? '' : 's'} ago` };
+  }
+  if (days <= 3) {
+    if (days === 0) return { kind: 'expiring', days: 0, label: 'Expires today' };
+    return { kind: 'expiring', days, label: `Expiring in ${days} day${days === 1 ? '' : 's'}` };
+  }
+  return null;
+}
+
 export default function Contracts() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<ContractStatus | "all">("all");
@@ -125,6 +146,9 @@ export default function Contracts() {
   const [isSendDialogOpen, setIsSendDialogOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [selectedCcEmails, setSelectedCcEmails] = useState<string[]>([]);
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailIntro, setEmailIntro] = useState('');
+  const [isReminder, setIsReminder] = useState(false);
 
   // Share link state
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
@@ -413,9 +437,23 @@ export default function Contracts() {
       toast.error('This client does not have an email address configured');
       return;
     }
+    const reminder = contract.status !== 'draft';
+    const clientName = getClientName(contract.client_id);
+    const contractTitle = contractTypeLabels[contract.contract_type] || contract.contract_type;
     setSelectedContract(contract);
     setSelectedCcEmails([]);
     setRegenerateBeforeSend(false);
+    setIsReminder(reminder);
+    setEmailSubject(
+      reminder
+        ? `Reminder: ${contractTitle}`
+        : `Contract: ${contractTitle}`
+    );
+    setEmailIntro(
+      reminder
+        ? `Hi ${clientName},\n\nJust a friendly reminder about the contract we shared with you. Please let us know if you have any questions or need any changes before signing.`
+        : `Hi ${clientName},\n\nA new contract has been prepared for you. Please review the details and let us know if you have any questions.`
+    );
     setIsSendDialogOpen(true);
   };
 
@@ -480,6 +518,9 @@ export default function Contracts() {
             supportEmail: brandingData?.support_email || null,
             portalLink,
             portalPassword: password,
+            customSubject: emailSubject?.trim() || null,
+            customIntro: emailIntro?.trim() || null,
+            isReminder,
           },
           ccEmails: [...(selectedCcEmails.length > 0 ? selectedCcEmails : []), ...(user?.email ? [user.email] : [])].filter((v, i, a) => a.indexOf(v) === i),
         },
@@ -501,13 +542,13 @@ export default function Contracts() {
         user_id: user?.id,
         from_status: previousStatus,
         to_status: previousStatus === 'draft' ? 'sent' : previousStatus,
-        note: `Contract emailed to ${clientEmail}${selectedCcEmails.length > 0 ? ` (CC: ${selectedCcEmails.join(', ')})` : ''}`,
+        note: `${isReminder ? 'Reminder email sent' : 'Contract emailed'} to ${clientEmail}${selectedCcEmails.length > 0 ? ` (CC: ${selectedCcEmails.join(', ')})` : ''}`,
       } as any);
 
       queryClient.invalidateQueries({ queryKey: ['contracts'] });
 
       const ccNote = selectedCcEmails.length > 0 ? ` (CC: ${selectedCcEmails.join(', ')})` : '';
-      toast.success(`Contract sent to ${clientEmail}${ccNote}`);
+      toast.success(`${isReminder ? 'Reminder' : 'Contract'} sent to ${clientEmail}${ccNote}`);
       setIsSendDialogOpen(false);
       setSelectedContract(null);
     } catch (error: any) {
@@ -610,6 +651,7 @@ export default function Contracts() {
   }
 
   return (
+    <TooltipProvider delayDuration={150}>
     <div className="space-y-6 p-4 sm:p-8">
       <PageHeader
         title="Contracts"
@@ -690,6 +732,20 @@ export default function Contracts() {
                               File
                             </Badge>
                           )}
+                          {(() => {
+                            const info = getContractExpiryInfo(contract.end_date, contract.status);
+                            if (!info) return null;
+                            return (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <AlertTriangle
+                                    className={`h-4 w-4 shrink-0 ${info.kind === 'expired' ? 'text-destructive' : 'text-amber-500'}`}
+                                  />
+                                </TooltipTrigger>
+                                <TooltipContent>{info.label}</TooltipContent>
+                              </Tooltip>
+                            );
+                          })()}
                         </h3>
                       </Link>
                       <p className="mt-0.5 text-xs text-muted-foreground">
@@ -861,6 +917,20 @@ export default function Contracts() {
                                 File
                               </Badge>
                             )}
+                            {(() => {
+                              const info = getContractExpiryInfo(contract.end_date, contract.status);
+                              if (!info) return null;
+                              return (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <AlertTriangle
+                                      className={`h-4 w-4 shrink-0 ${info.kind === 'expired' ? 'text-destructive' : 'text-amber-500'}`}
+                                    />
+                                  </TooltipTrigger>
+                                  <TooltipContent>{info.label}</TooltipContent>
+                                </Tooltip>
+                              );
+                            })()}
                           </h3>
                         </Link>
                         <Link
@@ -1009,78 +1079,113 @@ export default function Contracts() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Send Email Confirmation Dialog */}
-      <AlertDialog open={isSendDialogOpen} onOpenChange={setIsSendDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Send Contract</AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-3">
-                {selectedContract && (
-                  <>
-                    <p>
-                      Send contract to{' '}
-                      <strong>{getClientEmail(selectedContract.client_id)}</strong>?
-                    </p>
-                    {selectedContract.status === 'draft' && (
-                      <p className="text-muted-foreground">
-                        The contract status will be updated to "Sent".
-                      </p>
-                    )}
+      {/* Send Email Dialog */}
+      <Dialog open={isSendDialogOpen} onOpenChange={setIsSendDialogOpen}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {isReminder ? 'Send Reminder' : 'Send Contract'}
+              {isReminder && (
+                <span className="rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 px-2 py-0.5 text-xs font-medium">
+                  Already sent
+                </span>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedContract && (
+                <>
+                  {isReminder
+                    ? `This contract was already sent. We'll send a reminder to `
+                    : `Send contract to `}
+                  <strong className="text-foreground">{getClientEmail(selectedContract.client_id)}</strong>
+                  {selectedContract.status === 'draft' && '. The status will be updated to "Sent".'}
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
 
-                    {/* CC Contacts */}
-                    {(() => {
-                      const clientEmail = getClientEmail(selectedContract.client_id);
-                      const ccContacts = selectedClientContacts.filter(c => c.email && c.email !== clientEmail);
-                      if (ccContacts.length === 0) return null;
-                      return (
-                        <div className="rounded-md border p-3 space-y-2">
-                          <p className="text-sm font-medium flex items-center gap-1.5">
-                            <Users className="h-3.5 w-3.5" />
-                            CC Additional Contacts
-                          </p>
-                          {ccContacts.map(contact => (
-                            <label key={contact.id} className="flex items-center gap-2 text-sm cursor-pointer">
-                              <Checkbox
-                                checked={selectedCcEmails.includes(contact.email!)}
-                                onCheckedChange={(checked) => {
-                                  setSelectedCcEmails(prev =>
-                                    checked
-                                      ? [...prev, contact.email!]
-                                      : prev.filter(e => e !== contact.email!)
-                                  );
-                                }}
-                              />
-                              <span className="truncate">{contact.name}</span>
-                              <span className="text-muted-foreground truncate">({contact.email})</span>
-                            </label>
-                          ))}
-                        </div>
-                      );
-                    })()}
-
-                    {/* Regenerate secure link option */}
-                    <label className="flex items-start gap-2 rounded-md border p-3 cursor-pointer">
-                      <Checkbox
-                        checked={regenerateBeforeSend}
-                        onCheckedChange={(checked) => setRegenerateBeforeSend(checked === true)}
-                        className="mt-0.5"
-                      />
-                      <div className="space-y-0.5">
-                        <p className="text-sm font-medium text-foreground">Regenerate secure link &amp; password</p>
-                        <p className="text-xs text-muted-foreground">
-                          By default, the existing share link is reused (no new password is sent). Tick this to invalidate the old link and email a fresh password.
-                        </p>
-                      </div>
-                    </label>
-                  </>
-                )}
+          {selectedContract && (
+            <div className="space-y-4">
+              {/* Subject */}
+              <div className="space-y-1.5">
+                <Label htmlFor="contract-email-subject">Subject</Label>
+                <Input
+                  id="contract-email-subject"
+                  value={emailSubject}
+                  onChange={(e) => setEmailSubject(e.target.value)}
+                  placeholder="Email subject"
+                />
               </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isSending}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmSendEmail} disabled={isSending}>
+
+              {/* Message */}
+              <div className="space-y-1.5">
+                <Label htmlFor="contract-email-intro">Message</Label>
+                <Textarea
+                  id="contract-email-intro"
+                  value={emailIntro}
+                  onChange={(e) => setEmailIntro(e.target.value)}
+                  rows={5}
+                  placeholder="Write a personal note to your client..."
+                  className="resize-none"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Contract details (value, dates, secure link) are appended automatically.
+                </p>
+              </div>
+
+              {/* CC Contacts */}
+              {(() => {
+                const clientEmail = getClientEmail(selectedContract.client_id);
+                const ccContacts = selectedClientContacts.filter(c => c.email && c.email !== clientEmail);
+                if (ccContacts.length === 0) return null;
+                return (
+                  <div className="rounded-md border p-3 space-y-2">
+                    <p className="text-sm font-medium flex items-center gap-1.5">
+                      <Users className="h-3.5 w-3.5" />
+                      CC Additional Contacts
+                    </p>
+                    {ccContacts.map(contact => (
+                      <label key={contact.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                        <Checkbox
+                          checked={selectedCcEmails.includes(contact.email!)}
+                          onCheckedChange={(checked) => {
+                            setSelectedCcEmails(prev =>
+                              checked
+                                ? [...prev, contact.email!]
+                                : prev.filter(e => e !== contact.email!)
+                            );
+                          }}
+                        />
+                        <span className="truncate">{contact.name}</span>
+                        <span className="text-muted-foreground truncate">({contact.email})</span>
+                      </label>
+                    ))}
+                  </div>
+                );
+              })()}
+
+              {/* Regenerate secure link option */}
+              <label className="flex items-start gap-2 rounded-md border p-3 cursor-pointer">
+                <Checkbox
+                  checked={regenerateBeforeSend}
+                  onCheckedChange={(checked) => setRegenerateBeforeSend(checked === true)}
+                  className="mt-0.5"
+                />
+                <div className="space-y-0.5">
+                  <p className="text-sm font-medium text-foreground">Regenerate secure link &amp; password</p>
+                  <p className="text-xs text-muted-foreground">
+                    By default, the existing share link is reused (no new password is sent). Tick this to invalidate the old link and email a fresh password.
+                  </p>
+                </div>
+              </label>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsSendDialogOpen(false)} disabled={isSending}>
+              Cancel
+            </Button>
+            <Button onClick={confirmSendEmail} disabled={isSending || !emailSubject.trim()}>
               {isSending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1089,13 +1194,13 @@ export default function Contracts() {
               ) : (
                 <>
                   <Send className="mr-2 h-4 w-4" />
-                  Send Email
+                  {isReminder ? 'Send Reminder' : 'Send Email'}
                 </>
               )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Share Link Dialog */}
       <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
@@ -1190,5 +1295,6 @@ export default function Contracts() {
         proposalData={previewData!}
       />
     </div>
+    </TooltipProvider>
   );
 }
