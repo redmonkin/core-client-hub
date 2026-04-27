@@ -556,6 +556,35 @@ export default function ContractDetail() {
         </div>
       </div>
 
+      {/* Expiry / Approval Alert */}
+      {(() => {
+        const info = getContractExpiryInfo(contract.start_date, contract.end_date, contract.status);
+        if (!info) return null;
+        const isCritical = info.severity === 'critical';
+        return (
+          <div
+            className={`flex items-start gap-3 rounded-lg border p-4 ${
+              isCritical
+                ? 'border-destructive/30 bg-destructive/10 text-destructive'
+                : 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400'
+            }`}
+            role="alert"
+          >
+            <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold">
+                {info.kind === 'awaiting-approval'
+                  ? 'Awaiting client approval'
+                  : info.kind === 'renewal-overdue'
+                    ? 'Renewal overdue'
+                    : 'Renewal due'}
+              </p>
+              <p className="text-sm opacity-90 mt-0.5">{info.label}</p>
+            </div>
+          </div>
+        );
+      })()}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Details Card */}
         <Card className="lg:col-span-1">
