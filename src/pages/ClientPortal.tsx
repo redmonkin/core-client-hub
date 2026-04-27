@@ -75,6 +75,7 @@ export default function ClientPortal() {
   // Password gate state
   const [passwordRequired, setPasswordRequired] = useState(false);
   const [password, setPassword] = useState('');
+  const [verifiedPassword, setVerifiedPassword] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState('');
   const [verifyingPassword, setVerifyingPassword] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
@@ -128,6 +129,7 @@ export default function ClientPortal() {
       setDocumentType(result.document_type || 'proposal');
       setAuthenticated(true);
       setPasswordRequired(false);
+      if (plainPassword) setVerifiedPassword(plainPassword);
     } catch (err: any) {
       console.error('Error fetching proposal:', err);
       setError(err.message);
@@ -156,6 +158,9 @@ export default function ClientPortal() {
       }
       if (action === 'approve' && documentType === 'contract' && signatureName.trim()) {
         body.signature_name = signatureName.trim();
+      }
+      if (verifiedPassword) {
+        body.password = verifiedPassword;
       }
       const response = await fetch(
         `https://jizouqjrdyfshhztqucd.supabase.co/functions/v1/client-portal`,

@@ -350,7 +350,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // POST - Update proposal status (approve/reject)
     if (req.method === "POST") {
-      const { token: bodyToken, action, notes, signature_name }: UpdateProposalRequest = await req.json();
+      const { token: bodyToken, action, notes, signature_name, password }: UpdateProposalRequest & { password?: string } = await req.json();
       const accessTokenValue = bodyToken || token;
 
       if (!accessTokenValue) {
@@ -385,6 +385,20 @@ const handler = async (req: Request): Promise<Response> => {
 
       if (new Date(tokenData.expires_at) < new Date()) {
         return new Response(JSON.stringify({ error: "This link has expired" }), { status: 410, headers: { "Content-Type": "application/json", ...corsHeaders } });
+      }
+
+      // Enforce password gate on POST actions when the token is password-protected.
+      // Without this check, anyone with the share URL could approve/reject directly.
+      if (tokenData.password_hash) {
+        if (!password) {
+          return new Response(JSON.stringify({ error: "Password required", password_required: true }), { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } });
+        }
+        const encoder = new TextEncoder();
+        const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(password));
+        const computedHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
+        if (computedHash !== tokenData.password_hash) {
+          return new Response(JSON.stringify({ error: "Incorrect password" }), { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } });
+        }
       }
 
       const newStatus = action === "approve" ? "approved" : action === "request_changes" ? "change_requested" : "rejected";
