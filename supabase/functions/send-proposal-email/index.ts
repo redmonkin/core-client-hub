@@ -133,6 +133,9 @@ const handler = async (req: Request): Promise<Response> => {
       senderCompany,
       supportEmail,
       ccEmails,
+      customSubject,
+      customIntro,
+      isReminder,
     }: SendProposalRequest = await req.json();
 
     console.log(
