@@ -216,7 +216,7 @@ export default function ProjectDetail() {
             <div className="aspect-video rounded-lg bg-muted/50 flex items-center justify-center overflow-hidden relative group">
               {project.feature_image_url ? (
                 <>
-                  <img src={project.feature_image_url} alt="Feature" className="h-full w-full object-cover" />
+                  <img src={featureImageSignedUrl ?? ''} alt="Feature" className="h-full w-full object-cover" />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                     <Button size="sm" variant="secondary" onClick={() => featureImageRef.current?.click()}>
                       <Upload className="h-3.5 w-3.5 mr-1" />Replace
