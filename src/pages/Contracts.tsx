@@ -109,70 +109,7 @@ function computeValueFromCostBreakdown(costBreakdown: string | null): number {
   }
 }
 
-type ContractAlertKind = 'awaiting-approval' | 'renewal-due' | 'renewal-overdue';
-type ContractAlertInfo = { kind: ContractAlertKind; severity: 'warning' | 'critical'; days: number; label: string } | null;
-
-function getContractExpiryInfo(
-  startDate: string | null,
-  endDate: string | null,
-  status: string,
-): ContractAlertInfo {
-  // Skip terminal/closed states
-  if (status === 'rejected' || status === 'expired') return null;
-
-  const isUndecided = ['draft', 'sent', 'change_requested'].includes(status);
-  const isLive = ['approved', 'active', 'pending-renewal'].includes(status);
-
-  // Awaiting approval: contract is nearing/past its START date but client hasn't approved yet
-  if (isUndecided && startDate) {
-    const days = differenceInCalendarDays(new Date(startDate), new Date());
-    if (days > 7) return null;
-    if (days < 0) {
-      const abs = Math.abs(days);
-      return {
-        kind: 'awaiting-approval',
-        severity: 'critical',
-        days: abs,
-        label: `Not yet approved — start date passed ${abs} day${abs === 1 ? '' : 's'} ago`,
-      };
-    }
-    if (days === 0) {
-      return { kind: 'awaiting-approval', severity: 'critical', days: 0, label: 'Not yet approved — starts today' };
-    }
-    return {
-      kind: 'awaiting-approval',
-      severity: 'warning',
-      days,
-      label: `Not yet approved — starts in ${days} day${days === 1 ? '' : 's'}`,
-    };
-  }
-
-  // Renewal due / overdue: live contracts nearing/past their END date
-  if (isLive && endDate) {
-    const days = differenceInCalendarDays(new Date(endDate), new Date());
-    if (days > 60) return null;
-    if (days < 0) {
-      const abs = Math.abs(days);
-      return {
-        kind: 'renewal-overdue',
-        severity: 'critical',
-        days: abs,
-        label: `Renewal overdue by ${abs} day${abs === 1 ? '' : 's'}`,
-      };
-    }
-    if (days === 0) {
-      return { kind: 'renewal-due', severity: 'critical', days: 0, label: 'Renewal due today' };
-    }
-    return {
-      kind: 'renewal-due',
-      severity: 'warning',
-      days,
-      label: `Renewal due in ${days} day${days === 1 ? '' : 's'}`,
-    };
-  }
-
-  return null;
-}
+// Contract alert helper extracted to src/lib/contract-alerts.ts
 
 export default function Contracts() {
   const [searchQuery, setSearchQuery] = useState("");
