@@ -630,6 +630,35 @@ export default function ContractDetail() {
           </CardContent>
         </Card>
 
+        {/* External Contract File Card */}
+        {(contract as any).is_external && (contract as any).file_url && (
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Uploaded Contract File
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between rounded-md border p-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{(contract as any).file_name || 'Contract file'}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {(contract as any).file_type || 'Document'}
+                    </p>
+                  </div>
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={handleViewFile}>
+                  <Eye className="mr-2 h-4 w-4" />
+                  View
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Timeline Card */}
         <Card className="lg:col-span-2">
           <CardHeader>
