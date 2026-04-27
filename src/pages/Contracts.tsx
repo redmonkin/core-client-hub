@@ -561,6 +561,10 @@ export default function Contracts() {
       scope_of_work: selectedContract.scope_of_work || "",
       cost_breakdown: selectedContract.cost_breakdown || "",
       template_id: selectedContract.template_id || "",
+      is_external: !!selectedContract.is_external,
+      file_url: selectedContract.file_url || "",
+      file_name: selectedContract.file_name || "",
+      file_type: selectedContract.file_type || "",
     };
   };
 
