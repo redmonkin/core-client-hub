@@ -13,6 +13,9 @@ const corsHeaders = {
 const escapeHtml = (s: string): string =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
+const isSafeHttpUrl = (url: unknown): url is string =>
+  typeof url === "string" && /^https?:\/\//i.test(url);
+
 interface NotificationEmailRequest {
   type:
     | "proposal_approved"
