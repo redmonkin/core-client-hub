@@ -6,6 +6,7 @@ import {
   FileText,
   FileSignature,
   FileCode,
+  ClipboardList,
   ChevronLeft,
   LogOut,
   Settings,
@@ -40,6 +41,7 @@ import clientraLogoDark from '@/assets/clientra-dark.svg';
 
 const menuItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
+  { title: 'Briefs', url: '/briefs', icon: ClipboardList },
   { title: 'Clients', url: '/clients', icon: Users },
   { title: 'Projects', url: '/projects', icon: FolderKanban },
   { title: 'Proposals', url: '/proposals', icon: FileText },
