@@ -467,8 +467,10 @@ export default function Proposals() {
 
     setIsSending(true);
     try {
-      // Generate portal link for the proposal
-      const portal = await generatePortalLink(selectedProposal.id);
+      // Reuse existing portal link by default; regenerate only if user opted in
+      const portal = regenerateBeforeSend
+        ? await regenerateProposalPortalAccess(selectedProposal.id, window.location.origin)
+        : await getOrCreateProposalPortalAccess(selectedProposal.id, window.location.origin);
 
       // Fetch support email from branding settings
       const { data: brandingData } = await supabase
