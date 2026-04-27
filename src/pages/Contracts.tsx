@@ -194,6 +194,10 @@ export default function Contracts() {
           scope_of_work: contractData.scope_of_work || null,
           cost_breakdown: contractData.cost_breakdown || null,
           template_id: contractData.template_id || null,
+          is_external: !!contractData.is_external,
+          file_url: contractData.file_url || null,
+          file_name: contractData.file_name || null,
+          file_type: contractData.file_type || null,
         } as any)
         .select()
         .single();
