@@ -13,6 +13,9 @@ const corsHeaders = {
 const escapeHtml = (s: string): string =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
+const isSafeHttpUrl = (url: unknown): url is string =>
+  typeof url === "string" && /^https?:\/\//i.test(url);
+
 interface NotificationEmailRequest {
   type:
     | "proposal_approved"
@@ -192,12 +195,12 @@ function buildContractEmail(
                         </tr>
                       </table>
 
-                      ${data.portalLink ? `
+                      ${isSafeHttpUrl(data.portalLink) ? `
                       <!-- CTA Button -->
                       <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
                         <tr>
                           <td align="center">
-                            <a href="${data.portalLink}" style="display: inline-block; background-color: #111827; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 600; padding: 14px 32px; border-radius: 8px; letter-spacing: -0.2px;">View Full Contract →</a>
+                            <a href="${escapeHtml(data.portalLink)}" style="display: inline-block; background-color: #111827; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 600; padding: 14px 32px; border-radius: 8px; letter-spacing: -0.2px;">View Full Contract →</a>
                           </td>
                         </tr>
                       </table>
@@ -239,7 +242,7 @@ function buildTeamInviteEmail(
   data: Record<string, any>
 ): { subject: string; html: string } {
   const inviterName = escapeHtml(data.inviterName || data.senderCompany || "Your team");
-  const appUrl = escapeHtml(data.appUrl || "");
+  const appUrl = isSafeHttpUrl(data.appUrl) ? escapeHtml(data.appUrl) : "";
 
   return {
     subject: `🤝 You've been invited to join ${inviterName}'s workspace`,

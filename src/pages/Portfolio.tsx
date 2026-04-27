@@ -43,20 +43,12 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-
 const projectTypeLabels: Record<string, string> = {
   'one-time': 'One-time',
   'amc': 'AMC',
   'retainer': 'Retainer',
   'hourly': 'Hourly',
 };
-
-function getStoragePublicUrl(path: string) {
-  if (!path) return '';
-  if (path.startsWith('http')) return path;
-  return `${SUPABASE_URL}/storage/v1/object/public/project-files/${path}`;
-}
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -144,6 +136,23 @@ export default function Portfolio() {
       return data as unknown as { id: string; client_name: string; company_name: string | null }[];
     },
     enabled: clientIds.length > 0,
+  });
+
+  // Resolve short-lived signed URLs for project feature images via edge function
+  // (the project-files bucket is private to protect non-featured uploads).
+  const projectIds = featuredProjects.map(p => p.id);
+  const { data: imageUrls = {} } = useQuery({
+    queryKey: ['portfolio-image-urls', projectIds],
+    queryFn: async () => {
+      if (projectIds.length === 0) return {} as Record<string, string | null>;
+      const { data, error } = await supabase.functions.invoke('portfolio-image-url', {
+        body: { project_ids: projectIds },
+      });
+      if (error) throw error;
+      return (data?.urls ?? {}) as Record<string, string | null>;
+    },
+    enabled: projectIds.length > 0,
+    staleTime: 50 * 60 * 1000, // refresh well before 1h signed-URL TTL
   });
 
   const getClientName = (clientId: string) => {
@@ -312,9 +321,7 @@ export default function Portfolio() {
         {featuredProjects.length > 0 ? (
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {featuredProjects.map((project) => {
-              const imageUrl = project.feature_image_url
-                ? getStoragePublicUrl(project.feature_image_url)
-                : '';
+              const imageUrl = imageUrls[project.id] || '';
               return (
                 <Card key={project.id} className="overflow-hidden group hover:shadow-xl transition-all duration-300 border-0 shadow-md bg-white">
                   <div className="aspect-video bg-gray-100 flex items-center justify-center overflow-hidden">
