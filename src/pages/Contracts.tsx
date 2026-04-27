@@ -9,6 +9,9 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { ViewToggle } from "@/components/ui/view-toggle";
+import { useViewMode } from "@/hooks/useViewMode";
 import { Checkbox } from "@/components/ui/checkbox";
 
 import {
@@ -106,6 +109,7 @@ function computeValueFromCostBreakdown(costBreakdown: string | null): number {
 export default function Contracts() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<ContractStatus | "all">("all");
+  const [viewMode, setViewMode] = useViewMode('contracts', 'list');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
