@@ -15,6 +15,16 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { ViewToggle } from '@/components/ui/view-toggle';
+import { useViewMode } from '@/hooks/useViewMode';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -33,6 +43,7 @@ export default function Templates() {
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [deletingTemplate, setDeletingTemplate] = useState<Template | null>(null);
   const [previewingTemplate, setPreviewingTemplate] = useState<Template | null>(null);
+  const [viewMode, setViewMode] = useViewMode('templates', 'grid');
 
   const { 
     templates, 
