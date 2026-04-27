@@ -40,6 +40,7 @@ import { toast } from 'sonner';
 import { ProposalFormDialog } from '@/components/proposals/ProposalFormDialog';
 import { ProposalPreviewDialog } from '@/components/proposals/ProposalPreviewDialog';
 import { ProposalData } from '@/lib/proposal-utils';
+import { getOrCreateProposalPortalAccess, regenerateProposalPortalAccess } from '@/lib/proposal-portal-access';
 
 type ProposalStatus = 'draft' | 'sent' | 'approved' | 'rejected' | 'change_requested';
 
