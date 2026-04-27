@@ -129,6 +129,7 @@ export default function ClientPortal() {
       setDocumentType(result.document_type || 'proposal');
       setAuthenticated(true);
       setPasswordRequired(false);
+      if (plainPassword) setVerifiedPassword(plainPassword);
     } catch (err: any) {
       console.error('Error fetching proposal:', err);
       setError(err.message);
