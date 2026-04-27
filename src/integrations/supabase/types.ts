@@ -868,6 +868,8 @@ export type Database = {
           id: string | null
           is_featured: boolean | null
           project_name: string | null
+          project_type: string | null
+          status: string | null
           user_id: string | null
         }
         Insert: {
@@ -876,6 +878,8 @@ export type Database = {
           id?: string | null
           is_featured?: boolean | null
           project_name?: string | null
+          project_type?: string | null
+          status?: string | null
           user_id?: string | null
         }
         Update: {
@@ -884,6 +888,8 @@ export type Database = {
           id?: string | null
           is_featured?: boolean | null
           project_name?: string | null
+          project_type?: string | null
+          status?: string | null
           user_id?: string | null
         }
         Relationships: [
