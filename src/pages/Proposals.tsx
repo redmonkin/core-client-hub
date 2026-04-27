@@ -52,6 +52,26 @@ import { ProposalFormDialog } from '@/components/proposals/ProposalFormDialog';
 import { ProposalPreviewDialog } from '@/components/proposals/ProposalPreviewDialog';
 import { ProposalData } from '@/lib/proposal-utils';
 import { useTemplates, Template } from '@/hooks/useTemplates';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { differenceInCalendarDays } from 'date-fns';
+
+type ExpiryInfo = { kind: 'expired' | 'expiring'; days: number; label: string } | null;
+
+function getExpiryInfo(validityDate: string | null, status: string): ExpiryInfo {
+  if (!validityDate) return null;
+  // Don't warn for terminal states
+  if (status === 'approved' || status === 'rejected') return null;
+  const days = differenceInCalendarDays(new Date(validityDate), new Date());
+  if (days < 0) {
+    const abs = Math.abs(days);
+    return { kind: 'expired', days: abs, label: `Expired ${abs} day${abs === 1 ? '' : 's'} ago` };
+  }
+  if (days <= 3) {
+    if (days === 0) return { kind: 'expiring', days: 0, label: 'Expires today' };
+    return { kind: 'expiring', days, label: `Expiring in ${days} day${days === 1 ? '' : 's'}` };
+  }
+  return null;
+}
 
 type ProposalStatus = 'draft' | 'sent' | 'approved' | 'rejected' | 'change_requested';
 
@@ -651,8 +671,22 @@ export default function Proposals() {
                     to={`/proposals/${proposal.id}`}
                     className="block"
                   >
-                    <h3 className="truncate font-medium text-foreground group-hover:text-primary transition-colors">
-                      {proposal.title}
+                    <h3 className="truncate font-medium text-foreground group-hover:text-primary transition-colors flex items-center gap-1.5">
+                      <span className="truncate">{proposal.title}</span>
+                      {(() => {
+                        const info = getExpiryInfo(proposal.validity_date, proposal.status);
+                        if (!info) return null;
+                        return (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <AlertTriangle
+                                className={`h-4 w-4 shrink-0 ${info.kind === 'expired' ? 'text-destructive' : 'text-amber-500'}`}
+                              />
+                            </TooltipTrigger>
+                            <TooltipContent>{info.label}</TooltipContent>
+                          </Tooltip>
+                        );
+                      })()}
                     </h3>
                   </Link>
                   {proposal.duration && (
@@ -749,12 +783,28 @@ export default function Proposals() {
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <Link
-                        to={`/proposals/${proposal.id}`}
-                        className="block truncate font-semibold text-foreground hover:text-primary transition-colors"
-                      >
-                        {proposal.title}
-                      </Link>
+                      <div className="flex items-center gap-1.5">
+                        <Link
+                          to={`/proposals/${proposal.id}`}
+                          className="block truncate font-semibold text-foreground hover:text-primary transition-colors"
+                        >
+                          {proposal.title}
+                        </Link>
+                        {(() => {
+                          const info = getExpiryInfo(proposal.validity_date, proposal.status);
+                          if (!info) return null;
+                          return (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <AlertTriangle
+                                  className={`h-4 w-4 shrink-0 ${info.kind === 'expired' ? 'text-destructive' : 'text-amber-500'}`}
+                                />
+                              </TooltipTrigger>
+                              <TooltipContent>{info.label}</TooltipContent>
+                            </Tooltip>
+                          );
+                        })()}
+                      </div>
                       <Link
                         to={`/clients/${proposal.client_id}`}
                         className="mt-1 flex items-center gap-1.5 truncate text-sm text-muted-foreground hover:text-primary transition-colors"
