@@ -15,6 +15,16 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { ViewToggle } from '@/components/ui/view-toggle';
+import { useViewMode } from '@/hooks/useViewMode';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -33,6 +43,7 @@ export default function Templates() {
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [deletingTemplate, setDeletingTemplate] = useState<Template | null>(null);
   const [previewingTemplate, setPreviewingTemplate] = useState<Template | null>(null);
+  const [viewMode, setViewMode] = useViewMode('templates', 'grid');
 
   const { 
     templates, 
@@ -166,7 +177,14 @@ export default function Templates() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {templates.length > 0 && (
+        <div className="flex justify-end">
+          <ViewToggle mode={viewMode} onChange={setViewMode} />
+        </div>
+      )}
+
       {templates.length > 0 ? (
+        viewMode === 'grid' ? (
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {templates.map(template => (
             <Card key={template.id} className="group overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5">
@@ -220,6 +238,73 @@ export default function Templates() {
             </Card>
           ))}
         </div>
+        ) : (
+          <div className="overflow-hidden rounded-xl border border-border bg-card">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/30 hover:bg-muted/30">
+                  <TableHead className="font-semibold">Name</TableHead>
+                  <TableHead className="font-semibold">Type</TableHead>
+                  <TableHead className="font-semibold">Created</TableHead>
+                  <TableHead className="w-12"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {templates.map(template => (
+                  <TableRow key={template.id} className="group">
+                    <TableCell>
+                      <button
+                        onClick={() => setPreviewingTemplate(template)}
+                        className="font-medium text-foreground hover:text-primary transition-colors text-left"
+                      >
+                        {template.name}
+                      </button>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className={`text-xs ${templateTypeColors[template.type]}`}>
+                        {templateTypeLabels[template.type]}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">
+                      {format(new Date(template.created_at), 'MMM dd, yyyy')}
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setPreviewingTemplate(template)}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            Preview
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEdit(template)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleDuplicate(template)}>
+                            <Copy className="mr-2 h-4 w-4" />
+                            Duplicate
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => setDeletingTemplate(template)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )
       ) : (
         <EmptyState
           icon={FileCode}

@@ -12,6 +12,8 @@ import { EmptyState } from '@/components/shared/EmptyState';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
+import { ViewToggle } from '@/components/ui/view-toggle';
+import { useViewMode } from '@/hooks/useViewMode';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -108,6 +110,7 @@ export default function Proposals() {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ProposalStatus | 'all'>('all');
+  const [viewMode, setViewMode] = useViewMode('proposals', 'list');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -653,9 +656,11 @@ export default function Proposals() {
             <SelectItem value="change_requested">Change Requested</SelectItem>
           </SelectContent>
         </Select>
+        <ViewToggle mode={viewMode} onChange={setViewMode} className="h-12 self-stretch sm:self-auto" />
       </div>
 
       {filteredProposals.length > 0 ? (
+        viewMode === 'list' ? (
         <div className="rounded-xl border border-border overflow-hidden">
           {/* Table Header */}
           <div className="hidden md:grid md:grid-cols-[1fr_180px_140px_140px_120px_48px] items-center gap-4 border-b border-border bg-muted/40 px-6 py-3">
@@ -768,15 +773,106 @@ export default function Proposals() {
                   </DropdownMenu>
                 </div>
               </div>
-            ))}
+          ))}
           </div>
         </div>
+        ) : (
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredProposals.map(proposal => (
+              <Card key={proposal.id} className="group overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <Link
+                        to={`/proposals/${proposal.id}`}
+                        className="block truncate font-semibold text-foreground hover:text-primary transition-colors"
+                      >
+                        {proposal.title}
+                      </Link>
+                      <Link
+                        to={`/clients/${proposal.client_id}`}
+                        className="mt-1 flex items-center gap-1.5 truncate text-sm text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        <User className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{getClientName(proposal.client_id)}</span>
+                      </Link>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-popover">
+                        <DropdownMenuItem onClick={() => handlePreview(proposal)}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          Preview
+                        </DropdownMenuItem>
+                        {proposal.status !== 'approved' && (
+                          <DropdownMenuItem onClick={() => handleEdit(proposal)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem onClick={() => handleDuplicate(proposal)}>
+                          <Copy className="mr-2 h-4 w-4" />
+                          Duplicate
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleSendEmail(proposal)}>
+                          <Send className="mr-2 h-4 w-4" />
+                          Send to Client
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleShareLink(proposal)}>
+                          <LinkIcon className="mr-2 h-4 w-4" />
+                          Get Share Link
+                        </DropdownMenuItem>
+                        {proposal.status !== 'approved' && (
+                          <DropdownMenuItem
+                            onClick={() => handleDelete(proposal)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+
+                  <div className="mt-4 flex items-center gap-2">
+                    <StatusBadge status={proposal.status as ProposalStatus} />
+                    {proposal.duration && (
+                      <span className="text-xs text-muted-foreground">Duration: {proposal.duration}</span>
+                    )}
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-between border-t border-border pt-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1.5">
+                      <Calendar className="h-3.5 w-3.5" />
+                      <span>
+                        {proposal.validity_date
+                          ? `Valid ${format(new Date(proposal.validity_date), 'MMM dd, yyyy')}`
+                          : 'No validity date'}
+                      </span>
+                    </div>
+                    <Link
+                      to={`/proposals/${proposal.id}`}
+                      className="text-sm font-medium text-primary hover:underline"
+                    >
+                      View →
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )
       ) : (
         <EmptyState
           icon={FileText}
           title="No proposals found"
-          description={searchQuery || statusFilter !== 'all' 
-            ? "Try adjusting your filters" 
+          description={searchQuery || statusFilter !== 'all'
+            ? "Try adjusting your filters"
             : "Create your first proposal to get started"}
           actionLabel={!searchQuery && statusFilter === 'all' ? "New Proposal" : undefined}
           onAction={() => setIsDialogOpen(true)}

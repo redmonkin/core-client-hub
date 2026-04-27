@@ -9,6 +9,9 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { ViewToggle } from "@/components/ui/view-toggle";
+import { useViewMode } from "@/hooks/useViewMode";
 import { Checkbox } from "@/components/ui/checkbox";
 
 import {
@@ -106,6 +109,7 @@ function computeValueFromCostBreakdown(costBreakdown: string | null): number {
 export default function Contracts() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<ContractStatus | "all">("all");
+  const [viewMode, setViewMode] = useViewMode('contracts', 'list');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -615,9 +619,11 @@ export default function Contracts() {
             <SelectItem value="pending-renewal">Pending Renewal</SelectItem>
           </SelectContent>
         </Select>
+        <ViewToggle mode={viewMode} onChange={setViewMode} className="h-12 self-stretch sm:self-auto" />
       </div>
 
       {filteredContracts.length > 0 ? (
+        viewMode === 'list' ? (
         <div className="rounded-xl border border-border overflow-hidden">
           {/* Grid Header */}
           <div className="hidden md:grid md:grid-cols-[1fr_140px_140px_100px_200px_120px_48px] items-center gap-4 border-b border-border bg-muted/40 px-6 py-3">
@@ -755,6 +761,106 @@ export default function Contracts() {
             })}
           </div>
         </div>
+        ) : (
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredContracts.map((contract) => {
+              const endDate = new Date(contract.end_date);
+              const startDate = new Date(contract.start_date);
+              const daysUntilEnd = differenceInDays(endDate, new Date());
+              const isExpiringSoon = daysUntilEnd > 0 && daysUntilEnd <= 30;
+              return (
+                <Card key={contract.id} className="group overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5">
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <Link to={`/contracts/${contract.id}`} className="block">
+                          <h3 className="truncate font-semibold text-foreground group-hover:text-primary transition-colors flex items-center gap-2">
+                            {contractTypeLabels[contract.contract_type] || contract.contract_type}
+                            {contract.is_external && (
+                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5">
+                                <FileText className="h-3 w-3 mr-1" />
+                                File
+                              </Badge>
+                            )}
+                          </h3>
+                        </Link>
+                        <Link
+                          to={`/clients/${contract.client_id}`}
+                          className="mt-1 block truncate text-sm text-muted-foreground hover:text-primary transition-colors"
+                        >
+                          {getClientName(contract.client_id)}
+                        </Link>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="bg-popover">
+                          <DropdownMenuItem onClick={() => handlePreview(contract)}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            Preview
+                          </DropdownMenuItem>
+                          {!['approved', 'active'].includes(contract.status) && (
+                            <DropdownMenuItem onClick={() => handleEdit(contract)}>
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem onClick={() => handleDuplicateContract(contract)}>
+                            <Copy className="mr-2 h-4 w-4" />
+                            Duplicate
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleSendEmail(contract)}>
+                            <Send className="mr-2 h-4 w-4" />
+                            Send to Client
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleShareLink(contract)}>
+                            <LinkIcon className="mr-2 h-4 w-4" />
+                            Get Share Link
+                          </DropdownMenuItem>
+                          {!['approved', 'active'].includes(contract.status) && (
+                            <DropdownMenuItem
+                              onClick={() => handleDelete(contract)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+
+                    <div className="mt-4 flex items-center gap-2">
+                      <StatusBadge status={contract.status as ContractStatus} />
+                      <Badge variant="outline" className="text-xs">
+                        {renewalLabels[contract.renewal_frequency] || contract.renewal_frequency}
+                      </Badge>
+                    </div>
+
+                    <div className="mt-4 space-y-2 border-t border-border pt-4">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Value</span>
+                        <span className="font-semibold text-foreground">₹{Number(contract.value).toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-sm">
+                        <Calendar className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                        <span className={`truncate ${isExpiringSoon ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                          {format(startDate, "MMM dd")} – {format(endDate, "MMM dd, yyyy")}
+                        </span>
+                      </div>
+                      {isExpiringSoon && (
+                        <p className="text-xs font-medium text-destructive">Expires in {daysUntilEnd} days</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )
       ) : (
         <EmptyState
           icon={FileSignature}

@@ -12,6 +12,9 @@ import { EmptyState } from '@/components/shared/EmptyState';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { ViewToggle } from '@/components/ui/view-toggle';
+import { useViewMode } from '@/hooks/useViewMode';
 import { Label } from '@/components/ui/label';
 import {
   Table,
@@ -80,6 +83,7 @@ const emptyProject = {
 export default function Projects() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'all'>('all');
+  const [viewMode, setViewMode] = useViewMode('projects', 'list');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -385,9 +389,11 @@ export default function Projects() {
             <SelectItem value="cancelled">Cancelled</SelectItem>
           </SelectContent>
         </Select>
+        <ViewToggle mode={viewMode} onChange={setViewMode} className="h-12 self-stretch sm:self-auto" />
       </div>
 
       {filteredProjects.length > 0 ? (
+        viewMode === 'list' ? (
         <div className="overflow-hidden rounded-xl border border-border bg-card">
           <Table>
             <TableHeader>
@@ -466,12 +472,84 @@ export default function Projects() {
             </TableBody>
           </Table>
         </div>
+        ) : (
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredProjects.map(project => (
+              <Card key={project.id} className="group overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <Link
+                        to={`/projects/${project.id}`}
+                        className="block truncate font-semibold text-foreground hover:text-primary transition-colors"
+                      >
+                        {project.project_name}
+                      </Link>
+                      <Link
+                        to={`/clients/${project.client_id}`}
+                        className="mt-1 block truncate text-sm text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        {getClientName(project.client_id)}
+                      </Link>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-popover">
+                        <DropdownMenuItem asChild>
+                          <Link to={`/projects/${project.id}`}>View Details</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEdit(project)}>
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleDelete(project)}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+
+                  <div className="mt-4 flex items-center gap-2">
+                    <Badge variant="outline" className="font-medium">
+                      {projectTypeLabels[project.project_type]}
+                    </Badge>
+                    <StatusBadge status={project.status as 'proposal' | 'active' | 'planned' | 'on-hold' | 'completed' | 'cancelled' | 'maintenance' | 'new-request'} />
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-between border-t border-border pt-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1.5">
+                      <Calendar className="h-3.5 w-3.5" />
+                      <span>
+                        {project.start_date ? format(new Date(project.start_date), 'MMM dd') : 'No start'}
+                        {project.end_date && ` – ${format(new Date(project.end_date), 'MMM dd, yyyy')}`}
+                      </span>
+                    </div>
+                    <Link
+                      to={`/projects/${project.id}`}
+                      className="text-sm font-medium text-primary hover:underline"
+                    >
+                      View →
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )
       ) : (
         <EmptyState
           icon={Calendar}
           title="No projects found"
-          description={searchQuery || statusFilter !== 'all' 
-            ? "Try adjusting your filters" 
+          description={searchQuery || statusFilter !== 'all'
+            ? "Try adjusting your filters"
             : "Create your first project to get started"}
           actionLabel={!searchQuery && statusFilter === 'all' ? "New Project" : undefined}
           onAction={() => setDialogOpen(true)}
