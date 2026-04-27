@@ -562,7 +562,7 @@ export default function Proposals() {
       queryClient.invalidateQueries({ queryKey: ['proposal-status-history'] });
 
       const ccNote = selectedCcEmails.length > 0 ? ` (CC: ${selectedCcEmails.join(', ')})` : '';
-      toast.success(`Proposal sent to ${clientEmail}${ccNote}`);
+      toast.success(`${isReminder ? 'Reminder' : 'Proposal'} sent to ${clientEmail}${ccNote}`);
       setIsSendDialogOpen(false);
       setSelectedProposal(null);
     } catch (error: any) {
