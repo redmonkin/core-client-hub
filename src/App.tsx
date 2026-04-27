@@ -16,6 +16,7 @@ import ProposalDetail from "./pages/ProposalDetail";
 import Contracts from "./pages/Contracts";
 import ContractDetail from "./pages/ContractDetail";
 import Templates from "./pages/Templates";
+import Briefs from "./pages/Briefs";
 import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
 import Auth from "./pages/Auth";
@@ -91,6 +92,16 @@ const App = () => (
               <ProtectedRoute>
                 <AppLayout>
                   <Dashboard />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/briefs"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <Briefs />
                 </AppLayout>
               </ProtectedRoute>
             }
