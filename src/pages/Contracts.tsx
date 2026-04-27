@@ -53,6 +53,7 @@ import { useToast } from "@/hooks/use-toast";
 import { toast } from "sonner";
 import { ContractStatus } from "@/lib/types";
 import { getOrCreateContractPortalAccess, regenerateContractPortalAccess } from "@/lib/contract-portal-access";
+import { getContractExpiryInfo } from "@/lib/contract-alerts";
 
 type Contract = {
   id: string;
