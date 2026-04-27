@@ -150,7 +150,7 @@ function getContractExpiryInfo(
   // Renewal due / overdue: live contracts nearing/past their END date
   if (isLive && endDate) {
     const days = differenceInCalendarDays(new Date(endDate), new Date());
-    if (days > 7) return null;
+    if (days > 60) return null;
     if (days < 0) {
       const abs = Math.abs(days);
       return {
