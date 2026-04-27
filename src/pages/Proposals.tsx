@@ -656,9 +656,11 @@ export default function Proposals() {
             <SelectItem value="change_requested">Change Requested</SelectItem>
           </SelectContent>
         </Select>
+        <ViewToggle mode={viewMode} onChange={setViewMode} className="h-12 self-stretch sm:self-auto" />
       </div>
 
       {filteredProposals.length > 0 ? (
+        viewMode === 'list' ? (
         <div className="rounded-xl border border-border overflow-hidden">
           {/* Table Header */}
           <div className="hidden md:grid md:grid-cols-[1fr_180px_140px_140px_120px_48px] items-center gap-4 border-b border-border bg-muted/40 px-6 py-3">
