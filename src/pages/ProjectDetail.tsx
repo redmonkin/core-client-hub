@@ -108,12 +108,12 @@ export default function ProjectDetail() {
       const { error: uploadError } = await supabase.storage.from('project-files').upload(path, file, { upsert: true });
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage.from('project-files').getPublicUrl(path);
-      const url = `${publicUrl}?t=${Date.now()}`;
-      const { error } = await supabase.from('projects').update({ feature_image_url: url }).eq('id', id!);
+      // Store the storage path; we generate signed URLs on demand because the bucket is private.
+      const { error } = await supabase.from('projects').update({ feature_image_url: path }).eq('id', id!);
       if (error) throw error;
 
       queryClient.invalidateQueries({ queryKey: ['project', id] });
+      queryClient.invalidateQueries({ queryKey: ['project-feature-image', id] });
       toast.success('Feature image updated');
     } catch (err: any) {
       toast.error(err.message);
@@ -127,8 +127,36 @@ export default function ProjectDetail() {
     const { error } = await supabase.from('projects').update({ feature_image_url: null }).eq('id', id!);
     if (error) { toast.error(error.message); return; }
     queryClient.invalidateQueries({ queryKey: ['project', id] });
+    queryClient.invalidateQueries({ queryKey: ['project-feature-image', id] });
     toast.success('Feature image removed');
   };
+
+  // Sign the feature image URL (private bucket). Accepts either a raw storage path
+  // or a legacy public URL written before the bucket was made private.
+  const PUBLIC_PREFIX_RE = /\/storage\/v1\/object\/public\/project-files\//;
+  const { data: featureImageSignedUrl } = useQuery({
+    queryKey: ['project-feature-image', id, project?.feature_image_url],
+    queryFn: async () => {
+      const raw = project?.feature_image_url;
+      if (!raw) return null;
+      let path: string | null = raw;
+      if (PUBLIC_PREFIX_RE.test(raw)) {
+        path = raw.split(PUBLIC_PREFIX_RE)[1].split('?')[0];
+      } else if (/^https?:\/\//i.test(raw)) {
+        return raw; // external URL
+      } else {
+        path = raw.split('?')[0];
+      }
+      if (!path) return null;
+      const { data, error } = await supabase.storage
+        .from('project-files')
+        .createSignedUrl(path, 60 * 60);
+      if (error) return null;
+      return data?.signedUrl ?? null;
+    },
+    enabled: !!project?.feature_image_url,
+    staleTime: 50 * 60 * 1000,
+  });
 
   if (isLoading) {
     return (
