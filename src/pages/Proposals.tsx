@@ -783,12 +783,28 @@ export default function Proposals() {
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <Link
-                        to={`/proposals/${proposal.id}`}
-                        className="block truncate font-semibold text-foreground hover:text-primary transition-colors"
-                      >
-                        {proposal.title}
-                      </Link>
+                      <div className="flex items-center gap-1.5">
+                        <Link
+                          to={`/proposals/${proposal.id}`}
+                          className="block truncate font-semibold text-foreground hover:text-primary transition-colors"
+                        >
+                          {proposal.title}
+                        </Link>
+                        {(() => {
+                          const info = getExpiryInfo(proposal.validity_date, proposal.status);
+                          if (!info) return null;
+                          return (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <AlertTriangle
+                                  className={`h-4 w-4 shrink-0 ${info.kind === 'expired' ? 'text-destructive' : 'text-amber-500'}`}
+                                />
+                              </TooltipTrigger>
+                              <TooltipContent>{info.label}</TooltipContent>
+                            </Tooltip>
+                          );
+                        })()}
+                      </div>
                       <Link
                         to={`/clients/${proposal.client_id}`}
                         className="mt-1 flex items-center gap-1.5 truncate text-sm text-muted-foreground hover:text-primary transition-colors"
