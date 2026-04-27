@@ -249,8 +249,12 @@ export default function ClientDetail() {
       </Card>
 
       {/* Tabs */}
-      <Tabs defaultValue="projects" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="overview" className="flex items-center gap-2">
+            <Activity className="h-4 w-4" />
+            Overview
+          </TabsTrigger>
           <TabsTrigger value="projects" className="flex items-center gap-2">
             <FolderKanban className="h-4 w-4" />
             Projects ({clientProjects.length})
@@ -268,6 +272,124 @@ export default function ClientDetail() {
             Contacts
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="overview" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Activity className="h-4 w-4 text-primary" />
+                Activity Timeline
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {(() => {
+                type TLEvent = {
+                  id: string;
+                  date: string;
+                  type: 'client' | 'project' | 'proposal' | 'contract';
+                  title: string;
+                  subtitle?: string;
+                  status?: string;
+                  href?: string;
+                };
+                const events: TLEvent[] = [];
+
+                if (client.created_at) {
+                  events.push({
+                    id: `client-${client.id}`,
+                    date: client.created_at,
+                    type: 'client',
+                    title: 'Client onboarded',
+                    subtitle: client.client_name,
+                  });
+                }
+                clientProjects.forEach((p: any) => {
+                  events.push({
+                    id: `project-${p.id}`,
+                    date: p.start_date || p.created_at,
+                    type: 'project',
+                    title: `Project: ${p.project_name}`,
+                    subtitle: p.project_type,
+                    status: p.status,
+                    href: `/projects/${p.id}`,
+                  });
+                });
+                clientProposals.forEach((p: any) => {
+                  events.push({
+                    id: `proposal-${p.id}`,
+                    date: p.created_at,
+                    type: 'proposal',
+                    title: `Proposal: ${p.title}`,
+                    subtitle: p.validity_date ? `Valid until ${format(new Date(p.validity_date), 'MMM dd, yyyy')}` : undefined,
+                    status: p.status,
+                  });
+                });
+                clientContracts.forEach((c: any) => {
+                  const label = c.contract_type === 'amc' ? 'Annual Maintenance Contract'
+                    : c.contract_type === 'retainer' ? 'Retainer Contract'
+                    : c.contract_type === 'fixed' ? 'Fixed Contract' : c.contract_type;
+                  events.push({
+                    id: `contract-${c.id}`,
+                    date: c.start_date || c.created_at,
+                    type: 'contract',
+                    title: `Contract: ${label}`,
+                    subtitle: `₹${Number(c.value).toLocaleString('en-IN')} • ${format(new Date(c.start_date), 'MMM dd, yyyy')} – ${format(new Date(c.end_date), 'MMM dd, yyyy')}`,
+                    status: c.status,
+                    href: `/contracts/${c.id}`,
+                  });
+                });
+
+                events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+                if (events.length === 0) {
+                  return <p className="py-8 text-center text-muted-foreground">No activity yet</p>;
+                }
+
+                const iconFor = (t: TLEvent['type']) => {
+                  switch (t) {
+                    case 'client': return UserPlus;
+                    case 'project': return FolderKanban;
+                    case 'proposal': return FileText;
+                    case 'contract': return FileSignature;
+                    default: return CircleDot;
+                  }
+                };
+
+                return (
+                  <ol className="relative ml-3 border-l border-border">
+                    {events.map((ev) => {
+                      const Icon = iconFor(ev.type);
+                      const Inner = (
+                        <div className="rounded-lg border border-border bg-card p-3 transition-all hover:border-primary/30 hover:shadow-sm">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-foreground truncate">{ev.title}</p>
+                              {ev.subtitle && (
+                                <p className="mt-0.5 text-xs text-muted-foreground capitalize truncate">{ev.subtitle}</p>
+                              )}
+                            </div>
+                            {ev.status && <StatusBadge status={ev.status as any} />}
+                          </div>
+                        </div>
+                      );
+                      return (
+                        <li key={ev.id} className="mb-5 ml-6 last:mb-0">
+                          <span className="absolute -left-3 flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 ring-4 ring-background">
+                            <Icon className="h-3 w-3 text-primary" />
+                          </span>
+                          <time className="mb-1 block text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                            {format(new Date(ev.date), 'MMM dd, yyyy')}
+                          </time>
+                          {ev.href ? <Link to={ev.href}>{Inner}</Link> : Inner}
+                        </li>
+                      );
+                    })}
+                  </ol>
+                );
+              })()}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="projects" className="mt-4">
           <div className="space-y-3">
