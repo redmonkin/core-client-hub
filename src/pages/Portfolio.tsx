@@ -321,9 +321,7 @@ export default function Portfolio() {
         {featuredProjects.length > 0 ? (
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {featuredProjects.map((project) => {
-              const imageUrl = project.feature_image_url
-                ? getStoragePublicUrl(project.feature_image_url)
-                : '';
+              const imageUrl = imageUrls[project.id] || '';
               return (
                 <Card key={project.id} className="overflow-hidden group hover:shadow-xl transition-all duration-300 border-0 shadow-md bg-white">
                   <div className="aspect-video bg-gray-100 flex items-center justify-center overflow-hidden">
