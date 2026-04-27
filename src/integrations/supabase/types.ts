@@ -59,6 +59,72 @@ export type Database = {
         }
         Relationships: []
       }
+      briefs: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          date: string
+          deferred: string | null
+          follow_ups_owed: string | null
+          generated_at: string
+          has_expiring_proposals: boolean
+          has_overdue_items: boolean
+          has_unsigned_contracts: boolean
+          id: string
+          item_count: number
+          pre_drafted_replies: string | null
+          project_id: string | null
+          review_notes: string | null
+          reviewed: boolean
+          state: string | null
+          today_focus: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          date: string
+          deferred?: string | null
+          follow_ups_owed?: string | null
+          generated_at?: string
+          has_expiring_proposals?: boolean
+          has_overdue_items?: boolean
+          has_unsigned_contracts?: boolean
+          id?: string
+          item_count?: number
+          pre_drafted_replies?: string | null
+          project_id?: string | null
+          review_notes?: string | null
+          reviewed?: boolean
+          state?: string | null
+          today_focus?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          date?: string
+          deferred?: string | null
+          follow_ups_owed?: string | null
+          generated_at?: string
+          has_expiring_proposals?: boolean
+          has_overdue_items?: boolean
+          has_unsigned_contracts?: boolean
+          id?: string
+          item_count?: number
+          pre_drafted_replies?: string | null
+          project_id?: string | null
+          review_notes?: string | null
+          reviewed?: boolean
+          state?: string | null
+          today_focus?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       client_contacts: {
         Row: {
           client_id: string
