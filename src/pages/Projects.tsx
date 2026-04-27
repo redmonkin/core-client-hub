@@ -12,6 +12,9 @@ import { EmptyState } from '@/components/shared/EmptyState';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { ViewToggle } from '@/components/ui/view-toggle';
+import { useViewMode } from '@/hooks/useViewMode';
 import { Label } from '@/components/ui/label';
 import {
   Table,
@@ -80,6 +83,7 @@ const emptyProject = {
 export default function Projects() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'all'>('all');
+  const [viewMode, setViewMode] = useViewMode('projects', 'list');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
