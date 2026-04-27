@@ -20,8 +20,12 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScopeOfWorkEditor } from '@/components/proposals/ScopeOfWorkEditor';
 import { CostBreakdownTable } from '@/components/proposals/CostBreakdownTable';
-import { FileText, DollarSign, Settings, LayoutTemplate } from 'lucide-react';
+import { FileText, DollarSign, Settings, LayoutTemplate, Upload, X, FileIcon, Loader2 } from 'lucide-react';
 import { Template } from '@/hooks/useTemplates';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { useWorkspaceUser } from '@/hooks/useWorkspaceUser';
+import { toast } from 'sonner';
 
 interface ContractFormData {
   client_id: string;
@@ -34,6 +38,10 @@ interface ContractFormData {
   scope_of_work: string;
   cost_breakdown: string;
   template_id?: string;
+  is_external?: boolean;
+  file_url?: string;
+  file_name?: string;
+  file_type?: string;
 }
 
 interface Client {
