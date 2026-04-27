@@ -77,6 +77,10 @@ const emptyFormData: ContractFormData = {
   status: 'draft',
   scope_of_work: '',
   cost_breakdown: '',
+  is_external: false,
+  file_url: '',
+  file_name: '',
+  file_type: '',
 };
 
 export function ContractFormDialog({
@@ -93,6 +97,9 @@ export function ContractFormDialog({
   const [formData, setFormData] = useState<ContractFormData>(initialData || emptyFormData);
   const [activeTab, setActiveTab] = useState('details');
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+  const [isUploading, setIsUploading] = useState(false);
+  const { user } = useAuth();
+  const { workspaceUserId } = useWorkspaceUser();
 
   const contractTemplates = templates.filter(t => t.type === 'contract');
 
