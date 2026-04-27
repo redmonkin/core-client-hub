@@ -619,9 +619,11 @@ export default function Contracts() {
             <SelectItem value="pending-renewal">Pending Renewal</SelectItem>
           </SelectContent>
         </Select>
+        <ViewToggle mode={viewMode} onChange={setViewMode} className="h-12 self-stretch sm:self-auto" />
       </div>
 
       {filteredContracts.length > 0 ? (
+        viewMode === 'list' ? (
         <div className="rounded-xl border border-border overflow-hidden">
           {/* Grid Header */}
           <div className="hidden md:grid md:grid-cols-[1fr_140px_140px_100px_200px_120px_48px] items-center gap-4 border-b border-border bg-muted/40 px-6 py-3">
