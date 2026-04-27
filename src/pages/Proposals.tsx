@@ -142,6 +142,9 @@ export default function Proposals() {
   const [editDialogKey, setEditDialogKey] = useState(0);
   const [isSending, setIsSending] = useState(false);
   const [selectedCcEmails, setSelectedCcEmails] = useState<string[]>([]);
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailIntro, setEmailIntro] = useState('');
+  const [isReminder, setIsReminder] = useState(false);
   
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [shareLink, setShareLink] = useState('');
