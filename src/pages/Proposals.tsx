@@ -555,7 +555,7 @@ export default function Proposals() {
         user_id: user?.id,
         from_status: previousStatus,
         to_status: previousStatus === 'draft' ? 'sent' : previousStatus,
-        note: `Proposal emailed to ${clientEmail}${selectedCcEmails.length > 0 ? ` (CC: ${selectedCcEmails.join(', ')})` : ''}`,
+        note: `${isReminder ? 'Reminder email sent' : 'Proposal emailed'} to ${clientEmail}${selectedCcEmails.length > 0 ? ` (CC: ${selectedCcEmails.join(', ')})` : ''}`,
       });
 
       queryClient.invalidateQueries({ queryKey: ['proposals'] });
