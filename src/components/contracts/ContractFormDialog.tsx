@@ -136,12 +136,67 @@ export function ContractFormDialog({
     }
   }, [formData.start_date, formData.renewal_frequency]);
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!user?.id || !workspaceUserId) {
+      toast.error('You must be signed in to upload files');
+      return;
+    }
+    // 25 MB cap
+    if (file.size > 25 * 1024 * 1024) {
+      toast.error('File too large. Max 25 MB.');
+      return;
+    }
+    const allowed = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    if (!allowed.includes(file.type)) {
+      toast.error('Only PDF or Word documents are allowed.');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `${workspaceUserId}/${crypto.randomUUID()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from('contract-files')
+        .upload(path, file, { contentType: file.type, upsert: false });
+      if (uploadError) throw uploadError;
+
+      setFormData(prev => ({
+        ...prev,
+        file_url: path,
+        file_name: file.name,
+        file_type: file.type,
+      }));
+      toast.success('File uploaded');
+    } catch (err: any) {
+      toast.error(err.message || 'Upload failed');
+    } finally {
+      setIsUploading(false);
+      // reset input so same file can be re-selected
+      e.target.value = '';
+    }
+  };
+
+  const handleRemoveFile = async () => {
+    if (formData.file_url) {
+      await supabase.storage.from('contract-files').remove([formData.file_url]);
+    }
+    setFormData(prev => ({ ...prev, file_url: '', file_name: '', file_type: '' }));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (formData.is_external && !formData.file_url) {
+      toast.error('Please upload a contract file');
+      return;
+    }
     onSubmit({ ...formData, template_id: selectedTemplateId || undefined });
   };
 
-  const isValid = formData.client_id && formData.contract_type && formData.start_date && formData.end_date && formData.renewal_frequency;
+  const baseValid = formData.client_id && formData.contract_type && formData.start_date && formData.end_date && formData.renewal_frequency;
+  const isValid = baseValid && (!formData.is_external || !!formData.file_url);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
