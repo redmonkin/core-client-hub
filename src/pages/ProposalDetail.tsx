@@ -656,6 +656,21 @@ export default function ProposalDetail() {
                     </div>
                   );
                 })()}
+
+                {/* Regenerate secure link option */}
+                <label className="flex items-start gap-2 rounded-md border p-3 cursor-pointer">
+                  <Checkbox
+                    checked={regenerateBeforeSend}
+                    onCheckedChange={(checked) => setRegenerateBeforeSend(checked === true)}
+                    className="mt-0.5"
+                  />
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-medium text-foreground">Regenerate secure link &amp; password</p>
+                    <p className="text-xs text-muted-foreground">
+                      By default, the existing share link is reused (no new password is sent). Tick this to invalidate the old link and email a fresh password.
+                    </p>
+                  </div>
+                </label>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
