@@ -106,6 +106,7 @@ function computeValueFromCostBreakdown(costBreakdown: string | null): number {
     return afterDiscount + tax;
   } catch {
     return 0;
+  }
 }
 
 type ContractExpiryInfo = { kind: 'expired' | 'expiring'; days: number; label: string } | null;
@@ -124,7 +125,6 @@ function getContractExpiryInfo(endDate: string | null, status: string): Contract
     return { kind: 'expiring', days, label: `Expiring in ${days} day${days === 1 ? '' : 's'}` };
   }
   return null;
-}
 }
 
 export default function Contracts() {
