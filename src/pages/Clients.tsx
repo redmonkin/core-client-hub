@@ -493,6 +493,77 @@ export default function Clients() {
             </Card>
           ))}
         </div>
+        ) : (
+          <div className="overflow-hidden rounded-xl border border-border bg-card">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/30 hover:bg-muted/30">
+                  <TableHead className="font-semibold">Name</TableHead>
+                  <TableHead className="font-semibold">Company</TableHead>
+                  <TableHead className="font-semibold">Email</TableHead>
+                  <TableHead className="font-semibold">Phone</TableHead>
+                  <TableHead className="font-semibold">Projects</TableHead>
+                  <TableHead className="font-semibold">Status</TableHead>
+                  <TableHead className="w-12"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredClients.map(client => (
+                  <TableRow key={client.id} className="group">
+                    <TableCell>
+                      <Link
+                        to={`/clients/${client.id}`}
+                        className="font-medium text-foreground hover:text-primary transition-colors"
+                      >
+                        {client.client_name}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {client.company_name || '—'}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {client.email || '—'}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {client.phone || '—'}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {getProjectCount(client.id)}
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge status={client.status as 'active' | 'archived'} />
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild>
+                            <Link to={`/clients/${client.id}`}>View Details</Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEdit(client)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => handleDelete(client)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )
       ) : (
         <EmptyState
           icon={Building2}
