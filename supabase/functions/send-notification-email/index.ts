@@ -195,12 +195,12 @@ function buildContractEmail(
                         </tr>
                       </table>
 
-                      ${data.portalLink ? `
+                      ${isSafeHttpUrl(data.portalLink) ? `
                       <!-- CTA Button -->
                       <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
                         <tr>
                           <td align="center">
-                            <a href="${data.portalLink}" style="display: inline-block; background-color: #111827; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 600; padding: 14px 32px; border-radius: 8px; letter-spacing: -0.2px;">View Full Contract →</a>
+                            <a href="${escapeHtml(data.portalLink)}" style="display: inline-block; background-color: #111827; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 600; padding: 14px 32px; border-radius: 8px; letter-spacing: -0.2px;">View Full Contract →</a>
                           </td>
                         </tr>
                       </table>
