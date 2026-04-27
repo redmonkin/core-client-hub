@@ -1240,5 +1240,6 @@ export default function Contracts() {
         proposalData={previewData!}
       />
     </div>
+    </TooltipProvider>
   );
 }
