@@ -104,6 +104,7 @@ function buildContractEmail(
   };
   const contractTypeLabel = typeLabels[data.contractType] || data.contractType;
   const contractTitle = data.contractTitle || `${contractTypeLabel} Contract`;
+  const isReminder = !!data.isReminder;
 
   const formattedStartDate = data.startDate
     ? new Date(data.startDate).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
@@ -125,15 +126,40 @@ function buildContractEmail(
 
   const fromName = data.senderCompany || data.senderName || "Your Team";
 
+  // Custom intro paragraphs (user-editable). Falls back to default greeting + line.
+  const customIntro: string | null = typeof data.customIntro === "string" && data.customIntro.trim()
+    ? data.customIntro.trim()
+    : null;
+
+  const introHtml = customIntro
+    ? customIntro
+        .split(/\n\s*\n/)
+        .map((para) => `<p style="margin: 0 0 16px; font-size: 15px; color: #374151;">${escapeHtml(para).replace(/\n/g, "<br>")}</p>`)
+        .join("")
+    : `
+        <p style="margin: 0 0 20px; font-size: 15px; color: #374151;">Hi ${escapeHtml(recipientName)},</p>
+        <p style="margin: 0 0 24px; font-size: 15px; color: #374151;">${isReminder ? "Just a friendly reminder about the contract we shared with you:" : "A new contract has been prepared for you:"}</p>
+      `;
+
+  const headerLabel = isReminder ? "📄 Contract Reminder" : "📄 New Contract";
+
+  const customSubject: string | null = typeof data.customSubject === "string" && data.customSubject.trim()
+    ? data.customSubject.trim()
+    : null;
+  const subject = customSubject
+    || (isReminder
+      ? `Reminder: ${contractTitle}`
+      : `📄 Contract: ${contractTitle}`);
+
   return {
-    subject: `📄 Contract: ${escapeHtml(contractTitle)}`,
+    subject,
     html: `
       <!DOCTYPE html>
       <html>
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Contract: ${escapeHtml(contractTitle)}</title>
+          <title>${escapeHtml(subject)}</title>
         </head>
         <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #1f2937; margin: 0; padding: 0; background-color: #f3f4f6;">
           <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f3f4f6; padding: 32px 16px;">
@@ -143,17 +169,15 @@ function buildContractEmail(
                   
                   <!-- Header -->
                   <tr>
-                    <td style="background-color: #111827; padding: 28px 32px;">
-                      <h1 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.3px;">📄 New Contract</h1>
+                    <td style="background-color: ${isReminder ? "#b45309" : "#111827"}; padding: 28px 32px;">
+                      <h1 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.3px;">${headerLabel}</h1>
                     </td>
                   </tr>
 
                   <!-- Body -->
                   <tr>
                     <td style="padding: 32px;">
-                      <p style="margin: 0 0 20px; font-size: 15px; color: #374151;">Hi ${escapeHtml(recipientName)},</p>
-                      
-                      <p style="margin: 0 0 24px; font-size: 15px; color: #374151;">A new contract has been prepared for you:</p>
+                      ${introHtml}
                       
                       <!-- Contract Card -->
                       <table width="100%" cellpadding="0" cellspacing="0" style="background: #f9fafb; border-radius: 10px; border: 1px solid #e5e7eb; margin-bottom: 24px;">
@@ -200,7 +224,7 @@ function buildContractEmail(
                       <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
                         <tr>
                           <td align="center">
-                            <a href="${escapeHtml(data.portalLink)}" style="display: inline-block; background-color: #111827; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 600; padding: 14px 32px; border-radius: 8px; letter-spacing: -0.2px;">View Full Contract →</a>
+                            <a href="${escapeHtml(data.portalLink)}" style="display: inline-block; background-color: #111827; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 600; padding: 14px 32px; border-radius: 8px; letter-spacing: -0.2px;">${isReminder ? "Review Contract →" : "View Full Contract →"}</a>
                           </td>
                         </tr>
                       </table>
