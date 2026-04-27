@@ -435,6 +435,10 @@ export default function ContractDetail() {
     scope_of_work: contract.scope_of_work || '',
     cost_breakdown: contract.cost_breakdown || '',
     template_id: (contract as any).template_id || '',
+    is_external: !!(contract as any).is_external,
+    file_url: (contract as any).file_url || '',
+    file_name: (contract as any).file_name || '',
+    file_type: (contract as any).file_type || '',
   };
 
   // Build timeline from real status history
