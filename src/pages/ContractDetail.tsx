@@ -103,8 +103,12 @@ export default function ContractDetail() {
   const [selectedCcEmails, setSelectedCcEmails] = useState<string[]>([]);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [shareLink, setShareLink] = useState('');
-  const [sharePassword, setSharePassword] = useState('');
+  const [sharePassword, setSharePassword] = useState<string | null>(null);
+  const [isExistingLink, setIsExistingLink] = useState(false);
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [isRegenerateConfirmOpen, setIsRegenerateConfirmOpen] = useState(false);
+  const [regenerateBeforeSend, setRegenerateBeforeSend] = useState(false);
 
   const { data: contract, isLoading: contractLoading, refetch: refetchContract } = useQuery({
     queryKey: ['contract', id],
