@@ -62,6 +62,10 @@ type Contract = {
   cost_breakdown: string | null;
   template_id: string | null;
   updated_at: string;
+  is_external?: boolean | null;
+  file_url?: string | null;
+  file_name?: string | null;
+  file_type?: string | null;
 };
 
 type ContractFormData = {
@@ -75,6 +79,10 @@ type ContractFormData = {
   scope_of_work: string;
   cost_breakdown: string;
   template_id?: string;
+  is_external?: boolean;
+  file_url?: string;
+  file_name?: string;
+  file_type?: string;
 };
 
 function computeValueFromCostBreakdown(costBreakdown: string | null): number {
