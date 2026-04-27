@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useTemplates, Template } from '@/hooks/useTemplates';
-import { ArrowLeft, Loader2, FileText, Clock, CheckCircle2, XCircle, Send, PenLine, MessageSquare, Mail, Eye, Pencil, LinkIcon, Copy, MoreVertical, Users } from 'lucide-react';
+import { ArrowLeft, Loader2, FileText, Clock, CheckCircle2, XCircle, Send, PenLine, MessageSquare, Mail, Eye, Pencil, LinkIcon, Copy, MoreVertical, Users, RefreshCw, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,6 +40,7 @@ import { toast } from 'sonner';
 import { ProposalFormDialog } from '@/components/proposals/ProposalFormDialog';
 import { ProposalPreviewDialog } from '@/components/proposals/ProposalPreviewDialog';
 import { ProposalData } from '@/lib/proposal-utils';
+import { getOrCreateProposalPortalAccess, regenerateProposalPortalAccess } from '@/lib/proposal-portal-access';
 
 type ProposalStatus = 'draft' | 'sent' | 'approved' | 'rejected' | 'change_requested';
 
@@ -73,8 +74,12 @@ export default function ProposalDetail() {
   const [previewProposalData, setPreviewProposalData] = useState<ProposalData | null>(null);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [shareLink, setShareLink] = useState('');
-  const [sharePassword, setSharePassword] = useState('');
+  const [sharePassword, setSharePassword] = useState<string | null>(null);
+  const [isExistingLink, setIsExistingLink] = useState(false);
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [isRegenerateConfirmOpen, setIsRegenerateConfirmOpen] = useState(false);
+  const [regenerateBeforeSend, setRegenerateBeforeSend] = useState(false);
   const [selectedCcEmails, setSelectedCcEmails] = useState<string[]>([]);
 
   const { data: proposal, isLoading: proposalLoading, refetch: refetchProposal } = useQuery({
@@ -217,25 +222,8 @@ export default function ProposalDetail() {
       return;
     }
     setSelectedCcEmails([]);
+    setRegenerateBeforeSend(false);
     setIsSendDialogOpen(true);
-  };
-
-  const generatePortalLink = async (proposalId: string) => {
-    const tokenArray = new Uint8Array(32);
-    crypto.getRandomValues(tokenArray);
-    const token = Array.from(tokenArray, b => b.toString(16).padStart(2, '0')).join('');
-    const passArray = new Uint8Array(4);
-    crypto.getRandomValues(passArray);
-    const password = Array.from(passArray, b => b.toString(36).padStart(2, '0')).join('').substring(0, 6).toUpperCase();
-    const encoder = new TextEncoder();
-    const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(password));
-    const passwordHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 30);
-    await supabase.from('proposal_access_tokens').insert({
-      proposal_id: proposalId, token, expires_at: expiresAt.toISOString(), password_hash: passwordHash,
-    });
-    return { link: `${window.location.origin}/portal?token=${token}`, password };
   };
 
   const calculateTotal = (costBreakdownJson: string | null): string => {
@@ -258,7 +246,9 @@ export default function ProposalDetail() {
     if (!proposal || !client?.email) return;
     setIsSending(true);
     try {
-      const portal = await generatePortalLink(proposal.id);
+      const portal = regenerateBeforeSend
+        ? await regenerateProposalPortalAccess(proposal.id, window.location.origin)
+        : await getOrCreateProposalPortalAccess(proposal.id, window.location.origin);
 
       // Fetch support email from branding settings
       const { data: brandingData } = await supabase
@@ -356,19 +346,38 @@ export default function ProposalDetail() {
   const handleShareLink = async () => {
     if (!proposal) return;
     setShareLink('');
-    setSharePassword('');
+    setSharePassword(null);
+    setIsExistingLink(false);
     setIsShareDialogOpen(true);
     setIsGeneratingLink(true);
     try {
-      const portal = await generatePortalLink(proposal.id);
+      const portal = await getOrCreateProposalPortalAccess(proposal.id, window.location.origin);
       setShareLink(portal.link);
       setSharePassword(portal.password);
+      setIsExistingLink(portal.isExisting);
     } catch (error: any) {
       console.error('Error generating share link:', error);
       toast.error('Failed to generate share link');
       setIsShareDialogOpen(false);
     } finally {
       setIsGeneratingLink(false);
+    }
+  };
+
+  const handleRegenerateShareLink = async () => {
+    if (!proposal) return;
+    setIsRegenerating(true);
+    try {
+      const portal = await regenerateProposalPortalAccess(proposal.id, window.location.origin);
+      setShareLink(portal.link);
+      setSharePassword(portal.password);
+      setIsExistingLink(false);
+      toast.success('New secure link generated. The old link no longer works.');
+    } catch (error: any) {
+      toast.error('Failed to regenerate link');
+    } finally {
+      setIsRegenerating(false);
+      setIsRegenerateConfirmOpen(false);
     }
   };
 
@@ -647,6 +656,21 @@ export default function ProposalDetail() {
                     </div>
                   );
                 })()}
+
+                {/* Regenerate secure link option */}
+                <label className="flex items-start gap-2 rounded-md border p-3 cursor-pointer">
+                  <Checkbox
+                    checked={regenerateBeforeSend}
+                    onCheckedChange={(checked) => setRegenerateBeforeSend(checked === true)}
+                    className="mt-0.5"
+                  />
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-medium text-foreground">Regenerate secure link &amp; password</p>
+                    <p className="text-xs text-muted-foreground">
+                      By default, the existing share link is reused (no new password is sent). Tick this to invalidate the old link and email a fresh password.
+                    </p>
+                  </div>
+                </label>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -710,25 +734,62 @@ export default function ProposalDetail() {
                   </Button>
                 </div>
               </div>
-              <div>
-                <label className="text-sm font-medium text-foreground mb-1.5 block">Password</label>
-                <div className="flex items-center gap-2">
-                  <Input value={sharePassword} readOnly className="flex-1 font-mono tracking-widest text-lg" />
-                  <Button onClick={() => { navigator.clipboard.writeText(sharePassword); toast.success('Password copied!'); }} variant="secondary">
-                    <Copy className="h-4 w-4" />
-                  </Button>
+              {sharePassword ? (
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Password</label>
+                  <div className="flex items-center gap-2">
+                    <Input value={sharePassword} readOnly className="flex-1 font-mono tracking-widest text-lg" />
+                    <Button onClick={() => { navigator.clipboard.writeText(sharePassword!); toast.success('Password copied!'); }} variant="secondary">
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="rounded-md border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+                  This share link is already active. The access password was shown when it was first generated and is securely hashed — it can't be retrieved. If you need a new password, regenerate the secure link.
+                </div>
+              )}
               <p className="text-sm text-muted-foreground">
-                Share both the link and password with your client. The link expires in 30 days.
+                {sharePassword
+                  ? 'Share both the link and password with your client. The link expires in 30 days.'
+                  : 'The link expires 30 days after it was first generated.'}
               </p>
             </div>
           )}
-          <DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => setIsRegenerateConfirmOpen(true)} disabled={isGeneratingLink || isRegenerating}>
+              <RefreshCw className={`mr-2 h-4 w-4 ${isRegenerating ? 'animate-spin' : ''}`} />
+              Regenerate
+            </Button>
             <Button onClick={() => setIsShareDialogOpen(false)}>Done</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Regenerate confirmation */}
+      <AlertDialog open={isRegenerateConfirmOpen} onOpenChange={setIsRegenerateConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Regenerate secure link?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This will invalidate the existing link and password. Any client who already has the previous link will no longer be able to access the proposal until you share the new one.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isRegenerating}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRegenerateShareLink} disabled={isRegenerating}>
+              {isRegenerating ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Regenerating...</>
+              ) : (
+                <><RefreshCw className="mr-2 h-4 w-4" />Yes, regenerate</>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Proposal Preview Dialog */}
       <ProposalPreviewDialog

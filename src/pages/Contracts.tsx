@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Search, FileSignature, MoreHorizontal, Calendar, Loader2, Pencil, Trash2, Eye, Copy, Send, LinkIcon, Users, FileText } from "lucide-react";
+import { Plus, Search, FileSignature, MoreHorizontal, Calendar, Loader2, Pencil, Trash2, Eye, Copy, Send, LinkIcon, Users, FileText, RefreshCw, AlertTriangle } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -49,7 +49,7 @@ import { useWorkspaceUser } from "@/hooks/useWorkspaceUser";
 import { useToast } from "@/hooks/use-toast";
 import { toast } from "sonner";
 import { ContractStatus } from "@/lib/types";
-import { createContractPortalAccess } from "@/lib/contract-portal-access";
+import { getOrCreateContractPortalAccess, regenerateContractPortalAccess } from "@/lib/contract-portal-access";
 
 type Contract = {
   id: string;
@@ -129,8 +129,13 @@ export default function Contracts() {
   // Share link state
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [shareLink, setShareLink] = useState("");
-  const [sharePassword, setSharePassword] = useState("");
+  const [sharePassword, setSharePassword] = useState<string | null>(null);
+  const [isExistingLink, setIsExistingLink] = useState(false);
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [isRegenerateConfirmOpen, setIsRegenerateConfirmOpen] = useState(false);
+  const [regenerateContext, setRegenerateContext] = useState<'share' | 'send' | null>(null);
+  const [regenerateBeforeSend, setRegenerateBeforeSend] = useState(false);
 
   const { user } = useAuth();
   const { workspaceUserId } = useWorkspaceUser();
@@ -410,6 +415,7 @@ export default function Contracts() {
     }
     setSelectedContract(contract);
     setSelectedCcEmails([]);
+    setRegenerateBeforeSend(false);
     setIsSendDialogOpen(true);
   };
 
@@ -426,10 +432,12 @@ export default function Contracts() {
 
     setIsSending(true);
     try {
-      // Generate portal link for the contract
-      const portal = await createContractPortalAccess(selectedContract.id, window.location.origin);
+      // Reuse existing portal link by default; regenerate only if user opted in
+      const portal = regenerateBeforeSend
+        ? await regenerateContractPortalAccess(selectedContract.id, window.location.origin)
+        : await getOrCreateContractPortalAccess(selectedContract.id, window.location.origin);
       const portalLink = portal.link;
-      const password = portal.password;
+      const password = portal.password; // null when reusing existing token
 
       const { data: brandingData } = await supabase
         .from('branding_settings')
@@ -513,20 +521,41 @@ export default function Contracts() {
   const handleShareLink = async (contract: Contract) => {
     setSelectedContract(contract);
     setShareLink('');
-    setSharePassword('');
+    setSharePassword(null);
+    setIsExistingLink(false);
     setIsShareDialogOpen(true);
     setIsGeneratingLink(true);
 
     try {
-      const portal = await createContractPortalAccess(contract.id, window.location.origin);
+      const portal = await getOrCreateContractPortalAccess(contract.id, window.location.origin);
       setShareLink(portal.link);
       setSharePassword(portal.password);
+      setIsExistingLink(portal.isExisting);
     } catch (error: any) {
       console.error('Error generating share link:', error);
       toast.error('Failed to generate share link');
       setIsShareDialogOpen(false);
     } finally {
       setIsGeneratingLink(false);
+    }
+  };
+
+  const handleRegenerateShareLink = async () => {
+    if (!selectedContract) return;
+    setIsRegenerating(true);
+    try {
+      const portal = await regenerateContractPortalAccess(selectedContract.id, window.location.origin);
+      setShareLink(portal.link);
+      setSharePassword(portal.password);
+      setIsExistingLink(false);
+      toast.success('New secure link generated. The old link no longer works.');
+    } catch (error: any) {
+      console.error('Error regenerating link:', error);
+      toast.error('Failed to regenerate link');
+    } finally {
+      setIsRegenerating(false);
+      setIsRegenerateConfirmOpen(false);
+      setRegenerateContext(null);
     }
   };
 
@@ -1029,6 +1058,21 @@ export default function Contracts() {
                         </div>
                       );
                     })()}
+
+                    {/* Regenerate secure link option */}
+                    <label className="flex items-start gap-2 rounded-md border p-3 cursor-pointer">
+                      <Checkbox
+                        checked={regenerateBeforeSend}
+                        onCheckedChange={(checked) => setRegenerateBeforeSend(checked === true)}
+                        className="mt-0.5"
+                      />
+                      <div className="space-y-0.5">
+                        <p className="text-sm font-medium text-foreground">Regenerate secure link &amp; password</p>
+                        <p className="text-xs text-muted-foreground">
+                          By default, the existing share link is reused (no new password is sent). Tick this to invalidate the old link and email a fresh password.
+                        </p>
+                      </div>
+                    </label>
                   </>
                 )}
               </div>
@@ -1077,25 +1121,66 @@ export default function Contracts() {
                   </Button>
                 </div>
               </div>
-              <div>
-                <label className="text-sm font-medium text-foreground mb-1.5 block">Password</label>
-                <div className="flex items-center gap-2">
-                  <Input value={sharePassword} readOnly className="flex-1 font-mono tracking-widest text-lg" />
-                  <Button onClick={() => { navigator.clipboard.writeText(sharePassword); toast.success('Password copied!'); }} variant="secondary">
-                    <Copy className="h-4 w-4" />
-                  </Button>
+              {sharePassword ? (
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Password</label>
+                  <div className="flex items-center gap-2">
+                    <Input value={sharePassword} readOnly className="flex-1 font-mono tracking-widest text-lg" />
+                    <Button onClick={() => { navigator.clipboard.writeText(sharePassword); toast.success('Password copied!'); }} variant="secondary">
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="rounded-md border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+                  This share link is already active. The access password was shown when it was first generated and is securely hashed — it can't be retrieved. If you need a new password, regenerate the secure link.
+                </div>
+              )}
               <p className="text-sm text-muted-foreground">
-                Share both the link and password with your client. The link expires in 30 days.
+                {sharePassword
+                  ? 'Share both the link and password with your client. The link expires in 30 days.'
+                  : 'The link expires 30 days after it was first generated.'}
               </p>
             </div>
           )}
-          <DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button
+              variant="outline"
+              onClick={() => { setRegenerateContext('share'); setIsRegenerateConfirmOpen(true); }}
+              disabled={isGeneratingLink || isRegenerating}
+            >
+              <RefreshCw className={`mr-2 h-4 w-4 ${isRegenerating ? 'animate-spin' : ''}`} />
+              Regenerate
+            </Button>
             <Button onClick={() => setIsShareDialogOpen(false)}>Done</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Regenerate confirmation */}
+      <AlertDialog open={isRegenerateConfirmOpen} onOpenChange={setIsRegenerateConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Regenerate secure link?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This will invalidate the existing link and password. Any client who already has the previous link will no longer be able to access the contract until you share the new one.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isRegenerating}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRegenerateShareLink} disabled={isRegenerating}>
+              {isRegenerating ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Regenerating...</>
+              ) : (
+                <><RefreshCw className="mr-2 h-4 w-4" />Yes, regenerate</>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Contract Preview Dialog */}
       <ProposalPreviewDialog
