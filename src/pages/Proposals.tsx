@@ -671,8 +671,22 @@ export default function Proposals() {
                     to={`/proposals/${proposal.id}`}
                     className="block"
                   >
-                    <h3 className="truncate font-medium text-foreground group-hover:text-primary transition-colors">
-                      {proposal.title}
+                    <h3 className="truncate font-medium text-foreground group-hover:text-primary transition-colors flex items-center gap-1.5">
+                      <span className="truncate">{proposal.title}</span>
+                      {(() => {
+                        const info = getExpiryInfo(proposal.validity_date, proposal.status);
+                        if (!info) return null;
+                        return (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <AlertTriangle
+                                className={`h-4 w-4 shrink-0 ${info.kind === 'expired' ? 'text-destructive' : 'text-amber-500'}`}
+                              />
+                            </TooltipTrigger>
+                            <TooltipContent>{info.label}</TooltipContent>
+                          </Tooltip>
+                        );
+                      })()}
                     </h3>
                   </Link>
                   {proposal.duration && (
