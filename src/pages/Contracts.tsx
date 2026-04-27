@@ -146,6 +146,9 @@ export default function Contracts() {
   const [isSendDialogOpen, setIsSendDialogOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [selectedCcEmails, setSelectedCcEmails] = useState<string[]>([]);
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailIntro, setEmailIntro] = useState('');
+  const [isReminder, setIsReminder] = useState(false);
 
   // Share link state
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
