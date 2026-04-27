@@ -106,7 +106,25 @@ function computeValueFromCostBreakdown(costBreakdown: string | null): number {
     return afterDiscount + tax;
   } catch {
     return 0;
+}
+
+type ContractExpiryInfo = { kind: 'expired' | 'expiring'; days: number; label: string } | null;
+
+function getContractExpiryInfo(endDate: string | null, status: string): ContractExpiryInfo {
+  if (!endDate) return null;
+  // Don't warn for terminal/non-active states
+  if (status === 'rejected' || status === 'draft') return null;
+  const days = differenceInCalendarDays(new Date(endDate), new Date());
+  if (days < 0) {
+    const abs = Math.abs(days);
+    return { kind: 'expired', days: abs, label: `Expired ${abs} day${abs === 1 ? '' : 's'} ago` };
   }
+  if (days <= 3) {
+    if (days === 0) return { kind: 'expiring', days: 0, label: 'Expires today' };
+    return { kind: 'expiring', days, label: `Expiring in ${days} day${days === 1 ? '' : 's'}` };
+  }
+  return null;
+}
 }
 
 export default function Contracts() {
