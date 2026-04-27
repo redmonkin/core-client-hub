@@ -325,7 +325,7 @@ const handler = async (req: Request): Promise<Response> => {
     const emailPayload: any = {
       from: `${fromName} <noreply@notifications.redmonk.in>`,
       to: [clientEmail],
-      subject: `Proposal: ${proposalTitle}`,
+      subject: (customSubject && customSubject.trim()) || `${isReminder ? "Reminder — " : ""}Proposal: ${proposalTitle}`,
       html: emailHtml,
     };
 
