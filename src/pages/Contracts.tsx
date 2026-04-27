@@ -965,7 +965,7 @@ export default function Contracts() {
                               </Badge>
                             )}
                             {(() => {
-                              const info = getContractExpiryInfo(contract.end_date, contract.status);
+                              const info = getContractExpiryInfo(contract.start_date, contract.end_date, contract.status);
                               if (!info) return null;
                               return (
                                 <Tooltip>
