@@ -41,13 +41,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -56,8 +49,6 @@ interface Brief {
   id: string;
   user_id: string;
   date: string;
-  client_id: string | null;
-  project_id: string | null;
   state: string | null;
   today_focus: string | null;
   pre_drafted_replies: string | null;
@@ -74,13 +65,10 @@ interface Brief {
   updated_at: string;
 }
 
-const NONE_VALUE = '__none__';
 const today = () => format(new Date(), 'yyyy-MM-dd');
 
 const emptyForm = {
   date: today(),
-  client_id: '',
-  project_id: '',
   state: '',
   today_focus: '',
   pre_drafted_replies: '',
@@ -117,32 +105,6 @@ export default function Briefs() {
     },
   });
 
-  // Optional pickers — only owner's clients/projects (RLS handles this)
-  const { data: clients = [] } = useQuery({
-    queryKey: ['briefs-clients-picker', user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('clients')
-        .select('id, client_name')
-        .order('client_name');
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-
-  const { data: projects = [] } = useQuery({
-    queryKey: ['briefs-projects-picker', user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('projects')
-        .select('id, project_name')
-        .order('project_name');
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
 
   const upsertMutation = useMutation({
     mutationFn: async () => {
@@ -150,8 +112,6 @@ export default function Briefs() {
       const payload = {
         user_id: user.id,
         date: form.date,
-        client_id: form.client_id || null,
-        project_id: form.project_id || null,
         state: form.state || null,
         today_focus: form.today_focus || null,
         pre_drafted_replies: form.pre_drafted_replies || null,
@@ -216,8 +176,6 @@ export default function Briefs() {
     setEditing(b);
     setForm({
       date: b.date,
-      client_id: b.client_id ?? '',
-      project_id: b.project_id ?? '',
       state: b.state ?? '',
       today_focus: b.today_focus ?? '',
       pre_drafted_replies: b.pre_drafted_replies ?? '',
@@ -239,10 +197,6 @@ export default function Briefs() {
     setForm(emptyForm);
   };
 
-  const clientName = (id: string | null) =>
-    id ? clients.find((c: any) => c.id === id)?.client_name : null;
-  const projectName = (id: string | null) =>
-    id ? projects.find((p: any) => p.id === id)?.project_name : null;
 
   return (
     <div className="space-y-6">
@@ -314,17 +268,6 @@ export default function Briefs() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
-                {(clientName(b.client_id) || projectName(b.project_id)) && (
-                  <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                    {clientName(b.client_id) && (
-                      <span>Client: {clientName(b.client_id)}</span>
-                    )}
-                    {projectName(b.project_id) && (
-                      <span>Project: {projectName(b.project_id)}</span>
-                    )}
-                  </div>
-                )}
-
                 {b.today_focus && (
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -371,59 +314,16 @@ export default function Briefs() {
           </DialogHeader>
 
           <div className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="space-y-2">
-                <Label htmlFor="date">Date</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  max={today()}
-                  value={form.date}
-                  onChange={(e) => setForm({ ...form, date: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Client (optional)</Label>
-                <Select
-                  value={form.client_id || NONE_VALUE}
-                  onValueChange={(v) =>
-                    setForm({ ...form, client_id: v === NONE_VALUE ? '' : v })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="None" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NONE_VALUE}>None</SelectItem>
-                    {clients.map((c: any) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.client_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Project (optional)</Label>
-                <Select
-                  value={form.project_id || NONE_VALUE}
-                  onValueChange={(v) =>
-                    setForm({ ...form, project_id: v === NONE_VALUE ? '' : v })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="None" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NONE_VALUE}>None</SelectItem>
-                    {projects.map((p: any) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.project_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="date">Date</Label>
+              <Input
+                id="date"
+                type="date"
+                max={today()}
+                value={form.date}
+                onChange={(e) => setForm({ ...form, date: e.target.value })}
+                className="sm:max-w-xs"
+              />
             </div>
 
             <div className="space-y-2">

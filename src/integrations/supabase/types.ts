@@ -61,7 +61,6 @@ export type Database = {
       }
       briefs: {
         Row: {
-          client_id: string | null
           created_at: string
           date: string
           deferred: string | null
@@ -73,7 +72,6 @@ export type Database = {
           id: string
           item_count: number
           pre_drafted_replies: string | null
-          project_id: string | null
           review_notes: string | null
           reviewed: boolean
           state: string | null
@@ -82,7 +80,6 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          client_id?: string | null
           created_at?: string
           date: string
           deferred?: string | null
@@ -94,7 +91,6 @@ export type Database = {
           id?: string
           item_count?: number
           pre_drafted_replies?: string | null
-          project_id?: string | null
           review_notes?: string | null
           reviewed?: boolean
           state?: string | null
@@ -103,7 +99,6 @@ export type Database = {
           user_id: string
         }
         Update: {
-          client_id?: string | null
           created_at?: string
           date?: string
           deferred?: string | null
@@ -115,7 +110,6 @@ export type Database = {
           id?: string
           item_count?: number
           pre_drafted_replies?: string | null
-          project_id?: string | null
           review_notes?: string | null
           reviewed?: boolean
           state?: string | null
