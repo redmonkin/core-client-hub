@@ -650,7 +650,7 @@ export default function Contracts() {
                   className="group grid grid-cols-1 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_110px_minmax(0,1fr)_120px_48px] items-start lg:items-center gap-3 lg:gap-4 px-4 sm:px-6 py-4 transition-colors hover:bg-muted/30"
                 >
                   {/* Contract */}
-                  <div className="min-w-0 flex items-start justify-between gap-2 md:block">
+                  <div className="min-w-0 flex items-start justify-between gap-2 lg:block">
                     <div className="min-w-0 flex-1">
                       <Link to={`/contracts/${contract.id}`}>
                         <h3 className="truncate font-medium text-foreground group-hover:text-primary transition-colors cursor-pointer flex items-center gap-2">
@@ -668,7 +668,7 @@ export default function Contracts() {
                       </p>
                     </div>
                     {/* Mobile-only inline status + actions */}
-                    <div className="flex items-center gap-1 shrink-0 md:hidden">
+                    <div className="flex items-center gap-1 shrink-0 lg:hidden">
                       <StatusBadge status={contract.status as ContractStatus} />
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -714,8 +714,8 @@ export default function Contracts() {
                   </div>
 
                   {/* Client */}
-                  <div className="min-w-0 flex items-baseline gap-2 md:block">
-                    <span className="text-xs uppercase tracking-wider text-muted-foreground md:hidden shrink-0">Client</span>
+                  <div className="min-w-0 flex items-baseline gap-2 lg:block">
+                    <span className="text-xs uppercase tracking-wider text-muted-foreground lg:hidden shrink-0">Client</span>
                     <Link
                       to={`/clients/${contract.client_id}`}
                       className="truncate text-sm text-muted-foreground hover:text-primary transition-colors block min-w-0"
@@ -725,16 +725,16 @@ export default function Contracts() {
                   </div>
 
                   {/* Project */}
-                  <div className="min-w-0 flex items-baseline gap-2 md:block">
-                    <span className="text-xs uppercase tracking-wider text-muted-foreground md:hidden shrink-0">Project</span>
+                  <div className="min-w-0 flex items-baseline gap-2 lg:block">
+                    <span className="text-xs uppercase tracking-wider text-muted-foreground lg:hidden shrink-0">Project</span>
                     <p className="truncate text-sm text-muted-foreground min-w-0">
                       {getProjectName(contract.project_id)}
                     </p>
                   </div>
 
                   {/* Value */}
-                  <div className="min-w-0 flex items-baseline gap-2 md:block">
-                    <span className="text-xs uppercase tracking-wider text-muted-foreground md:hidden shrink-0">Value</span>
+                  <div className="min-w-0 flex items-baseline gap-2 lg:block">
+                    <span className="text-xs uppercase tracking-wider text-muted-foreground lg:hidden shrink-0">Value</span>
                     <span className="font-semibold text-sm text-foreground">
                       ₹{Number(contract.value).toLocaleString('en-IN')}
                     </span>
@@ -743,8 +743,8 @@ export default function Contracts() {
                   {/* Duration */}
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 text-sm flex-wrap">
-                      <span className="text-xs uppercase tracking-wider text-muted-foreground md:hidden shrink-0">Duration</span>
-                      <Calendar className="h-3.5 w-3.5 shrink-0 text-muted-foreground hidden md:block" />
+                      <span className="text-xs uppercase tracking-wider text-muted-foreground lg:hidden shrink-0">Duration</span>
+                      <Calendar className="h-3.5 w-3.5 shrink-0 text-muted-foreground hidden lg:block" />
                       <span className={`truncate ${isExpiringSoon ? "text-destructive font-medium" : "text-muted-foreground"}`}>
                         {format(startDate, "MMM dd")} – {format(endDate, "MMM dd, yyyy")}
                       </span>
@@ -755,12 +755,12 @@ export default function Contracts() {
                   </div>
 
                   {/* Status (desktop) */}
-                  <div className="hidden md:block">
+                  <div className="hidden lg:block">
                     <StatusBadge status={contract.status as ContractStatus} />
                   </div>
 
                   {/* Actions (desktop) */}
-                  <div className="hidden md:flex justify-end">
+                  <div className="hidden lg:flex justify-end">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
