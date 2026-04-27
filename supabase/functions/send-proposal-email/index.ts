@@ -37,6 +37,9 @@ interface SendProposalRequest {
   senderCompany: string | null;
   supportEmail: string | null;
   ccEmails?: string[];
+  customSubject?: string | null;
+  customIntro?: string | null;
+  isReminder?: boolean;
 }
 
 const formatCurrency = (amount: number): string => {
