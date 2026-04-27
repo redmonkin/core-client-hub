@@ -44,6 +44,7 @@ function fileToBase64(file: File): Promise<string> {
 }
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const PUBLIC_PREFIX = `${SUPABASE_URL}/storage/v1/object/public/project-files/`;
 
 const projectTypeLabels: Record<string, string> = {
   'one-time': 'One-time',
@@ -52,10 +53,27 @@ const projectTypeLabels: Record<string, string> = {
   'hourly': 'Hourly',
 };
 
-function getStoragePublicUrl(path: string) {
-  if (!path) return '';
-  if (path.startsWith('http')) return path;
-  return `${SUPABASE_URL}/storage/v1/object/public/project-files/${path}`;
+/**
+ * Project files are stored in a private bucket. We extract the storage path from
+ * any legacy public URL (or accept a raw path) and request a short-lived signed URL.
+ */
+function extractStoragePath(value: string): string | null {
+  if (!value) return null;
+  if (value.startsWith(PUBLIC_PREFIX)) {
+    return value.slice(PUBLIC_PREFIX.length).split('?')[0];
+  }
+  if (value.startsWith('http')) return null; // external URL we can't sign
+  return value.split('?')[0];
+}
+
+async function signProjectFile(path: string): Promise<string | null> {
+  const clean = extractStoragePath(path);
+  if (!clean) return null;
+  const { data, error } = await supabase.storage
+    .from('project-files')
+    .createSignedUrl(clean, 60 * 60); // 1 hour
+  if (error || !data?.signedUrl) return null;
+  return data.signedUrl;
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
