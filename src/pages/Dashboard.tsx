@@ -1,13 +1,25 @@
 import { Link } from 'react-router-dom';
-import { Users, FolderKanban, FileText, FileSignature, AlertTriangle, Loader2, ArrowRight } from 'lucide-react';
-import { differenceInDays } from 'date-fns';
+import { Users, FolderKanban, FileText, FileSignature, Loader2, ArrowRight } from 'lucide-react';
+import { differenceInDays, format } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { StatCard } from '@/components/dashboard/StatCard';
-import { RenewalCard } from '@/components/dashboard/RenewalCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatusBadge } from '@/components/shared/StatusBadge';
+import { ContractStatus } from '@/lib/types';
 import { NotificationsDropdown } from '@/components/notifications/NotificationsDropdown';
+
+const contractTypeLabels: Record<string, string> = {
+  service: 'Service Agreement',
+  retainer: 'Retainer Agreement',
+  nda: 'Non-Disclosure Agreement',
+  sow: 'Statement of Work',
+  msa: 'Master Service Agreement',
+  freelance: 'Freelance Contract',
+  consulting: 'Consulting Agreement',
+  licensing: 'Licensing Agreement',
+};
 
 export default function Dashboard() {
   // Fetch clients
@@ -44,7 +56,10 @@ export default function Dashboard() {
   const { data: contracts = [], isLoading: isLoadingContracts } = useQuery({
     queryKey: ['contracts'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('contracts').select('*');
+      const { data, error } = await supabase
+        .from('contracts')
+        .select('*')
+        .order('created_at', { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -55,13 +70,14 @@ export default function Dashboard() {
   const activeClients = clients.filter(c => c.status === 'active').length;
   const activeProjects = projects.filter(p => p.status === 'active').length;
   const pendingProposals = proposals.filter(p => p.status === 'sent').length;
-  
+
   const upcomingRenewals = contracts
     .filter(c => {
       const daysUntil = differenceInDays(new Date(c.end_date), new Date());
       return daysUntil > 0 && daysUntil <= 90;
-    })
-    .sort((a, b) => differenceInDays(new Date(a.end_date), new Date()) - differenceInDays(new Date(b.end_date), new Date()));
+    });
+
+  const recentContracts = contracts.slice(0, 5);
 
   const getClientName = (clientId: string) => {
     const client = clients.find(c => c.id === clientId);
@@ -129,9 +145,9 @@ export default function Dashboard() {
             <div className="flex items-center justify-between w-full">
               <CardTitle className="flex items-center gap-2 text-lg">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent">
-                  <AlertTriangle className="h-4 w-4 text-accent-foreground" />
+                  <FileSignature className="h-4 w-4 text-accent-foreground" />
                 </div>
-                Upcoming Contract Renewals
+                Recent Contracts
               </CardTitle>
               <Link to="/contracts" className="flex items-center gap-1 text-sm text-primary hover:underline">
                 View All <ArrowRight className="h-3.5 w-3.5" />
@@ -140,16 +156,26 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="p-4">
             <div className="space-y-3">
-              {upcomingRenewals.length > 0 ? (
-                upcomingRenewals.map(contract => (
-                  <RenewalCard
+              {recentContracts.length > 0 ? (
+                recentContracts.map(contract => (
+                  <Link
                     key={contract.id}
-                    clientName={getClientName(contract.client_id)}
-                    projectName={getProjectName(contract.project_id)}
-                    endDate={new Date(contract.end_date)}
-                    value={Number(contract.value)}
-                    contractType={contract.contract_type}
-                  />
+                    to={`/contracts/${contract.id}`}
+                    className="group flex items-center justify-between rounded-xl border border-border bg-card p-4 transition-all duration-200 hover:border-primary/20 hover:shadow-sm"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <h4 className="truncate font-medium text-foreground group-hover:text-primary transition-colors">
+                        {contractTypeLabels[contract.contract_type] || contract.contract_type}
+                      </h4>
+                      <p className="mt-0.5 truncate text-sm text-muted-foreground">
+                        {getClientName(contract.client_id)}
+                        {contract.end_date && ` · Ends ${format(new Date(contract.end_date), 'MMM d, yyyy')}`}
+                      </p>
+                    </div>
+                    <div className="ml-4 shrink-0">
+                      <StatusBadge status={contract.status as ContractStatus} />
+                    </div>
+                  </Link>
                 ))
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -157,7 +183,7 @@ export default function Dashboard() {
                     <FileSignature className="h-6 w-6 text-muted-foreground" />
                   </div>
                   <p className="mt-4 text-sm text-muted-foreground">
-                    No upcoming renewals in the next 90 days
+                    No contracts yet
                   </p>
                 </div>
               )}
