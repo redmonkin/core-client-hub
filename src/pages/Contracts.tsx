@@ -711,6 +711,20 @@ export default function Contracts() {
                               File
                             </Badge>
                           )}
+                          {(() => {
+                            const info = getContractExpiryInfo(contract.end_date, contract.status);
+                            if (!info) return null;
+                            return (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <AlertTriangle
+                                    className={`h-4 w-4 shrink-0 ${info.kind === 'expired' ? 'text-destructive' : 'text-amber-500'}`}
+                                  />
+                                </TooltipTrigger>
+                                <TooltipContent>{info.label}</TooltipContent>
+                              </Tooltip>
+                            );
+                          })()}
                         </h3>
                       </Link>
                       <p className="mt-0.5 text-xs text-muted-foreground">
