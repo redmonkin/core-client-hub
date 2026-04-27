@@ -624,9 +624,9 @@ export default function Contracts() {
 
       {filteredContracts.length > 0 ? (
         viewMode === 'list' ? (
-        <div className="rounded-xl border border-border overflow-hidden">
+        <div className="rounded-xl border border-border overflow-hidden min-w-0">
           {/* Grid Header */}
-          <div className="hidden md:grid md:grid-cols-[1fr_140px_140px_100px_200px_120px_48px] items-center gap-4 border-b border-border bg-muted/40 px-6 py-3">
+          <div className="hidden lg:grid lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_110px_minmax(0,1fr)_120px_48px] items-center gap-4 border-b border-border bg-muted/40 px-6 py-3">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Contract</span>
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Client</span>
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Project</span>
