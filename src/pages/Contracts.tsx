@@ -109,21 +109,65 @@ function computeValueFromCostBreakdown(costBreakdown: string | null): number {
   }
 }
 
-type ContractExpiryInfo = { kind: 'expired' | 'expiring'; days: number; label: string } | null;
+type ContractAlertKind = 'awaiting-approval' | 'renewal-due' | 'renewal-overdue';
+type ContractAlertInfo = { kind: ContractAlertKind; severity: 'warning' | 'critical'; days: number; label: string } | null;
 
-function getContractExpiryInfo(endDate: string | null, status: string): ContractExpiryInfo {
+function getContractExpiryInfo(endDate: string | null, status: string): ContractAlertInfo {
   if (!endDate) return null;
-  // Don't warn for terminal/non-active states
-  if (status === 'rejected' || status === 'draft') return null;
+  // Skip terminal/closed states
+  if (status === 'rejected' || status === 'expired') return null;
+
   const days = differenceInCalendarDays(new Date(endDate), new Date());
-  if (days < 0) {
-    const abs = Math.abs(days);
-    return { kind: 'expired', days: abs, label: `Expired ${abs} day${abs === 1 ? '' : 's'} ago` };
+  const withinWindow = days <= 7; // alert window: <=7 days out, today, or past
+  if (!withinWindow) return null;
+
+  const isUndecided = ['draft', 'sent', 'change_requested'].includes(status);
+  const isLive = ['approved', 'active', 'pending-renewal'].includes(status);
+
+  // Awaiting approval: contract is nearing/past its end date but client hasn't approved yet
+  if (isUndecided) {
+    if (days < 0) {
+      const abs = Math.abs(days);
+      return {
+        kind: 'awaiting-approval',
+        severity: 'critical',
+        days: abs,
+        label: `Not yet approved — end date passed ${abs} day${abs === 1 ? '' : 's'} ago`,
+      };
+    }
+    if (days === 0) {
+      return { kind: 'awaiting-approval', severity: 'critical', days: 0, label: 'Not yet approved — end date is today' };
+    }
+    return {
+      kind: 'awaiting-approval',
+      severity: 'warning',
+      days,
+      label: `Not yet approved — ${days} day${days === 1 ? '' : 's'} until end date`,
+    };
   }
-  if (days <= 3) {
-    if (days === 0) return { kind: 'expiring', days: 0, label: 'Expires today' };
-    return { kind: 'expiring', days, label: `Expiring in ${days} day${days === 1 ? '' : 's'}` };
+
+  // Renewal due / overdue for live contracts
+  if (isLive) {
+    if (days < 0) {
+      const abs = Math.abs(days);
+      return {
+        kind: 'renewal-overdue',
+        severity: 'critical',
+        days: abs,
+        label: `Renewal overdue by ${abs} day${abs === 1 ? '' : 's'}`,
+      };
+    }
+    if (days === 0) {
+      return { kind: 'renewal-due', severity: 'critical', days: 0, label: 'Renewal due today' };
+    }
+    return {
+      kind: 'renewal-due',
+      severity: 'warning',
+      days,
+      label: `Renewal due in ${days} day${days === 1 ? '' : 's'}`,
+    };
   }
+
   return null;
 }
 
