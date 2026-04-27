@@ -10,6 +10,19 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const escapeHtml = (s: string): string =>
+  s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+const isSafeHttpUrl = (url: string | null | undefined): url is string => {
+  if (!url) return false;
+  return /^https?:\/\//i.test(url);
+};
+
 interface SendProposalRequest {
   proposalId: string;
   clientEmail: string;
