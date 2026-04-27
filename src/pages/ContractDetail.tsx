@@ -402,18 +402,37 @@ export default function ContractDetail() {
   const handleShareLink = async () => {
     if (!contract) return;
     setShareLink('');
-    setSharePassword('');
+    setSharePassword(null);
+    setIsExistingLink(false);
     setIsShareDialogOpen(true);
     setIsGeneratingLink(true);
     try {
-      const portal = await createContractPortalAccess(contract.id, window.location.origin);
+      const portal = await getOrCreateContractPortalAccess(contract.id, window.location.origin);
       setShareLink(portal.link);
       setSharePassword(portal.password);
+      setIsExistingLink(portal.isExisting);
     } catch (error: any) {
       toast.error('Failed to generate share link');
       setIsShareDialogOpen(false);
     } finally {
       setIsGeneratingLink(false);
+    }
+  };
+
+  const handleRegenerateShareLink = async () => {
+    if (!contract) return;
+    setIsRegenerating(true);
+    try {
+      const portal = await regenerateContractPortalAccess(contract.id, window.location.origin);
+      setShareLink(portal.link);
+      setSharePassword(portal.password);
+      setIsExistingLink(false);
+      toast.success('New secure link generated. The old link no longer works.');
+    } catch (error: any) {
+      toast.error('Failed to regenerate link');
+    } finally {
+      setIsRegenerating(false);
+      setIsRegenerateConfirmOpen(false);
     }
   };
 
