@@ -112,42 +112,45 @@ function computeValueFromCostBreakdown(costBreakdown: string | null): number {
 type ContractAlertKind = 'awaiting-approval' | 'renewal-due' | 'renewal-overdue';
 type ContractAlertInfo = { kind: ContractAlertKind; severity: 'warning' | 'critical'; days: number; label: string } | null;
 
-function getContractExpiryInfo(endDate: string | null, status: string): ContractAlertInfo {
-  if (!endDate) return null;
+function getContractExpiryInfo(
+  startDate: string | null,
+  endDate: string | null,
+  status: string,
+): ContractAlertInfo {
   // Skip terminal/closed states
   if (status === 'rejected' || status === 'expired') return null;
-
-  const days = differenceInCalendarDays(new Date(endDate), new Date());
-  const withinWindow = days <= 7; // alert window: <=7 days out, today, or past
-  if (!withinWindow) return null;
 
   const isUndecided = ['draft', 'sent', 'change_requested'].includes(status);
   const isLive = ['approved', 'active', 'pending-renewal'].includes(status);
 
-  // Awaiting approval: contract is nearing/past its end date but client hasn't approved yet
-  if (isUndecided) {
+  // Awaiting approval: contract is nearing/past its START date but client hasn't approved yet
+  if (isUndecided && startDate) {
+    const days = differenceInCalendarDays(new Date(startDate), new Date());
+    if (days > 7) return null;
     if (days < 0) {
       const abs = Math.abs(days);
       return {
         kind: 'awaiting-approval',
         severity: 'critical',
         days: abs,
-        label: `Not yet approved — end date passed ${abs} day${abs === 1 ? '' : 's'} ago`,
+        label: `Not yet approved — start date passed ${abs} day${abs === 1 ? '' : 's'} ago`,
       };
     }
     if (days === 0) {
-      return { kind: 'awaiting-approval', severity: 'critical', days: 0, label: 'Not yet approved — end date is today' };
+      return { kind: 'awaiting-approval', severity: 'critical', days: 0, label: 'Not yet approved — starts today' };
     }
     return {
       kind: 'awaiting-approval',
       severity: 'warning',
       days,
-      label: `Not yet approved — ${days} day${days === 1 ? '' : 's'} until end date`,
+      label: `Not yet approved — starts in ${days} day${days === 1 ? '' : 's'}`,
     };
   }
 
-  // Renewal due / overdue for live contracts
-  if (isLive) {
+  // Renewal due / overdue: live contracts nearing/past their END date
+  if (isLive && endDate) {
+    const days = differenceInCalendarDays(new Date(endDate), new Date());
+    if (days > 7) return null;
     if (days < 0) {
       const abs = Math.abs(days);
       return {
@@ -777,7 +780,7 @@ export default function Contracts() {
                             </Badge>
                           )}
                           {(() => {
-                            const info = getContractExpiryInfo(contract.end_date, contract.status);
+                            const info = getContractExpiryInfo(contract.start_date, contract.end_date, contract.status);
                             if (!info) return null;
                             return (
                               <Tooltip>
@@ -962,7 +965,7 @@ export default function Contracts() {
                               </Badge>
                             )}
                             {(() => {
-                              const info = getContractExpiryInfo(contract.end_date, contract.status);
+                              const info = getContractExpiryInfo(contract.start_date, contract.end_date, contract.status);
                               if (!info) return null;
                               return (
                                 <Tooltip>
