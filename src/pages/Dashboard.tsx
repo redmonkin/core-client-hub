@@ -1,13 +1,25 @@
 import { Link } from 'react-router-dom';
-import { Users, FolderKanban, FileText, FileSignature, AlertTriangle, Loader2, ArrowRight } from 'lucide-react';
-import { differenceInDays } from 'date-fns';
+import { Users, FolderKanban, FileText, FileSignature, Loader2, ArrowRight } from 'lucide-react';
+import { differenceInDays, format } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { StatCard } from '@/components/dashboard/StatCard';
-import { RenewalCard } from '@/components/dashboard/RenewalCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatusBadge } from '@/components/shared/StatusBadge';
+import { ContractStatus } from '@/lib/types';
 import { NotificationsDropdown } from '@/components/notifications/NotificationsDropdown';
+
+const contractTypeLabels: Record<string, string> = {
+  service: 'Service Agreement',
+  retainer: 'Retainer Agreement',
+  nda: 'Non-Disclosure Agreement',
+  sow: 'Statement of Work',
+  msa: 'Master Service Agreement',
+  freelance: 'Freelance Contract',
+  consulting: 'Consulting Agreement',
+  licensing: 'Licensing Agreement',
+};
 
 export default function Dashboard() {
   // Fetch clients
