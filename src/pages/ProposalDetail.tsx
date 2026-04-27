@@ -246,7 +246,9 @@ export default function ProposalDetail() {
     if (!proposal || !client?.email) return;
     setIsSending(true);
     try {
-      const portal = await generatePortalLink(proposal.id);
+      const portal = regenerateBeforeSend
+        ? await regenerateProposalPortalAccess(proposal.id, window.location.origin)
+        : await getOrCreateProposalPortalAccess(proposal.id, window.location.origin);
 
       // Fetch support email from branding settings
       const { data: brandingData } = await supabase
@@ -344,19 +346,38 @@ export default function ProposalDetail() {
   const handleShareLink = async () => {
     if (!proposal) return;
     setShareLink('');
-    setSharePassword('');
+    setSharePassword(null);
+    setIsExistingLink(false);
     setIsShareDialogOpen(true);
     setIsGeneratingLink(true);
     try {
-      const portal = await generatePortalLink(proposal.id);
+      const portal = await getOrCreateProposalPortalAccess(proposal.id, window.location.origin);
       setShareLink(portal.link);
       setSharePassword(portal.password);
+      setIsExistingLink(portal.isExisting);
     } catch (error: any) {
       console.error('Error generating share link:', error);
       toast.error('Failed to generate share link');
       setIsShareDialogOpen(false);
     } finally {
       setIsGeneratingLink(false);
+    }
+  };
+
+  const handleRegenerateShareLink = async () => {
+    if (!proposal) return;
+    setIsRegenerating(true);
+    try {
+      const portal = await regenerateProposalPortalAccess(proposal.id, window.location.origin);
+      setShareLink(portal.link);
+      setSharePassword(portal.password);
+      setIsExistingLink(false);
+      toast.success('New secure link generated. The old link no longer works.');
+    } catch (error: any) {
+      toast.error('Failed to regenerate link');
+    } finally {
+      setIsRegenerating(false);
+      setIsRegenerateConfirmOpen(false);
     }
   };
 
