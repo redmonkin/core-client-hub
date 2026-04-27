@@ -242,7 +242,7 @@ function buildTeamInviteEmail(
   data: Record<string, any>
 ): { subject: string; html: string } {
   const inviterName = escapeHtml(data.inviterName || data.senderCompany || "Your team");
-  const appUrl = escapeHtml(data.appUrl || "");
+  const appUrl = isSafeHttpUrl(data.appUrl) ? escapeHtml(data.appUrl) : "";
 
   return {
     subject: `🤝 You've been invited to join ${inviterName}'s workspace`,
