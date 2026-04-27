@@ -542,13 +542,13 @@ export default function Contracts() {
         user_id: user?.id,
         from_status: previousStatus,
         to_status: previousStatus === 'draft' ? 'sent' : previousStatus,
-        note: `Contract emailed to ${clientEmail}${selectedCcEmails.length > 0 ? ` (CC: ${selectedCcEmails.join(', ')})` : ''}`,
+        note: `${isReminder ? 'Reminder email sent' : 'Contract emailed'} to ${clientEmail}${selectedCcEmails.length > 0 ? ` (CC: ${selectedCcEmails.join(', ')})` : ''}`,
       } as any);
 
       queryClient.invalidateQueries({ queryKey: ['contracts'] });
 
       const ccNote = selectedCcEmails.length > 0 ? ` (CC: ${selectedCcEmails.join(', ')})` : '';
-      toast.success(`Contract sent to ${clientEmail}${ccNote}`);
+      toast.success(`${isReminder ? 'Reminder' : 'Contract'} sent to ${clientEmail}${ccNote}`);
       setIsSendDialogOpen(false);
       setSelectedContract(null);
     } catch (error: any) {
