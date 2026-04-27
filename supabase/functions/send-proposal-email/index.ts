@@ -37,6 +37,9 @@ interface SendProposalRequest {
   senderCompany: string | null;
   supportEmail: string | null;
   ccEmails?: string[];
+  customSubject?: string | null;
+  customIntro?: string | null;
+  isReminder?: boolean;
 }
 
 const formatCurrency = (amount: number): string => {
@@ -130,6 +133,9 @@ const handler = async (req: Request): Promise<Response> => {
       senderCompany,
       supportEmail,
       ccEmails,
+      customSubject,
+      customIntro,
+      isReminder,
     }: SendProposalRequest = await req.json();
 
     console.log(
@@ -170,13 +176,31 @@ const handler = async (req: Request): Promise<Response> => {
     const safePortalPassword = portalPassword ? escapeHtml(portalPassword) : "";
     const safeSupportEmail = supportEmail ? escapeHtml(supportEmail) : "";
 
+    // Custom intro message — escape and split paragraphs on blank lines.
+    const trimmedIntro = (customIntro || "").trim();
+    const customIntroHtml = trimmedIntro
+      ? trimmedIntro
+          .split(/\n{2,}/)
+          .map(
+            (para) =>
+              `<p style="margin: 0 0 16px; font-size: 15px; color: #374151;">${escapeHtml(para).replace(/\n/g, "<br>")}</p>`,
+          )
+          .join("")
+      : null;
+
+    const headerLabel = isReminder ? "🔔 Proposal Reminder" : "📄 New Proposal";
+    const introBlock = customIntroHtml
+      ? customIntroHtml
+      : `<p style="margin: 0 0 20px; font-size: 15px; color: #374151;">Hi ${safeClientName},</p>
+                      <p style="margin: 0 0 24px; font-size: 15px; color: #374151;">${isReminder ? "Just a friendly reminder about the proposal we shared with you:" : "A new proposal has been prepared for you:"}</p>`;
+
     const emailHtml = `
       <!DOCTYPE html>
       <html>
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Proposal: ${safeProposalTitle}</title>
+          <title>${escapeHtml(customSubject || `Proposal: ${proposalTitle}`)}</title>
         </head>
         <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #1f2937; margin: 0; padding: 0; background-color: #f3f4f6;">
           <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f3f4f6; padding: 32px 16px;">
@@ -187,16 +211,14 @@ const handler = async (req: Request): Promise<Response> => {
                   <!-- Header -->
                   <tr>
                     <td style="background-color: #111827; padding: 28px 32px;">
-                      <h1 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.3px;">📄 New Proposal</h1>
+                      <h1 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.3px;">${headerLabel}</h1>
                     </td>
                   </tr>
 
                   <!-- Body -->
                   <tr>
                     <td style="padding: 32px;">
-                      <p style="margin: 0 0 20px; font-size: 15px; color: #374151;">Hi ${safeClientName},</p>
-                      
-                      <p style="margin: 0 0 24px; font-size: 15px; color: #374151;">A new proposal has been prepared for you:</p>
+                      ${introBlock}
                       
                       <!-- Proposal Card -->
                       <table width="100%" cellpadding="0" cellspacing="0" style="background: #f9fafb; border-radius: 10px; border: 1px solid #e5e7eb; margin-bottom: 24px;">
@@ -303,7 +325,7 @@ const handler = async (req: Request): Promise<Response> => {
     const emailPayload: any = {
       from: `${fromName} <noreply@notifications.redmonk.in>`,
       to: [clientEmail],
-      subject: `Proposal: ${proposalTitle}`,
+      subject: (customSubject && customSubject.trim()) || `${isReminder ? "Reminder — " : ""}Proposal: ${proposalTitle}`,
       html: emailHtml,
     };
 
