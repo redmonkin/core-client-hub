@@ -31,7 +31,7 @@ import { ContractFormDialog } from '@/components/contracts/ContractFormDialog';
 import { ProposalPreviewDialog } from '@/components/proposals/ProposalPreviewDialog';
 import { ProposalData } from '@/lib/proposal-utils';
 import { ContractStatus } from '@/lib/types';
-import { createContractPortalAccess } from '@/lib/contract-portal-access';
+import { getOrCreateContractPortalAccess, regenerateContractPortalAccess } from '@/lib/contract-portal-access';
 
 const contractTypeLabels: Record<string, string> = {
   amc: 'Annual Maintenance Contract',
