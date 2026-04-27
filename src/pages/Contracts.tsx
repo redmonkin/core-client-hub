@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Search, FileSignature, MoreHorizontal, Calendar, Loader2, Pencil, Trash2, Eye, Copy, Send, LinkIcon, Users } from "lucide-react";
+import { Plus, Search, FileSignature, MoreHorizontal, Calendar, Loader2, Pencil, Trash2, Eye, Copy, Send, LinkIcon, Users, FileText } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -62,6 +62,10 @@ type Contract = {
   cost_breakdown: string | null;
   template_id: string | null;
   updated_at: string;
+  is_external?: boolean | null;
+  file_url?: string | null;
+  file_name?: string | null;
+  file_type?: string | null;
 };
 
 type ContractFormData = {
@@ -75,6 +79,10 @@ type ContractFormData = {
   scope_of_work: string;
   cost_breakdown: string;
   template_id?: string;
+  is_external?: boolean;
+  file_url?: string;
+  file_name?: string;
+  file_type?: string;
 };
 
 function computeValueFromCostBreakdown(costBreakdown: string | null): number {
@@ -186,6 +194,10 @@ export default function Contracts() {
           scope_of_work: contractData.scope_of_work || null,
           cost_breakdown: contractData.cost_breakdown || null,
           template_id: contractData.template_id || null,
+          is_external: !!contractData.is_external,
+          file_url: contractData.file_url || null,
+          file_name: contractData.file_name || null,
+          file_type: contractData.file_type || null,
         } as any)
         .select()
         .single();
@@ -227,6 +239,10 @@ export default function Contracts() {
           scope_of_work: contractData.scope_of_work || null,
           cost_breakdown: contractData.cost_breakdown || null,
           template_id: contractData.template_id || null,
+          is_external: !!contractData.is_external,
+          file_url: contractData.file_url || null,
+          file_name: contractData.file_name || null,
+          file_type: contractData.file_type || null,
         } as any)
         .eq("id", id)
         .select()
@@ -545,6 +561,10 @@ export default function Contracts() {
       scope_of_work: selectedContract.scope_of_work || "",
       cost_breakdown: selectedContract.cost_breakdown || "",
       template_id: selectedContract.template_id || "",
+      is_external: !!selectedContract.is_external,
+      file_url: selectedContract.file_url || "",
+      file_name: selectedContract.file_name || "",
+      file_type: selectedContract.file_type || "",
     };
   };
 
@@ -626,8 +646,14 @@ export default function Contracts() {
                   {/* Contract */}
                   <div className="min-w-0">
                     <Link to={`/contracts/${contract.id}`}>
-                      <h3 className="truncate font-medium text-foreground group-hover:text-primary transition-colors cursor-pointer">
+                      <h3 className="truncate font-medium text-foreground group-hover:text-primary transition-colors cursor-pointer flex items-center gap-2">
                         {contractTypeLabels[contract.contract_type] || contract.contract_type}
+                        {contract.is_external && (
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5">
+                            <FileText className="h-3 w-3 mr-1" />
+                            File
+                          </Badge>
+                        )}
                       </h3>
                     </Link>
                     <p className="mt-0.5 text-xs text-muted-foreground">

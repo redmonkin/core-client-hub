@@ -20,8 +20,12 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScopeOfWorkEditor } from '@/components/proposals/ScopeOfWorkEditor';
 import { CostBreakdownTable } from '@/components/proposals/CostBreakdownTable';
-import { FileText, DollarSign, Settings, LayoutTemplate } from 'lucide-react';
+import { FileText, DollarSign, Settings, LayoutTemplate, Upload, X, FileIcon, Loader2 } from 'lucide-react';
 import { Template } from '@/hooks/useTemplates';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { useWorkspaceUser } from '@/hooks/useWorkspaceUser';
+import { toast } from 'sonner';
 
 interface ContractFormData {
   client_id: string;
@@ -34,6 +38,10 @@ interface ContractFormData {
   scope_of_work: string;
   cost_breakdown: string;
   template_id?: string;
+  is_external?: boolean;
+  file_url?: string;
+  file_name?: string;
+  file_type?: string;
 }
 
 interface Client {
@@ -69,6 +77,10 @@ const emptyFormData: ContractFormData = {
   status: 'draft',
   scope_of_work: '',
   cost_breakdown: '',
+  is_external: false,
+  file_url: '',
+  file_name: '',
+  file_type: '',
 };
 
 export function ContractFormDialog({
@@ -85,6 +97,9 @@ export function ContractFormDialog({
   const [formData, setFormData] = useState<ContractFormData>(initialData || emptyFormData);
   const [activeTab, setActiveTab] = useState('details');
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+  const [isUploading, setIsUploading] = useState(false);
+  const { user } = useAuth();
+  const { workspaceUserId } = useWorkspaceUser();
 
   const contractTemplates = templates.filter(t => t.type === 'contract');
 
@@ -121,12 +136,67 @@ export function ContractFormDialog({
     }
   }, [formData.start_date, formData.renewal_frequency]);
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!user?.id || !workspaceUserId) {
+      toast.error('You must be signed in to upload files');
+      return;
+    }
+    // 25 MB cap
+    if (file.size > 25 * 1024 * 1024) {
+      toast.error('File too large. Max 25 MB.');
+      return;
+    }
+    const allowed = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    if (!allowed.includes(file.type)) {
+      toast.error('Only PDF or Word documents are allowed.');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `${workspaceUserId}/${crypto.randomUUID()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from('contract-files')
+        .upload(path, file, { contentType: file.type, upsert: false });
+      if (uploadError) throw uploadError;
+
+      setFormData(prev => ({
+        ...prev,
+        file_url: path,
+        file_name: file.name,
+        file_type: file.type,
+      }));
+      toast.success('File uploaded');
+    } catch (err: any) {
+      toast.error(err.message || 'Upload failed');
+    } finally {
+      setIsUploading(false);
+      // reset input so same file can be re-selected
+      e.target.value = '';
+    }
+  };
+
+  const handleRemoveFile = async () => {
+    if (formData.file_url) {
+      await supabase.storage.from('contract-files').remove([formData.file_url]);
+    }
+    setFormData(prev => ({ ...prev, file_url: '', file_name: '', file_type: '' }));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (formData.is_external && !formData.file_url) {
+      toast.error('Please upload a contract file');
+      return;
+    }
     onSubmit({ ...formData, template_id: selectedTemplateId || undefined });
   };
 
-  const isValid = formData.client_id && formData.contract_type && formData.start_date && formData.end_date && formData.renewal_frequency;
+  const baseValid = formData.client_id && formData.contract_type && formData.start_date && formData.end_date && formData.renewal_frequency;
+  const isValid = baseValid && (!formData.is_external || !!formData.file_url);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -142,23 +212,83 @@ export function ContractFormDialog({
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-            <TabsList className="grid w-full grid-cols-3 mb-4">
+            <TabsList className={`grid w-full ${formData.is_external ? 'grid-cols-1' : 'grid-cols-3'} mb-4`}>
               <TabsTrigger value="details" className="gap-2">
                 <Settings className="h-4 w-4" />
                 <span className="hidden sm:inline">Details</span>
               </TabsTrigger>
-              <TabsTrigger value="scope" className="gap-2">
-                <FileText className="h-4 w-4" />
-                <span className="hidden sm:inline">Scope of Work</span>
-              </TabsTrigger>
-              <TabsTrigger value="pricing" className="gap-2">
-                <DollarSign className="h-4 w-4" />
-                <span className="hidden sm:inline">Pricing</span>
-              </TabsTrigger>
+              {!formData.is_external && (
+                <>
+                  <TabsTrigger value="scope" className="gap-2">
+                    <FileText className="h-4 w-4" />
+                    <span className="hidden sm:inline">Scope of Work</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="pricing" className="gap-2">
+                    <DollarSign className="h-4 w-4" />
+                    <span className="hidden sm:inline">Pricing</span>
+                  </TabsTrigger>
+                </>
+              )}
             </TabsList>
 
             <div className="flex-1 overflow-y-auto pr-1">
               <TabsContent value="details" className="mt-0 space-y-4">
+                {/* Contract source toggle */}
+                <div className="flex items-center justify-between rounded-lg border bg-muted/30 p-3">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm font-medium">Upload external contract</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Toggle on to attach a PDF/Word contract created outside the system.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant={formData.is_external ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => {
+                      setFormData(prev => ({ ...prev, is_external: !prev.is_external }));
+                      if (activeTab !== 'details') setActiveTab('details');
+                    }}
+                  >
+                    {formData.is_external ? 'External file' : 'System contract'}
+                  </Button>
+                </div>
+
+                {formData.is_external && (
+                  <div className="space-y-2">
+                    <Label>Contract File *</Label>
+                    {formData.file_url ? (
+                      <div className="flex items-center justify-between rounded-md border p-3 bg-card">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FileIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                          <span className="text-sm truncate">{formData.file_name}</span>
+                        </div>
+                        <Button type="button" variant="ghost" size="sm" onClick={handleRemoveFile}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed p-6 cursor-pointer hover:bg-muted/40 transition-colors">
+                        {isUploading ? (
+                          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                        ) : (
+                          <Upload className="h-5 w-5 text-muted-foreground" />
+                        )}
+                        <span className="text-sm text-muted-foreground">
+                          {isUploading ? 'Uploading…' : 'Click to upload PDF or Word document (max 25 MB)'}
+                        </span>
+                        <input
+                          type="file"
+                          accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                          className="hidden"
+                          onChange={handleFileUpload}
+                          disabled={isUploading}
+                        />
+                      </label>
+                    )}
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Client *</Label>

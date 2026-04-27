@@ -207,6 +207,10 @@ export default function ContractDetail() {
           scope_of_work: formData.scope_of_work || null,
           cost_breakdown: formData.cost_breakdown || null,
           template_id: formData.template_id || null,
+          is_external: !!formData.is_external,
+          file_url: formData.file_url || null,
+          file_name: formData.file_name || null,
+          file_type: formData.file_type || null,
         } as any)
         .eq('id', id!)
         .select()
@@ -240,6 +244,19 @@ export default function ContractDetail() {
   const handleEdit = () => {
     setEditDialogKey(prev => prev + 1);
     setIsEditDialogOpen(true);
+  };
+
+  const handleViewFile = async () => {
+    const path = (contract as any)?.file_url;
+    if (!path) return;
+    const { data, error } = await supabase.storage
+      .from('contract-files')
+      .createSignedUrl(path, 60 * 10);
+    if (error || !data?.signedUrl) {
+      toast.error('Could not open file');
+      return;
+    }
+    window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
   };
 
   const handlePreview = () => {
@@ -431,6 +448,10 @@ export default function ContractDetail() {
     scope_of_work: contract.scope_of_work || '',
     cost_breakdown: contract.cost_breakdown || '',
     template_id: (contract as any).template_id || '',
+    is_external: !!(contract as any).is_external,
+    file_url: (contract as any).file_url || '',
+    file_name: (contract as any).file_name || '',
+    file_type: (contract as any).file_type || '',
   };
 
   // Build timeline from real status history
@@ -608,6 +629,35 @@ export default function ContractDetail() {
             )}
           </CardContent>
         </Card>
+
+        {/* External Contract File Card */}
+        {(contract as any).is_external && (contract as any).file_url && (
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Uploaded Contract File
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between rounded-md border p-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{(contract as any).file_name || 'Contract file'}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {(contract as any).file_type || 'Document'}
+                    </p>
+                  </div>
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={handleViewFile}>
+                  <Eye className="mr-2 h-4 w-4" />
+                  View
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Timeline Card */}
         <Card className="lg:col-span-2">

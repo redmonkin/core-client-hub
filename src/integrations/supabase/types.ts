@@ -245,7 +245,11 @@ export type Database = {
           cost_breakdown: string | null
           created_at: string
           end_date: string
+          file_name: string | null
+          file_type: string | null
+          file_url: string | null
           id: string
+          is_external: boolean
           project_id: string | null
           renewal_frequency: string
           scope_of_work: string | null
@@ -263,7 +267,11 @@ export type Database = {
           cost_breakdown?: string | null
           created_at?: string
           end_date: string
+          file_name?: string | null
+          file_type?: string | null
+          file_url?: string | null
           id?: string
+          is_external?: boolean
           project_id?: string | null
           renewal_frequency: string
           scope_of_work?: string | null
@@ -281,7 +289,11 @@ export type Database = {
           cost_breakdown?: string | null
           created_at?: string
           end_date?: string
+          file_name?: string | null
+          file_type?: string | null
+          file_url?: string | null
           id?: string
+          is_external?: boolean
           project_id?: string | null
           renewal_frequency?: string
           scope_of_work?: string | null
