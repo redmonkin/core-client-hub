@@ -631,6 +631,7 @@ export default function Contracts() {
   }
 
   return (
+    <TooltipProvider delayDuration={150}>
     <div className="space-y-6 p-4 sm:p-8">
       <PageHeader
         title="Contracts"
