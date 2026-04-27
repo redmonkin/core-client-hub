@@ -350,7 +350,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // POST - Update proposal status (approve/reject)
     if (req.method === "POST") {
-      const { token: bodyToken, action, notes, signature_name }: UpdateProposalRequest = await req.json();
+      const { token: bodyToken, action, notes, signature_name, password }: UpdateProposalRequest & { password?: string } = await req.json();
       const accessTokenValue = bodyToken || token;
 
       if (!accessTokenValue) {
