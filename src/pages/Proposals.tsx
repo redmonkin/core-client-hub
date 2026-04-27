@@ -47,6 +47,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { getOrCreateProposalPortalAccess, regenerateProposalPortalAccess } from '@/lib/proposal-portal-access';
 import { ProposalFormDialog } from '@/components/proposals/ProposalFormDialog';
 import { ProposalPreviewDialog } from '@/components/proposals/ProposalPreviewDialog';
