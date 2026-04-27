@@ -129,8 +129,13 @@ export default function Contracts() {
   // Share link state
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [shareLink, setShareLink] = useState("");
-  const [sharePassword, setSharePassword] = useState("");
+  const [sharePassword, setSharePassword] = useState<string | null>(null);
+  const [isExistingLink, setIsExistingLink] = useState(false);
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [isRegenerateConfirmOpen, setIsRegenerateConfirmOpen] = useState(false);
+  const [regenerateContext, setRegenerateContext] = useState<'share' | 'send' | null>(null);
+  const [regenerateBeforeSend, setRegenerateBeforeSend] = useState(false);
 
   const { user } = useAuth();
   const { workspaceUserId } = useWorkspaceUser();
