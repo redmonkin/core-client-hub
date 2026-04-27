@@ -56,7 +56,10 @@ export default function Dashboard() {
   const { data: contracts = [], isLoading: isLoadingContracts } = useQuery({
     queryKey: ['contracts'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('contracts').select('*');
+      const { data, error } = await supabase
+        .from('contracts')
+        .select('*')
+        .order('created_at', { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -67,13 +70,14 @@ export default function Dashboard() {
   const activeClients = clients.filter(c => c.status === 'active').length;
   const activeProjects = projects.filter(p => p.status === 'active').length;
   const pendingProposals = proposals.filter(p => p.status === 'sent').length;
-  
+
   const upcomingRenewals = contracts
     .filter(c => {
       const daysUntil = differenceInDays(new Date(c.end_date), new Date());
       return daysUntil > 0 && daysUntil <= 90;
-    })
-    .sort((a, b) => differenceInDays(new Date(a.end_date), new Date()) - differenceInDays(new Date(b.end_date), new Date()));
+    });
+
+  const recentContracts = contracts.slice(0, 5);
 
   const getClientName = (clientId: string) => {
     const client = clients.find(c => c.id === clientId);
