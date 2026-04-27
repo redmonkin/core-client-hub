@@ -457,9 +457,22 @@ export default function Proposals() {
       toast.error('This client does not have an email address configured');
       return;
     }
+    const reminder = proposal.status !== 'draft';
+    const clientName = getClientName(proposal.client_id);
     setSelectedProposal(proposal);
     setSelectedCcEmails([]);
     setRegenerateBeforeSend(false);
+    setIsReminder(reminder);
+    setEmailSubject(
+      reminder
+        ? `Reminder: Proposal "${proposal.title}"`
+        : `Proposal: ${proposal.title}`
+    );
+    setEmailIntro(
+      reminder
+        ? `Hi ${clientName},\n\nJust a friendly reminder about the proposal we shared with you. We'd love to hear your thoughts whenever you get a chance to review it.`
+        : `Hi ${clientName},\n\nA new proposal has been prepared for you. Please review it at your convenience and let us know if you have any questions.`
+    );
     setIsSendDialogOpen(true);
   };
 
