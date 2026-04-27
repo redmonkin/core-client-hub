@@ -437,9 +437,23 @@ export default function Contracts() {
       toast.error('This client does not have an email address configured');
       return;
     }
+    const reminder = contract.status !== 'draft';
+    const clientName = getClientName(contract.client_id);
+    const contractTitle = contractTypeLabels[contract.contract_type] || contract.contract_type;
     setSelectedContract(contract);
     setSelectedCcEmails([]);
     setRegenerateBeforeSend(false);
+    setIsReminder(reminder);
+    setEmailSubject(
+      reminder
+        ? `Reminder: ${contractTitle}`
+        : `Contract: ${contractTitle}`
+    );
+    setEmailIntro(
+      reminder
+        ? `Hi ${clientName},\n\nJust a friendly reminder about the contract we shared with you. Please let us know if you have any questions or need any changes before signing.`
+        : `Hi ${clientName},\n\nA new contract has been prepared for you. Please review the details and let us know if you have any questions.`
+    );
     setIsSendDialogOpen(true);
   };
 
