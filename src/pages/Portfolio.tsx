@@ -138,6 +138,23 @@ export default function Portfolio() {
     enabled: clientIds.length > 0,
   });
 
+  // Resolve short-lived signed URLs for project feature images via edge function
+  // (the project-files bucket is private to protect non-featured uploads).
+  const projectIds = featuredProjects.map(p => p.id);
+  const { data: imageUrls = {} } = useQuery({
+    queryKey: ['portfolio-image-urls', projectIds],
+    queryFn: async () => {
+      if (projectIds.length === 0) return {} as Record<string, string | null>;
+      const { data, error } = await supabase.functions.invoke('portfolio-image-url', {
+        body: { project_ids: projectIds },
+      });
+      if (error) throw error;
+      return (data?.urls ?? {}) as Record<string, string | null>;
+    },
+    enabled: projectIds.length > 0,
+    staleTime: 50 * 60 * 1000, // refresh well before 1h signed-URL TTL
+  });
+
   const getClientName = (clientId: string) => {
     const client = clients.find(c => c.id === clientId);
     return client?.company_name || client?.client_name || '';
