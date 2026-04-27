@@ -647,7 +647,7 @@ export default function Contracts() {
               return (
                 <div
                   key={contract.id}
-                  className="group grid grid-cols-1 md:grid-cols-[1fr_140px_140px_100px_200px_120px_48px] items-start md:items-center gap-3 md:gap-4 px-4 sm:px-6 py-4 transition-colors hover:bg-muted/30"
+                  className="group grid grid-cols-1 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_110px_minmax(0,1fr)_120px_48px] items-start lg:items-center gap-3 lg:gap-4 px-4 sm:px-6 py-4 transition-colors hover:bg-muted/30"
                 >
                   {/* Contract */}
                   <div className="min-w-0 flex items-start justify-between gap-2 md:block">
