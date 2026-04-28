@@ -467,6 +467,84 @@ export default function Briefs() {
         </DialogContent>
       </Dialog>
 
+      {/* View dialog */}
+      <Dialog open={!!viewing} onOpenChange={(o) => !o && setViewing(null)}>
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+          {viewing && (
+            <>
+              <DialogHeader>
+                <DialogTitle>
+                  {format(new Date(viewing.date), 'EEEE, dd MMM yyyy')}
+                </DialogTitle>
+                <div className="flex flex-wrap items-center gap-2 pt-2">
+                  {viewing.reviewed && (
+                    <Badge variant="secondary" className="gap-1">
+                      <CheckCircle2 className="h-3 w-3" /> Reviewed
+                    </Badge>
+                  )}
+                  {viewing.item_count > 0 && (
+                    <Badge variant="outline">{viewing.item_count} items</Badge>
+                  )}
+                  {viewing.has_expiring_proposals && (
+                    <Badge variant="destructive" className="gap-1">
+                      <Clock className="h-3 w-3" /> Expiring proposals
+                    </Badge>
+                  )}
+                  {viewing.has_unsigned_contracts && (
+                    <Badge variant="destructive" className="gap-1">
+                      <FileWarning className="h-3 w-3" /> Unsigned contracts
+                    </Badge>
+                  )}
+                  {viewing.has_overdue_items && (
+                    <Badge variant="destructive" className="gap-1">
+                      <AlertTriangle className="h-3 w-3" /> Overdue items
+                    </Badge>
+                  )}
+                </div>
+              </DialogHeader>
+
+              <div className="space-y-4 pt-2">
+                {[
+                  { label: 'State', value: viewing.state },
+                  { label: "Today's Focus", value: viewing.today_focus },
+                  { label: 'Pre-drafted Replies', value: viewing.pre_drafted_replies },
+                  { label: 'Follow-ups Owed', value: viewing.follow_ups_owed },
+                  { label: 'Deferred', value: viewing.deferred },
+                  { label: 'Review Notes', value: viewing.review_notes },
+                ]
+                  .filter((s) => s.value)
+                  .map((s) => (
+                    <div key={s.label}>
+                      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        {s.label}
+                      </p>
+                      <p className="whitespace-pre-line text-sm text-foreground">
+                        {s.value}
+                      </p>
+                    </div>
+                  ))}
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setViewing(null)}>
+                  Close
+                </Button>
+                <Button
+                  onClick={() => {
+                    const b = viewing;
+                    setViewing(null);
+                    openEdit(b);
+                  }}
+                >
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Edit
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Delete confirmation */}
       <AlertDialog
         open={!!deletingId}
