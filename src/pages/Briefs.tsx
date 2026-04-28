@@ -229,7 +229,11 @@ export default function Briefs() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {briefs.map((b) => (
-            <Card key={b.id} className="transition-shadow hover:shadow-md">
+            <Card
+              key={b.id}
+              className="cursor-pointer transition-shadow hover:shadow-md"
+              onClick={() => setViewing(b)}
+            >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="space-y-1">
@@ -248,7 +252,7 @@ export default function Briefs() {
                       )}
                     </div>
                   </div>
-                  <div className="flex gap-1">
+                  <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                     <Button
                       size="icon"
                       variant="ghost"
