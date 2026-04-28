@@ -89,6 +89,7 @@ export default function Briefs() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Brief | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [viewing, setViewing] = useState<Brief | null>(null);
   const [form, setForm] = useState(emptyForm);
 
   // Briefs (RLS already restricts to current user)
