@@ -134,6 +134,20 @@ export function TemplateFormDialog({
                 </Select>
               </div>
             </div>
+            <div className="mt-3 flex items-center justify-between gap-4 rounded-md border bg-background px-3 py-2">
+              <div className="flex items-start gap-2">
+                <Globe className="h-4 w-4 mt-0.5 text-primary" />
+                <div>
+                  <Label htmlFor="templatePublic" className="text-xs font-medium cursor-pointer">
+                    Make this template public
+                  </Label>
+                  <p className="text-[11px] text-muted-foreground">
+                    Public templates are visible to all Clientra users. They can preview and duplicate it, but only you can edit or delete it.
+                  </p>
+                </div>
+              </div>
+              <Switch id="templatePublic" checked={isPublic} onCheckedChange={setIsPublic} />
+            </div>
             <p className="text-xs text-muted-foreground mt-2">
               Use the toolbar to format text and insert placeholders that will be replaced with actual values.
             </p>
