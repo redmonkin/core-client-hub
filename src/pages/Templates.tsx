@@ -272,6 +272,8 @@ export default function Templates() {
                 <TableRow className="bg-muted/30 hover:bg-muted/30">
                   <TableHead className="font-semibold">Name</TableHead>
                   <TableHead className="font-semibold">Type</TableHead>
+                  <TableHead className="font-semibold">Visibility</TableHead>
+                  <TableHead className="font-semibold">Created By</TableHead>
                   <TableHead className="font-semibold">Created</TableHead>
                   <TableHead className="w-12"></TableHead>
                 </TableRow>
@@ -292,6 +294,19 @@ export default function Templates() {
                         {templateTypeLabels[template.type]}
                       </Badge>
                     </TableCell>
+                    <TableCell>
+                      {template.is_public ? (
+                        <Badge variant="secondary" className="text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 gap-1">
+                          <Globe className="h-3 w-3" />
+                          Public
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Private</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {template.creator_name || '—'}
+                    </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
                       {format(new Date(template.created_at), 'MMM dd, yyyy')}
                     </TableCell>
@@ -307,22 +322,28 @@ export default function Templates() {
                             <Eye className="mr-2 h-4 w-4" />
                             Preview
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleEdit(template)}>
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
+                          {isOwn(template) && (
+                            <DropdownMenuItem onClick={() => handleEdit(template)}>
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem onClick={() => handleDuplicate(template)}>
                             <Copy className="mr-2 h-4 w-4" />
                             Duplicate
                           </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => setDeletingTemplate(template)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
+                          {isOwn(template) && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => setDeletingTemplate(template)}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
