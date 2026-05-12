@@ -15,6 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Globe } from 'lucide-react';
 import { TemplateEditor } from './TemplateEditor';
 import { Template, TemplateType, CreateTemplateData, UpdateTemplateData } from '@/hooks/useTemplates';
 
@@ -36,6 +38,7 @@ export function TemplateFormDialog({
   const [name, setName] = useState('');
   const [type, setType] = useState<TemplateType | ''>('');
   const [content, setContent] = useState('');
+  const [isPublic, setIsPublic] = useState(false);
 
   const isEditing = !!template;
 
@@ -45,10 +48,12 @@ export function TemplateFormDialog({
       setName(template.name);
       setType(template.type);
       setContent(template.content);
+      setIsPublic(template.is_public ?? false);
     } else {
       setName('');
       setType('');
       setContent('');
+      setIsPublic(false);
     }
   }, [template]);
 
@@ -58,6 +63,7 @@ export function TemplateFormDialog({
       setName('');
       setType('');
       setContent('');
+      setIsPublic(false);
     }
   }, [open, template]);
 
@@ -74,12 +80,14 @@ export function TemplateFormDialog({
         name: name.trim(),
         type: type as TemplateType,
         content: content,
+        is_public: isPublic,
       });
     } else {
       onSubmit({
         name: name.trim(),
         type: type as TemplateType,
         content: content,
+        is_public: isPublic,
       });
     }
   };
@@ -125,6 +133,20 @@ export function TemplateFormDialog({
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div className="mt-3 flex items-center justify-between gap-4 rounded-md border bg-background px-3 py-2">
+              <div className="flex items-start gap-2">
+                <Globe className="h-4 w-4 mt-0.5 text-primary" />
+                <div>
+                  <Label htmlFor="templatePublic" className="text-xs font-medium cursor-pointer">
+                    Make this template public
+                  </Label>
+                  <p className="text-[11px] text-muted-foreground">
+                    Public templates are visible to all Clientra users. They can preview and duplicate it, but only you can edit or delete it.
+                  </p>
+                </div>
+              </div>
+              <Switch id="templatePublic" checked={isPublic} onCheckedChange={setIsPublic} />
             </div>
             <p className="text-xs text-muted-foreground mt-2">
               Use the toolbar to format text and insert placeholders that will be replaced with actual values.

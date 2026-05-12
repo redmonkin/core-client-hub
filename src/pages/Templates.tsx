@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Plus, FileCode, MoreHorizontal, Copy, Pencil, Trash2, Eye } from 'lucide-react';
+import { Plus, FileCode, MoreHorizontal, Copy, Pencil, Trash2, Eye, Globe, User } from 'lucide-react';
+import { useWorkspaceUser } from '@/hooks/useWorkspaceUser';
 import { format } from 'date-fns';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
@@ -44,6 +45,7 @@ export default function Templates() {
   const [deletingTemplate, setDeletingTemplate] = useState<Template | null>(null);
   const [previewingTemplate, setPreviewingTemplate] = useState<Template | null>(null);
   const [viewMode, setViewMode] = useViewMode('templates', 'grid');
+  const { workspaceUserId } = useWorkspaceUser();
 
   const { 
     templates, 
@@ -53,6 +55,8 @@ export default function Templates() {
     deleteTemplate, 
     duplicateTemplate 
   } = useTemplates();
+
+  const isOwn = (template: Template) => template.user_id === workspaceUserId;
 
   const templateTypeLabels: Record<TemplateType, string> = {
     'proposal': 'Proposal',
@@ -190,14 +194,25 @@ export default function Templates() {
             <Card key={template.id} className="group overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5">
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <CardTitle className="text-base leading-snug">{template.name}</CardTitle>
-                    <Badge 
-                      variant="secondary" 
-                      className={`mt-2 text-xs ${templateTypeColors[template.type]}`}
-                    >
-                      {templateTypeLabels[template.type]}
-                    </Badge>
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      <Badge
+                        variant="secondary"
+                        className={`text-xs ${templateTypeColors[template.type]}`}
+                      >
+                        {templateTypeLabels[template.type]}
+                      </Badge>
+                      {template.is_public && (
+                        <Badge variant="secondary" className="text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 gap-1">
+                          <Globe className="h-3 w-3" />
+                          Public
+                        </Badge>
+                      )}
+                      {!isOwn(template) && (
+                        <Badge variant="outline" className="text-xs">Shared</Badge>
+                      )}
+                    </div>
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -210,27 +225,39 @@ export default function Templates() {
                         <Eye className="mr-2 h-4 w-4" />
                         Preview
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleEdit(template)}>
-                        <Pencil className="mr-2 h-4 w-4" />
-                        Edit
-                      </DropdownMenuItem>
+                      {isOwn(template) && (
+                        <DropdownMenuItem onClick={() => handleEdit(template)}>
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem onClick={() => handleDuplicate(template)}>
                         <Copy className="mr-2 h-4 w-4" />
                         Duplicate
                       </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem 
-                        className="text-destructive"
-                        onClick={() => setDeletingTemplate(template)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
-                      </DropdownMenuItem>
+                      {isOwn(template) && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => setDeletingTemplate(template)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
               </CardHeader>
-              <CardContent className="pt-0">
+              <CardContent className="pt-0 space-y-1">
+                {template.creator_name && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <User className="h-3 w-3" />
+                    By {template.creator_name}
+                  </p>
+                )}
                 <p className="text-xs text-muted-foreground">
                   Created {format(new Date(template.created_at), 'MMM dd, yyyy')}
                 </p>
@@ -245,6 +272,8 @@ export default function Templates() {
                 <TableRow className="bg-muted/30 hover:bg-muted/30">
                   <TableHead className="font-semibold">Name</TableHead>
                   <TableHead className="font-semibold">Type</TableHead>
+                  <TableHead className="font-semibold">Visibility</TableHead>
+                  <TableHead className="font-semibold">Created By</TableHead>
                   <TableHead className="font-semibold">Created</TableHead>
                   <TableHead className="w-12"></TableHead>
                 </TableRow>
@@ -265,6 +294,19 @@ export default function Templates() {
                         {templateTypeLabels[template.type]}
                       </Badge>
                     </TableCell>
+                    <TableCell>
+                      {template.is_public ? (
+                        <Badge variant="secondary" className="text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 gap-1">
+                          <Globe className="h-3 w-3" />
+                          Public
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Private</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {template.creator_name || '—'}
+                    </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
                       {format(new Date(template.created_at), 'MMM dd, yyyy')}
                     </TableCell>
@@ -280,22 +322,28 @@ export default function Templates() {
                             <Eye className="mr-2 h-4 w-4" />
                             Preview
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleEdit(template)}>
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
+                          {isOwn(template) && (
+                            <DropdownMenuItem onClick={() => handleEdit(template)}>
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem onClick={() => handleDuplicate(template)}>
                             <Copy className="mr-2 h-4 w-4" />
                             Duplicate
                           </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => setDeletingTemplate(template)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
+                          {isOwn(template) && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => setDeletingTemplate(template)}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

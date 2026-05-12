@@ -12,6 +12,8 @@ export interface Template {
   name: string;
   type: TemplateType;
   content: string;
+  is_public: boolean;
+  creator_name: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -20,6 +22,7 @@ export interface CreateTemplateData {
   name: string;
   type: TemplateType;
   content: string;
+  is_public?: boolean;
 }
 
 export interface UpdateTemplateData {
@@ -27,12 +30,15 @@ export interface UpdateTemplateData {
   name: string;
   type: TemplateType;
   content: string;
+  is_public?: boolean;
 }
 
 export function useTemplates() {
   const { user } = useAuth();
   const { workspaceUserId } = useWorkspaceUser();
   const queryClient = useQueryClient();
+
+  const creatorName = (user?.user_metadata?.full_name as string) || user?.email || 'Unknown';
 
   const templatesQuery = useQuery({
     queryKey: ['templates', user?.id],
@@ -59,6 +65,8 @@ export function useTemplates() {
           name: templateData.name,
           type: templateData.type,
           content: templateData.content,
+          is_public: templateData.is_public ?? false,
+          creator_name: creatorName,
         })
         .select()
         .single();
@@ -86,6 +94,7 @@ export function useTemplates() {
           name: templateData.name,
           type: templateData.type,
           content: templateData.content,
+          ...(templateData.is_public !== undefined && { is_public: templateData.is_public }),
         })
         .eq('id', templateData.id)
         .select()
@@ -136,6 +145,8 @@ export function useTemplates() {
           name: `${template.name} (Copy)`,
           type: template.type,
           content: template.content,
+          is_public: false,
+          creator_name: creatorName,
         })
         .select()
         .single();
