@@ -15,6 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Globe } from 'lucide-react';
 import { TemplateEditor } from './TemplateEditor';
 import { Template, TemplateType, CreateTemplateData, UpdateTemplateData } from '@/hooks/useTemplates';
 
