@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Plus, FileCode, MoreHorizontal, Copy, Pencil, Trash2, Eye } from 'lucide-react';
+import { Plus, FileCode, MoreHorizontal, Copy, Pencil, Trash2, Eye, Globe, User } from 'lucide-react';
+import { useWorkspaceUser } from '@/hooks/useWorkspaceUser';
 import { format } from 'date-fns';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
