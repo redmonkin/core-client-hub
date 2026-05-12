@@ -38,6 +38,7 @@ export function TemplateFormDialog({
   const [name, setName] = useState('');
   const [type, setType] = useState<TemplateType | ''>('');
   const [content, setContent] = useState('');
+  const [isPublic, setIsPublic] = useState(false);
 
   const isEditing = !!template;
 
@@ -47,10 +48,12 @@ export function TemplateFormDialog({
       setName(template.name);
       setType(template.type);
       setContent(template.content);
+      setIsPublic(template.is_public ?? false);
     } else {
       setName('');
       setType('');
       setContent('');
+      setIsPublic(false);
     }
   }, [template]);
 
@@ -60,6 +63,7 @@ export function TemplateFormDialog({
       setName('');
       setType('');
       setContent('');
+      setIsPublic(false);
     }
   }, [open, template]);
 
