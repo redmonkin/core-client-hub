@@ -80,12 +80,14 @@ export function TemplateFormDialog({
         name: name.trim(),
         type: type as TemplateType,
         content: content,
+        is_public: isPublic,
       });
     } else {
       onSubmit({
         name: name.trim(),
         type: type as TemplateType,
         content: content,
+        is_public: isPublic,
       });
     }
   };
