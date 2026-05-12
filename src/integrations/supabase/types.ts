@@ -881,6 +881,7 @@ export type Database = {
           recommendation: string | null
           review_notes: string | null
           reviewed: boolean | null
+          user_id: string | null
           week_ending_date: string
           what_shipped: string | null
           what_slipped: string | null
@@ -894,6 +895,7 @@ export type Database = {
           recommendation?: string | null
           review_notes?: string | null
           reviewed?: boolean | null
+          user_id?: string | null
           week_ending_date: string
           what_shipped?: string | null
           what_slipped?: string | null
@@ -907,6 +909,7 @@ export type Database = {
           recommendation?: string | null
           review_notes?: string | null
           reviewed?: boolean | null
+          user_id?: string | null
           week_ending_date?: string
           what_shipped?: string | null
           what_slipped?: string | null
