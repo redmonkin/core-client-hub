@@ -782,7 +782,9 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          creator_name: string | null
           id: string
+          is_public: boolean
           name: string
           type: string
           updated_at: string
@@ -791,7 +793,9 @@ export type Database = {
         Insert: {
           content?: string
           created_at?: string
+          creator_name?: string | null
           id?: string
+          is_public?: boolean
           name: string
           type: string
           updated_at?: string
@@ -800,7 +804,9 @@ export type Database = {
         Update: {
           content?: string
           created_at?: string
+          creator_name?: string | null
           id?: string
+          is_public?: boolean
           name?: string
           type?: string
           updated_at?: string
