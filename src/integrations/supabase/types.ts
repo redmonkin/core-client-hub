@@ -865,6 +865,48 @@ export type Database = {
           },
         ]
       }
+      weekly_reviews: {
+        Row: {
+          at_risk_next_week: string | null
+          created_at: string | null
+          generated_at: string | null
+          id: string
+          patterns_identified: string | null
+          recommendation: string | null
+          review_notes: string | null
+          reviewed: boolean | null
+          week_ending_date: string
+          what_shipped: string | null
+          what_slipped: string | null
+        }
+        Insert: {
+          at_risk_next_week?: string | null
+          created_at?: string | null
+          generated_at?: string | null
+          id?: string
+          patterns_identified?: string | null
+          recommendation?: string | null
+          review_notes?: string | null
+          reviewed?: boolean | null
+          week_ending_date: string
+          what_shipped?: string | null
+          what_slipped?: string | null
+        }
+        Update: {
+          at_risk_next_week?: string | null
+          created_at?: string | null
+          generated_at?: string | null
+          id?: string
+          patterns_identified?: string | null
+          recommendation?: string | null
+          review_notes?: string | null
+          reviewed?: boolean | null
+          week_ending_date?: string
+          what_shipped?: string | null
+          what_slipped?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       public_portfolio_branding: {
