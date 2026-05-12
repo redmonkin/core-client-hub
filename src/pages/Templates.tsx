@@ -45,6 +45,7 @@ export default function Templates() {
   const [deletingTemplate, setDeletingTemplate] = useState<Template | null>(null);
   const [previewingTemplate, setPreviewingTemplate] = useState<Template | null>(null);
   const [viewMode, setViewMode] = useViewMode('templates', 'grid');
+  const { workspaceUserId } = useWorkspaceUser();
 
   const { 
     templates, 
@@ -54,6 +55,8 @@ export default function Templates() {
     deleteTemplate, 
     duplicateTemplate 
   } = useTemplates();
+
+  const isOwn = (template: Template) => template.user_id === workspaceUserId;
 
   const templateTypeLabels: Record<TemplateType, string> = {
     'proposal': 'Proposal',
