@@ -109,6 +109,19 @@ export function ProposalPreviewDialog({
               <Button
                 variant="outline"
                 size="sm"
+                onClick={handleExportWord}
+                disabled={isExportingDocx}
+              >
+                {isExportingDocx ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <FileText className="mr-2 h-4 w-4" />
+                )}
+                Export Word
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={handleExportPdf}
                 disabled={isExporting}
               >
