@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import DOMPurify from 'dompurify';
-// @ts-ignore - html-docx-js has no types
-import htmlDocx from 'html-docx-js/dist/html-docx';
+import { asBlob } from 'html-docx-js-typescript';
 import {
   Dialog,
   DialogContent,
