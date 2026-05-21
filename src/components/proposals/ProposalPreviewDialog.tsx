@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import DOMPurify from 'dompurify';
+// @ts-ignore - html-docx-js has no types
+import htmlDocx from 'html-docx-js/dist/html-docx';
 import {
   Dialog,
   DialogContent,
@@ -9,7 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Eye, X, Download, Loader2 } from 'lucide-react';
+import { Eye, X, Download, FileText, Loader2 } from 'lucide-react';
 import { Template } from '@/hooks/useTemplates';
 import { ProposalData, replacePlaceholders } from '@/lib/proposal-utils';
 import { exportToPdf } from '@/lib/pdf-export';
