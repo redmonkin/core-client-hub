@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import DOMPurify from 'dompurify';
-import { asBlob } from 'html-docx-js-typescript';
 import {
   Dialog,
   DialogContent,
