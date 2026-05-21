@@ -66,7 +66,7 @@ export function ProposalPreviewDialog({
   th, td { border: 1px solid #cbd5e1; padding: 6px 10px; }
   th { background: #f1f5f9; text-align: left; }
 </style></head><body>${safe}</body></html>`;
-      const blob = htmlDocx.asBlob(html);
+      const blob = await asBlob(html);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
