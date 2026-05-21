@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import DOMPurify from 'dompurify';
+import { asBlob } from 'html-docx-js-typescript';
 import {
   Dialog,
   DialogContent,
@@ -57,23 +58,19 @@ export function ProposalPreviewDialog({
     try {
       const docContent = replacePlaceholders(template.content, proposalData, false);
       const safe = DOMPurify.sanitize(docContent);
-      const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
-<head><meta charset="utf-8"><title>${proposalData.title}</title>
-<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
+      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${proposalData.title}</title>
 <style>
-  @page { size: A4; margin: 1in; }
   body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; color: #1a1a1a; }
   h1,h2,h3,h4 { font-family: Calibri, Arial, sans-serif; color: #0f172a; }
   table { border-collapse: collapse; width: 100%; }
   th, td { border: 1px solid #cbd5e1; padding: 6px 10px; }
   th { background: #f1f5f9; text-align: left; }
 </style></head><body>${safe}</body></html>`;
-      const preface = "\ufeff";
-      const blob = new Blob([preface + html], { type: 'application/msword' });
+      const blob = (await asBlob(html)) as Blob;
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${proposalData.title.replace(/[^a-z0-9]/gi, '_')}_proposal.doc`;
+      a.download = `${proposalData.title.replace(/[^a-z0-9]/gi, '_')}_proposal.docx`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
