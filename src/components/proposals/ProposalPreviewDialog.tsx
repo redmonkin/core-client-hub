@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import DOMPurify from 'dompurify';
+// @ts-ignore - html-docx-js has no types
+import htmlDocx from 'html-docx-js/dist/html-docx';
 import {
   Dialog,
   DialogContent,
@@ -9,7 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Eye, X, Download, Loader2 } from 'lucide-react';
+import { Eye, X, Download, FileText, Loader2 } from 'lucide-react';
 import { Template } from '@/hooks/useTemplates';
 import { ProposalData, replacePlaceholders } from '@/lib/proposal-utils';
 import { exportToPdf } from '@/lib/pdf-export';
@@ -29,6 +31,7 @@ export function ProposalPreviewDialog({
   proposalData,
 }: ProposalPreviewDialogProps) {
   const [isExporting, setIsExporting] = useState(false);
+  const [isExportingDocx, setIsExportingDocx] = useState(false);
 
   if (!template) return null;
 
@@ -47,6 +50,38 @@ export function ProposalPreviewDialog({
       toast.error('Failed to generate PDF: ' + error.message, { id: toastId });
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleExportWord = async () => {
+    setIsExportingDocx(true);
+    const toastId = toast.loading('Generating Word document...');
+    try {
+      const docContent = replacePlaceholders(template.content, proposalData, false);
+      const safe = DOMPurify.sanitize(docContent);
+      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${proposalData.title}</title>
+<style>
+  body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; color: #1a1a1a; }
+  h1,h2,h3,h4 { font-family: Calibri, Arial, sans-serif; color: #0f172a; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1px solid #cbd5e1; padding: 6px 10px; }
+  th { background: #f1f5f9; text-align: left; }
+</style></head><body>${safe}</body></html>`;
+      const blob = htmlDocx.asBlob(html);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${proposalData.title.replace(/[^a-z0-9]/gi, '_')}_proposal.docx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('Word document downloaded', { id: toastId });
+    } catch (error: any) {
+      console.error('Error generating Word doc:', error);
+      toast.error('Failed to generate Word document: ' + (error?.message || 'unknown'), { id: toastId });
+    } finally {
+      setIsExportingDocx(false);
     }
   };
 
@@ -71,6 +106,19 @@ export function ProposalPreviewDialog({
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportWord}
+                disabled={isExportingDocx}
+              >
+                {isExportingDocx ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <FileText className="mr-2 h-4 w-4" />
+                )}
+                Export Word
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
