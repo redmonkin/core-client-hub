@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import DOMPurify from 'dompurify';
-// @ts-ignore - html-docx-js has no types
-import htmlDocx from 'html-docx-js/dist/html-docx';
+import { asBlob } from 'html-docx-js-typescript';
 import {
   Dialog,
   DialogContent,
@@ -67,7 +66,7 @@ export function ProposalPreviewDialog({
   th, td { border: 1px solid #cbd5e1; padding: 6px 10px; }
   th { background: #f1f5f9; text-align: left; }
 </style></head><body>${safe}</body></html>`;
-      const blob = htmlDocx.asBlob(html);
+      const blob = (await asBlob(html)) as Blob;
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
