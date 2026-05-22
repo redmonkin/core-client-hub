@@ -252,19 +252,25 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="p-4">
             <div className="space-y-3">
-              {proposals.length > 0 ? (
-                proposals.slice(0, 5).map(proposal => (
+              {recentProposals.length > 0 ? (
+                recentProposals.map(({ proposal, attention }) => (
                   <Link
                     key={proposal.id}
                     to="/proposals"
                     className="group flex items-center justify-between rounded-xl border border-border bg-card p-4 transition-all duration-200 hover:border-primary/20 hover:shadow-sm"
                   >
                     <div className="min-w-0 flex-1">
-                      <h4 className="truncate font-medium text-foreground group-hover:text-primary transition-colors">
-                        {proposal.title}
+                      <h4 className="flex items-center gap-2 truncate font-medium text-foreground group-hover:text-primary transition-colors">
+                        {attention && (
+                          <AlertCircle
+                            className={`h-4 w-4 shrink-0 ${attention === 'critical' ? 'text-destructive' : 'text-amber-500'}`}
+                          />
+                        )}
+                        <span className="truncate">{proposal.title}</span>
                       </h4>
                       <p className="mt-0.5 truncate text-sm text-muted-foreground">
                         {getClientName(proposal.client_id)}
+                        {proposal.validity_date && ` · Valid till ${format(new Date(proposal.validity_date), 'MMM d, yyyy')}`}
                       </p>
                     </div>
                     <span className={`ml-4 shrink-0 rounded-full px-3 py-1 text-xs font-medium ${
