@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -102,10 +103,17 @@ export default function Auth() {
 
   return (
     <div className="flex min-h-screen">
+      <Helmet>
+        <title>Sign in or sign up — Clientra</title>
+        <meta name="description" content="Sign in to Clientra or create a free account to manage clients, projects, proposals, and contracts." />
+        <link rel="canonical" href="https://clientra.redmonk.in/auth" />
+        <meta property="og:title" content="Sign in or sign up — Clientra" />
+        <meta property="og:url" content="https://clientra.redmonk.in/auth" />
+      </Helmet>
       {/* Left side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-between bg-primary p-12">
         <div className="flex items-center gap-3">
-          <img src={clientraLogoLight} alt="Clientra" className="h-10 w-10" />
+          <img src={clientraLogoLight} alt="Clientra Logo" className="h-10 w-10" />
           <span className="text-2xl font-bold text-primary-foreground">Clientra</span>
         </div>
         
@@ -152,8 +160,8 @@ export default function Auth() {
         <div className="w-full max-w-md space-y-8">
           {/* Mobile logo */}
           <div className="flex items-center justify-center gap-3 lg:hidden">
-            <img src={clientraLogoDark} alt="Clientra" className="h-10 w-10 dark:hidden" />
-            <img src={clientraLogoLight} alt="Clientra" className="h-10 w-10 hidden dark:block" />
+            <img src={clientraLogoDark} alt="Clientra Logo" className="h-10 w-10 dark:hidden" />
+            <img src={clientraLogoLight} alt="Clientra Logo" className="h-10 w-10 hidden dark:block" />
             <span className="text-2xl font-bold text-foreground">Clientra</span>
           </div>
           
@@ -204,6 +212,7 @@ export default function Auth() {
                         />
                         <button
                           type="button"
+                          aria-label="Toggle password visibility"
                           onClick={() => setShowPassword(!showPassword)}
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                         >
@@ -274,6 +283,7 @@ export default function Auth() {
                         />
                         <button
                           type="button"
+                          aria-label="Toggle password visibility"
                           onClick={() => setShowPassword(!showPassword)}
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                         >

@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -244,6 +245,19 @@ export default function Portfolio() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#fafafa' }}>
+      <Helmet>
+        <title>{companyName ? `${companyName} — Portfolio` : 'Portfolio — Clientra'}</title>
+        <meta
+          name="description"
+          content={branding?.tagline || (companyName ? `Selected work and projects by ${companyName}.` : 'Portfolio of selected work and projects.')}
+        />
+        <link rel="canonical" href={`https://clientra.redmonk.in/portfolio/${routeParam ?? ''}`} />
+        <meta property="og:title" content={companyName ? `${companyName} — Portfolio` : 'Portfolio'} />
+        <meta property="og:description" content={branding?.tagline || (companyName ? `Selected work and projects by ${companyName}.` : 'Portfolio of selected work and projects.')} />
+        <meta property="og:url" content={`https://clientra.redmonk.in/portfolio/${routeParam ?? ''}`} />
+        <meta property="og:type" content="profile" />
+        {branding?.company_logo_url && <meta property="og:image" content={branding.company_logo_url} />}
+      </Helmet>
       {/* Hero Section */}
       <header
         className="relative overflow-hidden"
@@ -555,6 +569,7 @@ export default function Portfolio() {
                         type="button"
                         variant="ghost"
                         size="icon"
+                        aria-label="Remove attachment"
                         className="h-7 w-7"
                         onClick={() => {
                           setAttachment(null);
