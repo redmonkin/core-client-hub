@@ -1,4 +1,5 @@
 import { Link, Navigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -143,6 +144,15 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>Clientra — Open-source client management for freelancers</title>
+        <meta name="description" content="Open-source client management for freelancers and agencies. Track clients, projects, proposals, and contracts in one place." />
+        <link rel="canonical" href="https://clientra.redmonk.in/" />
+        <meta property="og:title" content="Clientra — Open-source client management" />
+        <meta property="og:description" content="Track clients, projects, proposals, and contracts in one place. Open source and self-hostable." />
+        <meta property="og:url" content="https://clientra.redmonk.in/" />
+        <meta property="og:type" content="website" />
+      </Helmet>
       {/* Navigation */}
       <nav className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
