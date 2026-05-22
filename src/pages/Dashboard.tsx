@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
-import { Users, FolderKanban, FileText, FileSignature, Loader2, ArrowRight } from 'lucide-react';
-import { differenceInDays, format } from 'date-fns';
+import { Users, FolderKanban, FileText, FileSignature, Loader2, ArrowRight, AlertCircle } from 'lucide-react';
+import { differenceInDays, differenceInCalendarDays, format } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { ContractStatus } from '@/lib/types';
 import { NotificationsDropdown } from '@/components/notifications/NotificationsDropdown';
+import { getContractExpiryInfo } from '@/lib/contract-alerts';
 
 const contractTypeLabels: Record<string, string> = {
   amc: 'Annual Maintenance Contract',
