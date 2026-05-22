@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
-import { Users, FolderKanban, FileText, FileSignature, Loader2, ArrowRight } from 'lucide-react';
-import { differenceInDays, format } from 'date-fns';
+import { Users, FolderKanban, FileText, FileSignature, Loader2, ArrowRight, AlertCircle } from 'lucide-react';
+import { differenceInDays, differenceInCalendarDays, format } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { ContractStatus } from '@/lib/types';
 import { NotificationsDropdown } from '@/components/notifications/NotificationsDropdown';
+import { getContractExpiryInfo } from '@/lib/contract-alerts';
 
 const contractTypeLabels: Record<string, string> = {
   amc: 'Annual Maintenance Contract',
@@ -37,24 +38,27 @@ export default function Dashboard() {
     },
   });
 
-  // Fetch proposals
+  // Fetch proposals (sorted by latest update)
   const { data: proposals = [], isLoading: isLoadingProposals } = useQuery({
     queryKey: ['proposals'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('proposals').select('*');
+      const { data, error } = await supabase
+        .from('proposals')
+        .select('*')
+        .order('updated_at', { ascending: false });
       if (error) throw error;
       return data;
     },
   });
 
-  // Fetch contracts
+  // Fetch contracts (sorted by latest update)
   const { data: contracts = [], isLoading: isLoadingContracts } = useQuery({
     queryKey: ['contracts'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('contracts')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('updated_at', { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -72,7 +76,44 @@ export default function Dashboard() {
       return daysUntil > 0 && daysUntil <= 90;
     });
 
-  const recentContracts = contracts.slice(0, 5);
+  // Severity score: critical alert = 2, warning = 1, none = 0. Higher = more attention.
+  const severityRank = (s?: 'critical' | 'warning' | null) => (s === 'critical' ? 2 : s === 'warning' ? 1 : 0);
+
+  const contractsWithAlerts = contracts.map(c => ({
+    contract: c,
+    alert: getContractExpiryInfo(c.start_date, c.end_date, c.status),
+  }));
+
+  const recentContracts = [...contractsWithAlerts]
+    .sort((a, b) => {
+      const diff = severityRank(b.alert?.severity) - severityRank(a.alert?.severity);
+      if (diff !== 0) return diff;
+      return new Date(b.contract.updated_at).getTime() - new Date(a.contract.updated_at).getTime();
+    })
+    .slice(0, 5);
+
+  // Proposal attention: sent proposals nearing/past validity_date, or change_requested.
+  const proposalAttention = (p: any): 'critical' | 'warning' | null => {
+    if (p.status === 'change_requested') return 'critical';
+    if (p.status === 'sent') {
+      if (p.validity_date) {
+        const days = differenceInCalendarDays(new Date(p.validity_date), new Date());
+        if (days <= 0) return 'critical';
+        if (days <= 7) return 'warning';
+      }
+      return 'warning';
+    }
+    return null;
+  };
+
+  const recentProposals = [...proposals]
+    .map(p => ({ proposal: p, attention: proposalAttention(p) }))
+    .sort((a, b) => {
+      const diff = severityRank(b.attention) - severityRank(a.attention);
+      if (diff !== 0) return diff;
+      return new Date(b.proposal.updated_at).getTime() - new Date(a.proposal.updated_at).getTime();
+    })
+    .slice(0, 5);
 
   const getClientName = (clientId: string) => {
     const client = clients.find(c => c.id === clientId);
@@ -152,19 +193,28 @@ export default function Dashboard() {
           <CardContent className="p-4">
             <div className="space-y-3">
               {recentContracts.length > 0 ? (
-                recentContracts.map(contract => (
+                recentContracts.map(({ contract, alert }) => (
                   <Link
                     key={contract.id}
                     to={`/contracts/${contract.id}`}
                     className="group flex items-center justify-between rounded-xl border border-border bg-card p-4 transition-all duration-200 hover:border-primary/20 hover:shadow-sm"
                   >
                     <div className="min-w-0 flex-1">
-                      <h4 className="truncate font-medium text-foreground group-hover:text-primary transition-colors">
-                        {contractTypeLabels[contract.contract_type] || contract.contract_type}
+                      <h4 className="flex items-center gap-2 truncate font-medium text-foreground group-hover:text-primary transition-colors">
+                        {alert && (
+                          <AlertCircle
+                            className={`h-4 w-4 shrink-0 ${alert.severity === 'critical' ? 'text-destructive' : 'text-amber-500'}`}
+                          />
+                        )}
+                        <span className="truncate">
+                          {contractTypeLabels[contract.contract_type] || contract.contract_type}
+                        </span>
                       </h4>
                       <p className="mt-0.5 truncate text-sm text-muted-foreground">
                         {getClientName(contract.client_id)}
-                        {contract.end_date && ` · Ends ${format(new Date(contract.end_date), 'MMM d, yyyy')}`}
+                        {alert
+                          ? ` · ${alert.label}`
+                          : contract.end_date && ` · Ends ${format(new Date(contract.end_date), 'MMM d, yyyy')}`}
                       </p>
                     </div>
                     <div className="ml-4 shrink-0">
@@ -202,19 +252,25 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="p-4">
             <div className="space-y-3">
-              {proposals.length > 0 ? (
-                proposals.slice(0, 5).map(proposal => (
+              {recentProposals.length > 0 ? (
+                recentProposals.map(({ proposal, attention }) => (
                   <Link
                     key={proposal.id}
                     to="/proposals"
                     className="group flex items-center justify-between rounded-xl border border-border bg-card p-4 transition-all duration-200 hover:border-primary/20 hover:shadow-sm"
                   >
                     <div className="min-w-0 flex-1">
-                      <h4 className="truncate font-medium text-foreground group-hover:text-primary transition-colors">
-                        {proposal.title}
+                      <h4 className="flex items-center gap-2 truncate font-medium text-foreground group-hover:text-primary transition-colors">
+                        {attention && (
+                          <AlertCircle
+                            className={`h-4 w-4 shrink-0 ${attention === 'critical' ? 'text-destructive' : 'text-amber-500'}`}
+                          />
+                        )}
+                        <span className="truncate">{proposal.title}</span>
                       </h4>
                       <p className="mt-0.5 truncate text-sm text-muted-foreground">
                         {getClientName(proposal.client_id)}
+                        {proposal.validity_date && ` · Valid till ${format(new Date(proposal.validity_date), 'MMM d, yyyy')}`}
                       </p>
                     </div>
                     <span className={`ml-4 shrink-0 rounded-full px-3 py-1 text-xs font-medium ${
