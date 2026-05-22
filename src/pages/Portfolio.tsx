@@ -555,6 +555,7 @@ export default function Portfolio() {
                         type="button"
                         variant="ghost"
                         size="icon"
+                        aria-label="Remove attachment"
                         className="h-7 w-7"
                         onClick={() => {
                           setAttachment(null);

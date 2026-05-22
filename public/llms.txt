@@ -1,0 +1,15 @@
+# Clientra
+
+> Open-source client management for freelancers and agencies. Track clients, projects, proposals, and contracts in one place.
+
+Clientra is a self-hostable web application that helps independent professionals and small agencies manage their client workflow end to end — from first conversation to signed contract and renewal.
+
+## Pages
+
+- [Home](/): Product overview, features, pricing, and getting started.
+- [Sign In or Sign Up](/auth): Create a Clientra account or log in.
+
+## Optional
+
+- [Client Portal](/portal): Secure, token-gated page where clients review proposals and contracts shared with them. Requires an access link from a Clientra user.
+- [Public Portfolio](/portfolio/example): Public-facing project showcase rendered for any Clientra user who has published a portfolio slug.

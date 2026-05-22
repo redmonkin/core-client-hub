@@ -430,7 +430,7 @@ export default function ClientPortal() {
               />
             ) : (
               <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-foreground">{proposal.title}</h2>
+                <h1 className="text-2xl font-bold text-foreground">{proposal.title}</h1>
                 {proposal.project_name && (
                   <p className="text-muted-foreground">Project: {proposal.project_name}</p>
                 )}
