@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { format } from 'date-fns';
 import DOMPurify from 'dompurify';
 import { FileText, Check, X, Loader2, AlertCircle, Clock, Globe, Mail, Download, ShieldCheck, ShieldX, Lock } from 'lucide-react';
@@ -322,6 +323,11 @@ export default function ClientPortal() {
 
   return (
     <div className="min-h-screen" style={{ background: `linear-gradient(180deg, ${primaryColor}06 0%, #ffffff 40%)` }}>
+      <Helmet>
+        <title>{proposal?.title ? `${proposal.title} — Client Portal` : 'Client Portal — Clientra'}</title>
+        <meta name="description" content="Secure client portal to review and respond to the proposal or contract shared with you." />
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       {/* Top branded bar */}
       <div className="w-full py-4 px-6 border-b border-border/40 bg-card/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
