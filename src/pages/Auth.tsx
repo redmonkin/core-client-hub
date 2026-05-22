@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -102,6 +103,13 @@ export default function Auth() {
 
   return (
     <div className="flex min-h-screen">
+      <Helmet>
+        <title>Sign in or sign up — Clientra</title>
+        <meta name="description" content="Sign in to Clientra or create a free account to manage clients, projects, proposals, and contracts." />
+        <link rel="canonical" href="https://clientra.redmonk.in/auth" />
+        <meta property="og:title" content="Sign in or sign up — Clientra" />
+        <meta property="og:url" content="https://clientra.redmonk.in/auth" />
+      </Helmet>
       {/* Left side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-between bg-primary p-12">
         <div className="flex items-center gap-3">
