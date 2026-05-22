@@ -193,19 +193,28 @@ export default function Dashboard() {
           <CardContent className="p-4">
             <div className="space-y-3">
               {recentContracts.length > 0 ? (
-                recentContracts.map(contract => (
+                recentContracts.map(({ contract, alert }) => (
                   <Link
                     key={contract.id}
                     to={`/contracts/${contract.id}`}
                     className="group flex items-center justify-between rounded-xl border border-border bg-card p-4 transition-all duration-200 hover:border-primary/20 hover:shadow-sm"
                   >
                     <div className="min-w-0 flex-1">
-                      <h4 className="truncate font-medium text-foreground group-hover:text-primary transition-colors">
-                        {contractTypeLabels[contract.contract_type] || contract.contract_type}
+                      <h4 className="flex items-center gap-2 truncate font-medium text-foreground group-hover:text-primary transition-colors">
+                        {alert && (
+                          <AlertCircle
+                            className={`h-4 w-4 shrink-0 ${alert.severity === 'critical' ? 'text-destructive' : 'text-amber-500'}`}
+                          />
+                        )}
+                        <span className="truncate">
+                          {contractTypeLabels[contract.contract_type] || contract.contract_type}
+                        </span>
                       </h4>
                       <p className="mt-0.5 truncate text-sm text-muted-foreground">
                         {getClientName(contract.client_id)}
-                        {contract.end_date && ` · Ends ${format(new Date(contract.end_date), 'MMM d, yyyy')}`}
+                        {alert
+                          ? ` · ${alert.label}`
+                          : contract.end_date && ` · Ends ${format(new Date(contract.end_date), 'MMM d, yyyy')}`}
                       </p>
                     </div>
                     <div className="ml-4 shrink-0">
