@@ -38,24 +38,27 @@ export default function Dashboard() {
     },
   });
 
-  // Fetch proposals
+  // Fetch proposals (sorted by latest update)
   const { data: proposals = [], isLoading: isLoadingProposals } = useQuery({
     queryKey: ['proposals'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('proposals').select('*');
+      const { data, error } = await supabase
+        .from('proposals')
+        .select('*')
+        .order('updated_at', { ascending: false });
       if (error) throw error;
       return data;
     },
   });
 
-  // Fetch contracts
+  // Fetch contracts (sorted by latest update)
   const { data: contracts = [], isLoading: isLoadingContracts } = useQuery({
     queryKey: ['contracts'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('contracts')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('updated_at', { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -73,7 +76,44 @@ export default function Dashboard() {
       return daysUntil > 0 && daysUntil <= 90;
     });
 
-  const recentContracts = contracts.slice(0, 5);
+  // Severity score: critical alert = 2, warning = 1, none = 0. Higher = more attention.
+  const severityRank = (s?: 'critical' | 'warning' | null) => (s === 'critical' ? 2 : s === 'warning' ? 1 : 0);
+
+  const contractsWithAlerts = contracts.map(c => ({
+    contract: c,
+    alert: getContractExpiryInfo(c.start_date, c.end_date, c.status),
+  }));
+
+  const recentContracts = [...contractsWithAlerts]
+    .sort((a, b) => {
+      const diff = severityRank(b.alert?.severity) - severityRank(a.alert?.severity);
+      if (diff !== 0) return diff;
+      return new Date(b.contract.updated_at).getTime() - new Date(a.contract.updated_at).getTime();
+    })
+    .slice(0, 5);
+
+  // Proposal attention: sent proposals nearing/past validity_date, or change_requested.
+  const proposalAttention = (p: any): 'critical' | 'warning' | null => {
+    if (p.status === 'change_requested') return 'critical';
+    if (p.status === 'sent') {
+      if (p.validity_date) {
+        const days = differenceInCalendarDays(new Date(p.validity_date), new Date());
+        if (days <= 0) return 'critical';
+        if (days <= 7) return 'warning';
+      }
+      return 'warning';
+    }
+    return null;
+  };
+
+  const recentProposals = [...proposals]
+    .map(p => ({ proposal: p, attention: proposalAttention(p) }))
+    .sort((a, b) => {
+      const diff = severityRank(b.attention) - severityRank(a.attention);
+      if (diff !== 0) return diff;
+      return new Date(b.proposal.updated_at).getTime() - new Date(a.proposal.updated_at).getTime();
+    })
+    .slice(0, 5);
 
   const getClientName = (clientId: string) => {
     const client = clients.find(c => c.id === clientId);
