@@ -192,8 +192,10 @@ export default function Landing() {
         </div>
       </nav>
 
+      <main>
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-20 md:py-32">
+
         <div className="mx-auto max-w-4xl text-center">
           <Badge variant="secondary" className="mb-6 gap-2">
             <Github className="h-4 w-4" />
@@ -391,9 +393,11 @@ export default function Landing() {
           </div>
         </div>
       </section>
+      </main>
 
       {/* Footer */}
       <footer className="border-t border-border py-12">
+
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
