@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Upload, Trash2, Clock, Loader2, FileSpreadsheet } from 'lucide-react';
+import { Plus, Upload, Trash2, Clock, Loader2, FileSpreadsheet, Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -109,11 +109,26 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [entry, setEntry] = useState<TimesheetEntry>({ ...emptyEntry });
+  const [editId, setEditId] = useState<string | null>(null);
 
   const openAddDialog = () => {
+    setEditId(null);
     setEntry({ ...emptyEntry, owner: userFirstName });
     setIsAddOpen(true);
   };
+
+  const openEditDialog = (ts: any) => {
+    setEditId(ts.id);
+    setEntry({
+      task: ts.task ?? '',
+      owner: ts.owner ?? '',
+      duration: String(ts.duration ?? ''),
+      date: ts.date ? String(ts.date).split('T')[0] : new Date().toISOString().split('T')[0],
+      notes: ts.notes ?? '',
+    });
+    setIsAddOpen(true);
+  };
+
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -170,6 +185,32 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: TimesheetEntry }) => {
+      const { error } = await supabase
+        .from('timesheets')
+        .update({
+          task: data.task,
+          owner: data.owner,
+          duration: parseFloat(data.duration) || 0,
+          date: data.date,
+          notes: data.notes || null,
+        })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['timesheets', projectId] });
+      setIsAddOpen(false);
+      setEditId(null);
+      setEntry({ ...emptyEntry, owner: userFirstName });
+      toast.success('Timesheet entry updated');
+    },
+    onError: (error: any) => {
+      toast.error('Failed to update entry: ' + error.message);
+    },
+  });
+
   const bulkStatusMutation = useMutation({
     mutationFn: async ({ ids, status }: { ids: string[]; status: string }) => {
       const { error } = await supabase
@@ -193,8 +234,13 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
       toast.error('Please fill in task, owner, and duration');
       return;
     }
-    createMutation.mutate([entry]);
+    if (editId) {
+      updateMutation.mutate({ id: editId, data: entry });
+    } else {
+      createMutation.mutate([entry]);
+    }
   };
+
 
   const handleBulkImport = async (entries: TimesheetEntry[]) => {
     await new Promise<void>((resolve, reject) => {
@@ -371,15 +417,28 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
-                      onClick={() => setDeleteId(ts.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => openEditDialog(ts)}
+                        aria-label="Edit entry"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => setDeleteId(ts.id)}
+                        aria-label="Delete entry"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
+
                 </TableRow>
               ))}
             </TableBody>
@@ -409,12 +468,19 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
         </Card>
       )}
 
-      {/* Add Entry Dialog */}
-      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+      {/* Add/Edit Entry Dialog */}
+      <Dialog
+        open={isAddOpen}
+        onOpenChange={(open) => {
+          setIsAddOpen(open);
+          if (!open) setEditId(null);
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add Timesheet Entry</DialogTitle>
+            <DialogTitle>{editId ? 'Edit Timesheet Entry' : 'Add Timesheet Entry'}</DialogTitle>
           </DialogHeader>
+
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="task">Task *</Label>
@@ -468,14 +534,15 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
-            <Button onClick={handleSubmit} disabled={createMutation.isPending}>
-              {createMutation.isPending ? (
+            <Button variant="outline" onClick={() => { setIsAddOpen(false); setEditId(null); }}>Cancel</Button>
+            <Button onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>
+              {(createMutation.isPending || updateMutation.isPending) ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : null}
-              Add Entry
+              {editId ? 'Save Changes' : 'Add Entry'}
             </Button>
           </DialogFooter>
+
         </DialogContent>
       </Dialog>
 
