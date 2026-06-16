@@ -468,12 +468,19 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
         </Card>
       )}
 
-      {/* Add Entry Dialog */}
-      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+      {/* Add/Edit Entry Dialog */}
+      <Dialog
+        open={isAddOpen}
+        onOpenChange={(open) => {
+          setIsAddOpen(open);
+          if (!open) setEditId(null);
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add Timesheet Entry</DialogTitle>
+            <DialogTitle>{editId ? 'Edit Timesheet Entry' : 'Add Timesheet Entry'}</DialogTitle>
           </DialogHeader>
+
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="task">Task *</Label>
