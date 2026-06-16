@@ -185,6 +185,32 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: TimesheetEntry }) => {
+      const { error } = await supabase
+        .from('timesheets')
+        .update({
+          task: data.task,
+          owner: data.owner,
+          duration: parseFloat(data.duration) || 0,
+          date: data.date,
+          notes: data.notes || null,
+        })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['timesheets', projectId] });
+      setIsAddOpen(false);
+      setEditId(null);
+      setEntry({ ...emptyEntry, owner: userFirstName });
+      toast.success('Timesheet entry updated');
+    },
+    onError: (error: any) => {
+      toast.error('Failed to update entry: ' + error.message);
+    },
+  });
+
   const bulkStatusMutation = useMutation({
     mutationFn: async ({ ids, status }: { ids: string[]; status: string }) => {
       const { error } = await supabase
@@ -208,8 +234,13 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
       toast.error('Please fill in task, owner, and duration');
       return;
     }
-    createMutation.mutate([entry]);
+    if (editId) {
+      updateMutation.mutate({ id: editId, data: entry });
+    } else {
+      createMutation.mutate([entry]);
+    }
   };
+
 
   const handleBulkImport = async (entries: TimesheetEntry[]) => {
     await new Promise<void>((resolve, reject) => {
