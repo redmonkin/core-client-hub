@@ -352,6 +352,15 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
             <Upload className="mr-2 h-4 w-4" />
             Import CSV/Excel
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportAll}
+            disabled={timesheets.length === 0}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Export All
+          </Button>
           <Button size="sm" onClick={openAddDialog}>
             <Plus className="mr-2 h-4 w-4" />
             Add Entry
