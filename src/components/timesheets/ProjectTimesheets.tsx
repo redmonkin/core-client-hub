@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Plus, Upload, Trash2, Clock, Loader2, FileSpreadsheet, Pencil } from 'lucide-react';
+import { Plus, Upload, Trash2, Clock, Loader2, FileSpreadsheet, Pencil, Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -273,6 +274,34 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
     bulkStatusMutation.mutate({ ids, status });
   };
 
+  const exportToExcel = (entries: typeof timesheets, filename: string) => {
+    const rows = entries.map(t => ({
+      Task: t.task,
+      Owner: t.owner,
+      Duration: Number(t.duration),
+      Date: t.date ? new Date(t.date).toLocaleDateString('en-IN') : '',
+      Status: STATUS_LABELS[(t.status as TimesheetStatus) || 'pending'],
+      Notes: t.notes || '',
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Timesheets');
+    XLSX.writeFile(wb, filename);
+  };
+
+  const handleExportSelected = () => {
+    const selected = timesheets.filter(t => selectedIds.has(t.id));
+    if (selected.length === 0) return;
+    exportToExcel(selected, `timesheets-selected-${projectId.slice(0, 8)}.xlsx`);
+    toast.success(`${selected.length} entries exported`);
+  };
+
+  const handleExportAll = () => {
+    if (timesheets.length === 0) return;
+    exportToExcel(timesheets, `timesheets-all-${projectId.slice(0, 8)}.xlsx`);
+    toast.success(`${timesheets.length} entries exported`);
+  };
+
   const totalHours = timesheets.reduce((sum, t) => sum + Number(t.duration), 0);
   const selectedHours = timesheets
     .filter(t => selectedIds.has(t.id))
@@ -323,6 +352,15 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
             <Upload className="mr-2 h-4 w-4" />
             Import CSV/Excel
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportAll}
+            disabled={timesheets.length === 0}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Export All
+          </Button>
           <Button size="sm" onClick={openAddDialog}>
             <Plus className="mr-2 h-4 w-4" />
             Add Entry
@@ -354,6 +392,17 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
           {bulkStatusMutation.isPending && (
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           )}
+          <div className="ml-auto flex items-center gap-1.5">
+            <Button
+              variant="secondary"
+              size="sm"
+              className="h-7 text-xs gap-1"
+              onClick={handleExportSelected}
+            >
+              <Download className="h-3.5 w-3.5" />
+              Export Selected
+            </Button>
+          </div>
         </div>
       )}
 
