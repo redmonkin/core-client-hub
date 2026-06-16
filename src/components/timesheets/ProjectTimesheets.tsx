@@ -109,11 +109,26 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [entry, setEntry] = useState<TimesheetEntry>({ ...emptyEntry });
+  const [editId, setEditId] = useState<string | null>(null);
 
   const openAddDialog = () => {
+    setEditId(null);
     setEntry({ ...emptyEntry, owner: userFirstName });
     setIsAddOpen(true);
   };
+
+  const openEditDialog = (ts: any) => {
+    setEditId(ts.id);
+    setEntry({
+      task: ts.task ?? '',
+      owner: ts.owner ?? '',
+      duration: String(ts.duration ?? ''),
+      date: ts.date ? String(ts.date).split('T')[0] : new Date().toISOString().split('T')[0],
+      notes: ts.notes ?? '',
+    });
+    setIsAddOpen(true);
+  };
+
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
