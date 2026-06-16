@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Plus, Upload, Trash2, Clock, Loader2, FileSpreadsheet, Pencil } from 'lucide-react';
+import { Plus, Upload, Trash2, Clock, Loader2, FileSpreadsheet, Pencil, Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
