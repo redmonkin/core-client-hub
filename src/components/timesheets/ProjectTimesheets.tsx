@@ -274,6 +274,34 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
     bulkStatusMutation.mutate({ ids, status });
   };
 
+  const exportToExcel = (entries: typeof timesheets, filename: string) => {
+    const rows = entries.map(t => ({
+      Task: t.task,
+      Owner: t.owner,
+      Duration: Number(t.duration),
+      Date: t.date ? new Date(t.date).toLocaleDateString('en-IN') : '',
+      Status: STATUS_LABELS[(t.status as TimesheetStatus) || 'pending'],
+      Notes: t.notes || '',
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Timesheets');
+    XLSX.writeFile(wb, filename);
+  };
+
+  const handleExportSelected = () => {
+    const selected = timesheets.filter(t => selectedIds.has(t.id));
+    if (selected.length === 0) return;
+    exportToExcel(selected, `timesheets-selected-${projectId.slice(0, 8)}.xlsx`);
+    toast.success(`${selected.length} entries exported`);
+  };
+
+  const handleExportAll = () => {
+    if (timesheets.length === 0) return;
+    exportToExcel(timesheets, `timesheets-all-${projectId.slice(0, 8)}.xlsx`);
+    toast.success(`${timesheets.length} entries exported`);
+  };
+
   const totalHours = timesheets.reduce((sum, t) => sum + Number(t.duration), 0);
   const selectedHours = timesheets
     .filter(t => selectedIds.has(t.id))
