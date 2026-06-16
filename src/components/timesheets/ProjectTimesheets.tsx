@@ -534,14 +534,15 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
-            <Button onClick={handleSubmit} disabled={createMutation.isPending}>
-              {createMutation.isPending ? (
+            <Button variant="outline" onClick={() => { setIsAddOpen(false); setEditId(null); }}>Cancel</Button>
+            <Button onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>
+              {(createMutation.isPending || updateMutation.isPending) ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : null}
-              Add Entry
+              {editId ? 'Save Changes' : 'Add Entry'}
             </Button>
           </DialogFooter>
+
         </DialogContent>
       </Dialog>
 
