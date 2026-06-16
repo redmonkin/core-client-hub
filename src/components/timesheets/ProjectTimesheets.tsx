@@ -392,6 +392,17 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
           {bulkStatusMutation.isPending && (
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           )}
+          <div className="ml-auto flex items-center gap-1.5">
+            <Button
+              variant="secondary"
+              size="sm"
+              className="h-7 text-xs gap-1"
+              onClick={handleExportSelected}
+            >
+              <Download className="h-3.5 w-3.5" />
+              Export Selected
+            </Button>
+          </div>
         </div>
       )}
 
