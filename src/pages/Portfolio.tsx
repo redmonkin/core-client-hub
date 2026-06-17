@@ -113,13 +113,19 @@ export default function Portfolio() {
     queryKey: ['portfolio-projects', userId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('projects')
+        .from('public_portfolio_projects' as any)
         .select('id, project_name, project_type, status, feature_image_url, client_id')
         .eq('user_id', userId!)
-        .eq('is_featured', true)
-        .order('created_at', { ascending: false });
+        .eq('is_featured', true);
       if (error) throw error;
-      return data;
+      return data as unknown as {
+        id: string;
+        project_name: string;
+        project_type: string;
+        status: string;
+        feature_image_url: string | null;
+        client_id: string;
+      }[];
     },
     enabled: !!userId,
   });
