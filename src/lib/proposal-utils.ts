@@ -162,6 +162,23 @@ export function buildCostTableHtml(costBreakdownJson: string): { tableHtml: stri
   }
 }
 
+/**
+ * Once a proposal/contract has been sent, its `content` column holds a frozen
+ * snapshot of the template body at send time, so later template edits don't
+ * retroactively change what was already shared with (or signed by) the client.
+ * Prefer that snapshot; fall back to the live template (still-draft documents,
+ * or legacy rows with no snapshot yet).
+ */
+export function buildDisplayTemplate<T extends { content: string }>(
+  frozenContent: string | null | undefined,
+  liveTemplate: T | null | undefined
+): T | null {
+  if (frozenContent) {
+    return liveTemplate ? { ...liveTemplate, content: frozenContent } : ({ content: frozenContent } as T);
+  }
+  return liveTemplate ?? null;
+}
+
 const HTML_PLACEHOLDERS = new Set(['{{costing}}', '{{scopeOfWork}}', '{{customerGoals}}', '{{clientSignature}}', '{{mySignature}}']);
 
 /**

@@ -12,6 +12,12 @@ const corsHeaders = {
 const escapeHtml = (s: string): string =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
+// Once a proposal/contract has been sent, its `content` column holds a frozen snapshot
+// of the template body at send time. Prefer that over the live template so editing a
+// template afterward doesn't retroactively change an already-sent/approved document.
+const withFrozenContent = (template: any, frozenContent: string | null | undefined) =>
+  frozenContent ? { ...(template || {}), content: frozenContent } : template;
+
 interface UpdateProposalRequest {
   token: string;
   action: "approve" | "reject" | "request_changes";
@@ -107,7 +113,7 @@ const handler = async (req: Request): Promise<Response> => {
         // --- PROPOSAL FLOW (unchanged) ---
         const { data: proposal, error: proposalError } = await supabase
           .from("proposals")
-          .select(`id, title, scope_of_work, cost_breakdown, validity_date, status, client_id, project_id, user_id, created_at, customer_goals, duration, template_id`)
+          .select(`id, title, scope_of_work, cost_breakdown, validity_date, status, client_id, project_id, user_id, created_at, customer_goals, duration, template_id, content`)
           .eq("id", accessToken.proposal_id)
           .single();
 
@@ -165,7 +171,7 @@ const handler = async (req: Request): Promise<Response> => {
           JSON.stringify({
             success: true, document_type: "proposal",
             proposal: { ...proposal, client_name: client?.client_name, company_name: client?.company_name, client_email: client?.email, client_phone: client?.phone, client_designation: client?.designation, client_address: client?.billing_address, project_name: projectName },
-            branding: branding || null, template: template || null,
+            branding: branding || null, template: withFrozenContent(template, (proposal as any).content) || null,
           }),
           { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
@@ -173,7 +179,7 @@ const handler = async (req: Request): Promise<Response> => {
         // --- CONTRACT FLOW ---
         const { data: contract, error: contractError } = await supabase
           .from("contracts")
-          .select(`id, contract_type, start_date, end_date, value, renewal_frequency, status, scope_of_work, cost_breakdown, client_id, project_id, user_id, created_at, client_signature`)
+          .select(`id, contract_type, start_date, end_date, value, renewal_frequency, status, scope_of_work, cost_breakdown, client_id, project_id, user_id, created_at, client_signature, template_id, content`)
           .eq("id", accessToken.contract_id)
           .single();
 
@@ -199,14 +205,23 @@ const handler = async (req: Request): Promise<Response> => {
           .eq("user_id", contract.user_id)
           .maybeSingle();
 
-        const { data: template } = await supabase
-          .from("templates")
-          .select("content, name")
-          .eq("user_id", contract.user_id)
-          .eq("type", "contract")
-          .order("updated_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
+        // Use the contract's selected template if set, otherwise fall back to the most recent contract template
+        let template: any = null;
+        if ((contract as any).template_id) {
+          const { data: t } = await supabase.from("templates").select("content, name").eq("id", (contract as any).template_id).maybeSingle();
+          template = t;
+        }
+        if (!template) {
+          const { data: t } = await supabase
+            .from("templates")
+            .select("content, name")
+            .eq("user_id", contract.user_id)
+            .eq("type", "contract")
+            .order("updated_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          template = t;
+        }
 
         if (!accessToken.viewed_at) {
           await supabase.from("contract_access_tokens").update({ viewed_at: new Date().toISOString() }).eq("id", accessToken.id);
@@ -244,7 +259,7 @@ const handler = async (req: Request): Promise<Response> => {
               client_signature: contract.client_signature,
               my_signature: ownerName,
             },
-            branding: branding || null, template: template || null,
+            branding: branding || null, template: withFrozenContent(template, (contract as any).content) || null,
           }),
           { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
@@ -296,7 +311,7 @@ const handler = async (req: Request): Promise<Response> => {
       if (documentType === "proposal") {
         const { data: proposal, error: proposalError } = await supabase
           .from("proposals")
-          .select("id, title, scope_of_work, cost_breakdown, validity_date, status, client_id, project_id, user_id, created_at, customer_goals, duration, template_id")
+          .select("id, title, scope_of_work, cost_breakdown, validity_date, status, client_id, project_id, user_id, created_at, customer_goals, duration, template_id, content")
           .eq("id", accessToken.proposal_id)
           .single();
         if (proposalError || !proposal) {
@@ -331,13 +346,13 @@ const handler = async (req: Request): Promise<Response> => {
         }
         return new Response(JSON.stringify({
           proposal: { ...proposal, client_name: client?.client_name, company_name: client?.company_name, client_email: client?.email, client_phone: client?.phone, client_designation: client?.designation, client_address: client?.billing_address, project_name: projectName },
-          branding: branding || null, template: template || null, document_type: documentType,
+          branding: branding || null, template: withFrozenContent(template, (proposal as any).content) || null, document_type: documentType,
         }), { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } });
       } else {
         const contractTypeLabelsLocal: Record<string, string> = { amc: "Annual Maintenance Contract", fixed: "Fixed", retainer: "Retainer" };
         const { data: contract, error: contractError } = await supabase
           .from("contracts")
-          .select("id, contract_type, scope_of_work, cost_breakdown, start_date, end_date, value, renewal_frequency, status, client_id, project_id, user_id, created_at, template_id, client_signature")
+          .select("id, contract_type, scope_of_work, cost_breakdown, start_date, end_date, value, renewal_frequency, status, client_id, project_id, user_id, created_at, template_id, client_signature, content")
           .eq("id", accessToken.contract_id)
           .single();
         if (contractError || !contract) {
@@ -368,7 +383,7 @@ const handler = async (req: Request): Promise<Response> => {
         const ownerName2 = ownerData2?.user?.user_metadata?.full_name || '';
         return new Response(JSON.stringify({
           proposal: { ...contract, client_name: client?.client_name, company_name: client?.company_name, client_email: client?.email, client_phone: client?.phone, client_designation: client?.designation, client_address: client?.billing_address, project_name: projectName, title: contractTypeLabelsLocal[contract.contract_type] || contract.contract_type, my_signature: ownerName2 },
-          branding: branding || null, template: template || null, document_type: documentType,
+          branding: branding || null, template: withFrozenContent(template, (contract as any).content) || null, document_type: documentType,
         }), { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } });
       }
     }

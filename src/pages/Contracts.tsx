@@ -44,7 +44,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ContractFormDialog } from "@/components/contracts/ContractFormDialog";
 import { ProposalPreviewDialog } from "@/components/proposals/ProposalPreviewDialog";
-import { ProposalData } from "@/lib/proposal-utils";
+import { ProposalData, buildDisplayTemplate } from "@/lib/proposal-utils";
 import { useTemplates, Template } from "@/hooks/useTemplates";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -68,6 +68,7 @@ type Contract = {
   scope_of_work: string | null;
   cost_breakdown: string | null;
   template_id: string | null;
+  content?: string | null;
   updated_at: string;
   is_external?: boolean | null;
   file_url?: string | null;
@@ -377,12 +378,13 @@ export default function Contracts() {
       return;
     }
 
-    const savedTemplate = contract.template_id
+    const liveTemplate = contract.template_id
       ? contractTemplates.find((template) => template.id === contract.template_id)
       : null;
+    const savedTemplate = buildDisplayTemplate(contract.content, liveTemplate || contractTemplates[0]);
 
     setPreviewData(buildContractPreviewData(contract));
-    setPreviewTemplate(savedTemplate || contractTemplates[0]);
+    setPreviewTemplate(savedTemplate);
     setIsPreviewOpen(true);
   };
 
@@ -515,10 +517,19 @@ export default function Contracts() {
       if (error) throw error;
 
       const previousStatus = selectedContract.status;
-      if (previousStatus === 'draft') {
+      const contractTemplates = templates.filter(t => t.type === 'contract');
+      const liveTemplate = selectedContract.template_id
+        ? contractTemplates.find((template) => template.id === selectedContract.template_id)
+        : contractTemplates[0];
+      const updatePayload: Record<string, unknown> = {};
+      if (previousStatus === 'draft') updatePayload.status = 'sent';
+      // Freeze the template content on first send so later template edits don't
+      // retroactively change what this contract shows the client.
+      if (!selectedContract.content && liveTemplate) updatePayload.content = liveTemplate.content;
+      if (Object.keys(updatePayload).length > 0) {
         await supabase
           .from('contracts')
-          .update({ status: 'sent' })
+          .update(updatePayload)
           .eq('id', selectedContract.id);
       }
 

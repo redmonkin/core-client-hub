@@ -52,7 +52,7 @@ import { Label } from '@/components/ui/label';
 import { getOrCreateProposalPortalAccess, regenerateProposalPortalAccess } from '@/lib/proposal-portal-access';
 import { ProposalFormDialog } from '@/components/proposals/ProposalFormDialog';
 import { ProposalPreviewDialog } from '@/components/proposals/ProposalPreviewDialog';
-import { ProposalData } from '@/lib/proposal-utils';
+import { ProposalData, buildDisplayTemplate } from '@/lib/proposal-utils';
 import { useTemplates, Template } from '@/hooks/useTemplates';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { differenceInCalendarDays } from 'date-fns';
@@ -89,6 +89,7 @@ type Proposal = {
   duration: string | null;
   status: string;
   template_id: string | null;
+  content?: string | null;
   updated_at: string;
 };
 
@@ -369,8 +370,8 @@ export default function Proposals() {
       createdAt: new Date().toISOString(),
       approvedDate: proposal.status === 'approved' ? proposal.updated_at : '',
     });
-    const savedTemplate = proposal.template_id ? templates.find(t => t.id === proposal.template_id) : null;
-    setPreviewTemplate(savedTemplate || proposalTemplates[0]);
+    const liveTemplate = proposal.template_id ? templates.find(t => t.id === proposal.template_id) : null;
+    setPreviewTemplate(buildDisplayTemplate(proposal.content, liveTemplate || proposalTemplates[0]));
     setIsPreviewOpen(true);
   };
 
@@ -446,8 +447,8 @@ export default function Proposals() {
       createdAt: new Date().toISOString(),
       approvedDate: proposal.status === 'approved' ? proposal.updated_at : '',
     });
-    const savedTemplate = proposal.template_id ? templates.find(t => t.id === proposal.template_id) : null;
-    setPreviewTemplate(savedTemplate || proposalTemplates[0]);
+    const liveTemplate = proposal.template_id ? templates.find(t => t.id === proposal.template_id) : null;
+    setPreviewTemplate(buildDisplayTemplate(proposal.content, liveTemplate || proposalTemplates[0]));
     setIsPreviewOpen(true);
   };
 
@@ -543,10 +544,19 @@ export default function Proposals() {
 
       // Log email sent in status history
       const previousStatus = selectedProposal.status;
-      if (previousStatus === 'draft') {
+      const proposalTemplates = templates.filter(t => t.type === 'proposal');
+      const liveTemplate = selectedProposal.template_id
+        ? proposalTemplates.find(t => t.id === selectedProposal.template_id)
+        : proposalTemplates[0];
+      const updatePayload: Record<string, unknown> = {};
+      if (previousStatus === 'draft') updatePayload.status = 'sent';
+      // Freeze the template content on first send so later template edits don't
+      // retroactively change what this proposal shows the client.
+      if (!selectedProposal.content && liveTemplate) updatePayload.content = liveTemplate.content;
+      if (Object.keys(updatePayload).length > 0) {
         await supabase
           .from('proposals')
-          .update({ status: 'sent' })
+          .update(updatePayload)
           .eq('id', selectedProposal.id);
       }
 

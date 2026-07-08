@@ -39,7 +39,7 @@ import {
 import { toast } from 'sonner';
 import { ProposalFormDialog } from '@/components/proposals/ProposalFormDialog';
 import { ProposalPreviewDialog } from '@/components/proposals/ProposalPreviewDialog';
-import { ProposalData } from '@/lib/proposal-utils';
+import { ProposalData, buildDisplayTemplate } from '@/lib/proposal-utils';
 import { getOrCreateProposalPortalAccess, regenerateProposalPortalAccess } from '@/lib/proposal-portal-access';
 
 type ProposalStatus = 'draft' | 'sent' | 'approved' | 'rejected' | 'change_requested';
@@ -279,10 +279,19 @@ export default function ProposalDetail() {
       if (!data?.success) throw new Error(data?.error || 'Failed to send email');
 
       const previousStatus = proposal.status;
-      if (previousStatus === 'draft') {
+      const proposalTemplates = templates.filter(t => t.type === 'proposal');
+      const liveTemplate = (proposal as any).template_id
+        ? proposalTemplates.find(t => t.id === (proposal as any).template_id)
+        : proposalTemplates[0];
+      const updatePayload: Record<string, unknown> = {};
+      if (previousStatus === 'draft') updatePayload.status = 'sent';
+      // Freeze the template content on first send so later template edits don't
+      // retroactively change what this proposal shows the client.
+      if (!(proposal as any).content && liveTemplate) updatePayload.content = liveTemplate.content;
+      if (Object.keys(updatePayload).length > 0) {
         await supabase
           .from('proposals')
-          .update({ status: 'sent' })
+          .update(updatePayload)
           .eq('id', proposal.id);
       }
 
@@ -333,8 +342,8 @@ export default function ProposalDetail() {
       createdAt: proposal.created_at,
       approvedDate: statusHistory.find((h: any) => h.to_status === 'approved')?.created_at || '',
     });
-    const savedTemplate = (proposal as any).template_id ? templates.find(t => t.id === (proposal as any).template_id) : null;
-    setPreviewTemplate(savedTemplate || proposalTemplates[0]);
+    const liveTemplate = (proposal as any).template_id ? templates.find(t => t.id === (proposal as any).template_id) : null;
+    setPreviewTemplate(buildDisplayTemplate((proposal as any).content, liveTemplate || proposalTemplates[0]));
     setIsPreviewOpen(true);
   };
 
