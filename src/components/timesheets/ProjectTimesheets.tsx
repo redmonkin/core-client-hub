@@ -53,20 +53,24 @@ import {
 } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 
-const TIMESHEET_STATUSES = ['pending', 'in-progress', 'completed', 'billed'] as const;
+const TIMESHEET_STATUSES = ['new', 'in-progress', 'wont-do', 'pending', 'non-billable', 'billed'] as const;
 type TimesheetStatus = typeof TIMESHEET_STATUSES[number];
 
 const STATUS_STYLES: Record<TimesheetStatus, string> = {
-  pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+  new: 'bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-400',
   'in-progress': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
-  completed: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+  'wont-do': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+  pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+  'non-billable': 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400',
   billed: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
 };
 
 const STATUS_LABELS: Record<TimesheetStatus, string> = {
-  pending: 'Pending',
+  new: 'New',
   'in-progress': 'In Progress',
-  completed: 'Completed',
+  'wont-do': "Won't Do",
+  pending: 'Pending',
+  'non-billable': 'Non Billable',
   billed: 'Billed',
 };
 
@@ -80,6 +84,7 @@ interface TimesheetEntry {
   duration: string;
   date: string;
   notes: string;
+  status?: TimesheetStatus;
 }
 
 const emptyEntry: TimesheetEntry = {
@@ -88,13 +93,14 @@ const emptyEntry: TimesheetEntry = {
   duration: '',
   date: new Date().toISOString().split('T')[0],
   notes: '',
+  status: 'pending',
 };
 
 export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
   const { user } = useAuth();
   const { workspaceUserId } = useWorkspaceUser();
   const queryClient = useQueryClient();
-  
+
   const userFirstName = (() => {
     const meta = (user?.user_metadata ?? {}) as Record<string, any>;
     const fullName: string =
@@ -107,6 +113,21 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
     return first ? first.charAt(0).toUpperCase() + first.slice(1) : '';
   })();
 
+  // Roster of users linked to this workspace (the account owner plus any active team
+  // members), so "Owner" can be picked from a dropdown instead of typed freely.
+  const { data: teamRoster = [] } = useQuery({
+    queryKey: ['team-roster', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_team_roster');
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!user,
+  });
+
+  const currentUserRosterLabel =
+    teamRoster.find((m) => m.user_id === user?.id)?.full_name || userFirstName;
+
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [entry, setEntry] = useState<TimesheetEntry>({ ...emptyEntry });
@@ -114,7 +135,7 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
 
   const openAddDialog = () => {
     setEditId(null);
-    setEntry({ ...emptyEntry, owner: userFirstName });
+    setEntry({ ...emptyEntry, owner: currentUserRosterLabel });
     setIsAddOpen(true);
   };
 
@@ -126,6 +147,7 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
       duration: String(ts.duration ?? ''),
       date: ts.date ? String(ts.date).split('T')[0] : new Date().toISOString().split('T')[0],
       notes: ts.notes ?? '',
+      status: (ts.status as TimesheetStatus) || 'pending',
     });
     setIsAddOpen(true);
   };
@@ -156,6 +178,7 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
         duration: parseFloat(e.duration) || 0,
         date: e.date,
         notes: e.notes || null,
+        status: e.status || 'pending',
       }));
       const { error } = await supabase.from('timesheets').insert(rows);
       if (error) throw error;
@@ -163,7 +186,7 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['timesheets', projectId] });
       setIsAddOpen(false);
-      setEntry({ ...emptyEntry, owner: userFirstName });
+      setEntry({ ...emptyEntry, owner: currentUserRosterLabel });
       toast.success('Timesheet entry added');
     },
     onError: (error: any) => {
@@ -196,6 +219,7 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
           duration: parseFloat(data.duration) || 0,
           date: data.date,
           notes: data.notes || null,
+          status: data.status || 'pending',
         })
         .eq('id', id);
       if (error) throw error;
@@ -204,7 +228,7 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
       queryClient.invalidateQueries({ queryKey: ['timesheets', projectId] });
       setIsAddOpen(false);
       setEditId(null);
-      setEntry({ ...emptyEntry, owner: userFirstName });
+      setEntry({ ...emptyEntry, owner: currentUserRosterLabel });
       toast.success('Timesheet entry updated');
     },
     onError: (error: any) => {
@@ -543,12 +567,26 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="owner">Owner *</Label>
-                <Input
-                  id="owner"
-                  placeholder="e.g. John Doe"
+                <Select
                   value={entry.owner}
-                  onChange={e => setEntry(prev => ({ ...prev, owner: e.target.value }))}
-                />
+                  onValueChange={value => setEntry(prev => ({ ...prev, owner: value }))}
+                >
+                  <SelectTrigger id="owner">
+                    <SelectValue placeholder="Select owner" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {/* Keep a pre-existing value selectable even if it's not in the roster
+                        (e.g. imported from a spreadsheet, or a former team member). */}
+                    {entry.owner && !teamRoster.some(m => (m.full_name || m.email) === entry.owner) && (
+                      <SelectItem value={entry.owner}>{entry.owner}</SelectItem>
+                    )}
+                    {teamRoster.map(member => (
+                      <SelectItem key={member.user_id} value={member.full_name || member.email}>
+                        {member.full_name || member.email}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="duration">Duration (hrs) *</Label>
@@ -563,14 +601,34 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="date">Date</Label>
-              <Input
-                id="date"
-                type="date"
-                value={entry.date}
-                onChange={e => setEntry(prev => ({ ...prev, date: e.target.value }))}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="date">Date</Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={entry.date}
+                  onChange={e => setEntry(prev => ({ ...prev, date: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="status">Status</Label>
+                <Select
+                  value={entry.status || 'pending'}
+                  onValueChange={value => setEntry(prev => ({ ...prev, status: value as TimesheetStatus }))}
+                >
+                  <SelectTrigger id="status">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TIMESHEET_STATUSES.map(status => (
+                      <SelectItem key={status} value={status}>
+                        {STATUS_LABELS[status]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="notes">Notes</Label>

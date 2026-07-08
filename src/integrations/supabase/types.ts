@@ -1030,6 +1030,14 @@ export type Database = {
     Functions: {
       get_accessible_user_ids: { Args: { _user_id: string }; Returns: string[] }
       get_owner_id: { Args: { _user_id: string }; Returns: string }
+      get_team_roster: {
+        Args: never
+        Returns: {
+          email: string
+          full_name: string
+          user_id: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
