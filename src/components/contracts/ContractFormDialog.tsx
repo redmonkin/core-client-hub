@@ -405,6 +405,7 @@ export function ContractFormDialog({
                       <SelectItem value="active">Active</SelectItem>
                       <SelectItem value="expired">Expired</SelectItem>
                       <SelectItem value="pending-renewal">Pending Renewal</SelectItem>
+                      <SelectItem value="ended">Ended</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

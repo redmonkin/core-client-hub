@@ -7,7 +7,7 @@ import { useTemplates, Template } from '@/hooks/useTemplates';
 import {
   ArrowLeft, Loader2, FileSignature, Clock, CheckCircle2, XCircle,
   Send, PenLine, MessageSquare, Mail, Eye, Pencil, LinkIcon, Copy,
-  MoreVertical, Users, Calendar, RefreshCw, AlertTriangle, FileText,
+  MoreVertical, Users, Calendar, RefreshCw, AlertTriangle, FileText, Ban,
 } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -57,6 +57,7 @@ const statusIconMap: Record<string, React.ElementType> = {
   active: CheckCircle2,
   expired: AlertTriangle,
   'pending-renewal': RefreshCw,
+  ended: Ban,
 };
 
 const statusColorMap: Record<string, string> = {
@@ -68,6 +69,7 @@ const statusColorMap: Record<string, string> = {
   active: 'bg-green-500/10 text-green-600',
   expired: 'bg-destructive/10 text-destructive',
   'pending-renewal': 'bg-orange-500/10 text-orange-600',
+  ended: 'bg-muted text-muted-foreground',
 };
 
 function computeValueFromCostBreakdown(costBreakdown: string | null): number {
@@ -110,6 +112,8 @@ export default function ContractDetail() {
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isRegenerateConfirmOpen, setIsRegenerateConfirmOpen] = useState(false);
   const [regenerateBeforeSend, setRegenerateBeforeSend] = useState(false);
+  const [isEndDialogOpen, setIsEndDialogOpen] = useState(false);
+  const [isEnding, setIsEnding] = useState(false);
 
   const { data: contract, isLoading: contractLoading, refetch: refetchContract } = useQuery({
     queryKey: ['contract', id],
@@ -448,6 +452,31 @@ export default function ContractDetail() {
     }
   };
 
+  const handleMarkAsEnded = async () => {
+    if (!contract) return;
+    setIsEnding(true);
+    try {
+      const previousStatus = contract.status;
+      await supabase.from('contracts').update({ status: 'ended' }).eq('id', contract.id);
+      await supabase.from('contract_status_history' as any).insert({
+        contract_id: contract.id,
+        user_id: user?.id,
+        from_status: previousStatus,
+        to_status: 'ended',
+        note: 'Marked as ended — client did not renew',
+      } as any);
+      refetchContract();
+      queryClient.invalidateQueries({ queryKey: ['contracts'] });
+      queryClient.invalidateQueries({ queryKey: ['contract-status-history', id] });
+      toast.success('Contract marked as ended');
+    } catch (error: any) {
+      toast.error('Failed to update contract status');
+    } finally {
+      setIsEnding(false);
+      setIsEndDialogOpen(false);
+    }
+  };
+
   if (contractLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -513,7 +542,8 @@ export default function ContractDetail() {
            entry.to_status === 'rejected' ? 'Rejected' :
            entry.to_status === 'change_requested' ? 'Change Requested' :
            entry.to_status === 'pending-renewal' ? 'Pending Renewal' :
-           entry.to_status === 'expired' ? 'Expired' : entry.to_status,
+           entry.to_status === 'expired' ? 'Expired' :
+           entry.to_status === 'ended' ? 'Ended' : entry.to_status,
     note: entry.note,
     date: entry.created_at,
     reached: true,
@@ -562,6 +592,12 @@ export default function ContractDetail() {
                 <LinkIcon className="mr-2 h-4 w-4" />
                 Share Link
               </DropdownMenuItem>
+              {['approved', 'active', 'pending-renewal'].includes(contract.status) && (
+                <DropdownMenuItem onClick={() => setIsEndDialogOpen(true)}>
+                  <Ban className="mr-2 h-4 w-4" />
+                  Mark as Ended
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -951,6 +987,30 @@ export default function ContractDetail() {
                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Regenerating...</>
               ) : (
                 <><RefreshCw className="mr-2 h-4 w-4" />Yes, regenerate</>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isEndDialogOpen} onOpenChange={setIsEndDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Ban className="h-5 w-5 text-muted-foreground" />
+              Mark contract as ended?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This closes out the contract — use it when a client has decided not to renew. It will stop showing up in renewal-overdue alerts. You can still view its history afterward.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isEnding}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleMarkAsEnded} disabled={isEnding}>
+              {isEnding ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Updating...</>
+              ) : (
+                <><Ban className="mr-2 h-4 w-4" />Yes, mark as ended</>
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -15,14 +15,14 @@ const RENEWAL_WINDOW_DAYS = 60;
  *   {@link APPROVAL_WINDOW_DAYS} of the start_date — or after it has already passed.
  * - Renewal due / overdue (status: approved / active / pending-renewal): triggers
  *   within {@link RENEWAL_WINDOW_DAYS} of the end_date — or after it has already passed.
- * - Rejected and explicitly expired contracts never alert.
+ * - Rejected, expired, and ended contracts never alert.
  */
 export function getContractExpiryInfo(
   startDate: string | null | undefined,
   endDate: string | null | undefined,
   status: string,
 ): ContractAlertInfo {
-  if (status === 'rejected' || status === 'expired') return null;
+  if (status === 'rejected' || status === 'expired' || status === 'ended') return null;
 
   const isUndecided = ['draft', 'sent', 'change_requested'].includes(status);
   const isLive = ['approved', 'active', 'pending-renewal'].includes(status);

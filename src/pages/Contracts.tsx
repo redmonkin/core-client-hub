@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Search, FileSignature, MoreHorizontal, Calendar, Loader2, Pencil, Trash2, Eye, Copy, Send, LinkIcon, Users, FileText, RefreshCw, AlertTriangle } from "lucide-react";
+import { Plus, Search, FileSignature, MoreHorizontal, Calendar, Loader2, Pencil, Trash2, Eye, Copy, Send, LinkIcon, Users, FileText, RefreshCw, AlertTriangle, Ban } from "lucide-react";
 import { format, differenceInDays, differenceInCalendarDays } from "date-fns";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Label } from "@/components/ui/label";
@@ -120,6 +120,7 @@ export default function Contracts() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isEndDialogOpen, setIsEndDialogOpen] = useState(false);
   const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
   const [editFormKey, setEditFormKey] = useState(0);
 
@@ -307,6 +308,33 @@ export default function Contracts() {
       uiToast({ title: "Failed to delete contract", description: error.message, variant: "destructive" });
     },
   });
+
+  const markAsEndedMutation = useMutation({
+    mutationFn: async (contract: Contract) => {
+      await supabase.from("contracts").update({ status: "ended" }).eq("id", contract.id);
+      await supabase.from("contract_status_history" as any).insert({
+        contract_id: contract.id,
+        user_id: user?.id,
+        from_status: contract.status,
+        to_status: "ended",
+        note: "Marked as ended — client did not renew",
+      } as any);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["contracts"] });
+      setIsEndDialogOpen(false);
+      setSelectedContract(null);
+      uiToast({ title: "Contract marked as ended" });
+    },
+    onError: (error) => {
+      uiToast({ title: "Failed to update contract status", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleMarkAsEnded = (contract: Contract) => {
+    setSelectedContract(contract);
+    setIsEndDialogOpen(true);
+  };
 
   const getClientName = (clientId: string) => {
     const client = clients.find((c) => c.id === clientId);
@@ -783,6 +811,12 @@ export default function Contracts() {
                             <LinkIcon className="mr-2 h-4 w-4" />
                             Get Share Link
                           </DropdownMenuItem>
+                          {['approved', 'active', 'pending-renewal'].includes(contract.status) && (
+                            <DropdownMenuItem onClick={() => handleMarkAsEnded(contract)}>
+                              <Ban className="mr-2 h-4 w-4" />
+                              Mark as Ended
+                            </DropdownMenuItem>
+                          )}
                           {!['approved', 'active'].includes(contract.status) && (
                             <DropdownMenuItem
                               onClick={() => handleDelete(contract)}
@@ -878,6 +912,12 @@ export default function Contracts() {
                           <LinkIcon className="mr-2 h-4 w-4" />
                           Get Share Link
                         </DropdownMenuItem>
+                        {['approved', 'active', 'pending-renewal'].includes(contract.status) && (
+                          <DropdownMenuItem onClick={() => handleMarkAsEnded(contract)}>
+                            <Ban className="mr-2 h-4 w-4" />
+                            Mark as Ended
+                          </DropdownMenuItem>
+                        )}
                         {!['approved', 'active'].includes(contract.status) && (
                           <DropdownMenuItem
                             onClick={() => handleDelete(contract)}
@@ -970,6 +1010,12 @@ export default function Contracts() {
                             <LinkIcon className="mr-2 h-4 w-4" />
                             Get Share Link
                           </DropdownMenuItem>
+                          {['approved', 'active', 'pending-renewal'].includes(contract.status) && (
+                            <DropdownMenuItem onClick={() => handleMarkAsEnded(contract)}>
+                              <Ban className="mr-2 h-4 w-4" />
+                              Mark as Ended
+                            </DropdownMenuItem>
+                          )}
                           {!['approved', 'active'].includes(contract.status) && (
                             <DropdownMenuItem
                               onClick={() => handleDelete(contract)}
@@ -1075,6 +1121,27 @@ export default function Contracts() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleteContractMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Mark as Ended Confirmation Dialog */}
+      <AlertDialog open={isEndDialogOpen} onOpenChange={setIsEndDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mark contract as ended?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This closes out the contract — use it when a client has decided not to renew. It will stop showing up in renewal-overdue alerts. You can still view its history afterward.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={markAsEndedMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => selectedContract && markAsEndedMutation.mutate(selectedContract)}
+              disabled={markAsEndedMutation.isPending}
+            >
+              {markAsEndedMutation.isPending ? "Updating..." : "Yes, mark as ended"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
