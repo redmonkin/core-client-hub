@@ -20,6 +20,7 @@ import Briefs from "./pages/Briefs";
 import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import ClientPortal from "./pages/ClientPortal";
 import Portfolio from "./pages/Portfolio";
 import NotFound from "./pages/NotFound";
@@ -84,6 +85,7 @@ const App = () => (
               </AuthRoute>
             }
           />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/portal" element={<ClientPortal />} />
           <Route path="/portfolio/:userId" element={<Portfolio />} />
           <Route

@@ -354,6 +354,7 @@ export default function ContractDetail() {
           recipientEmail: client.email,
           recipientName: client.primary_contact_name || client.client_name,
           data: {
+            contractId: contract.id,
             contractTitle: contractTypeLabelsLocal[contract.contract_type] || contract.contract_type,
             contractType: contract.contract_type,
             startDate: contract.start_date,

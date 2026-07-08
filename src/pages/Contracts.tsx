@@ -492,6 +492,7 @@ export default function Contracts() {
           recipientEmail: clientEmail,
           recipientName: clientName,
           data: {
+            contractId: selectedContract.id,
             contractTitle: contractTypeLabelsLocal[selectedContract.contract_type] || selectedContract.contract_type,
             contractType: selectedContract.contract_type,
             startDate: selectedContract.start_date,

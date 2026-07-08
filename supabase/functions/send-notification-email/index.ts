@@ -79,7 +79,7 @@ function buildProposalStatusEmail(
             <h1 style="color: white; margin: 0; font-size: 24px;">${titleMap[type]}</h1>
           </div>
           <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
-            <p style="margin-top: 0;">Hi ${recipientName},</p>
+            <p style="margin-top: 0;">Hi ${escapeHtml(recipientName || "")},</p>
             <p>${messageMap[type]}</p>
             ${notesSection}
             <p style="color: #6b7280; font-size: 14px; margin-bottom: 0;">Log in to your dashboard to take the next steps.</p>
@@ -328,7 +328,85 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    const { type, recipientEmail, recipientName, data, ccEmails }: NotificationEmailRequest = await req.json();
+    const { type, recipientEmail: bodyRecipientEmail, recipientName: bodyRecipientName, data, ccEmails }: NotificationEmailRequest = await req.json();
+
+    // Resolve the true recipient server-side rather than trusting the request body, so a
+    // caller can't use their own valid session to relay arbitrary branded email to an
+    // address unrelated to the contract/proposal/invite they claim to be about.
+    let recipientEmail = bodyRecipientEmail;
+    let recipientName = bodyRecipientName;
+
+    if (type === "contract_created" || type === "contract_sent") {
+      const contractId = data?.contractId;
+      if (!contractId) {
+        return new Response(
+          JSON.stringify({ success: false, error: "contractId is required" }),
+          { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+      const { data: contractRow, error: contractError } = await supabase
+        .from("contracts")
+        .select("client_id")
+        .eq("id", contractId)
+        .maybeSingle();
+      if (contractError || !contractRow) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Contract not found or access denied" }),
+          { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+      const { data: clientRow, error: clientError } = await supabase
+        .from("clients")
+        .select("email, client_name, primary_contact_name")
+        .eq("id", contractRow.client_id)
+        .maybeSingle();
+      if (clientError || !clientRow?.email) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Client email not found" }),
+          { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+      recipientEmail = clientRow.email;
+      recipientName = clientRow.primary_contact_name || clientRow.client_name;
+    } else if (type === "proposal_approved" || type === "proposal_rejected" || type === "proposal_change_requested") {
+      const proposalId = data?.proposalId;
+      if (!proposalId) {
+        return new Response(
+          JSON.stringify({ success: false, error: "proposalId is required" }),
+          { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+      const { data: proposalRow, error: proposalError } = await supabase
+        .from("proposals")
+        .select("id")
+        .eq("id", proposalId)
+        .maybeSingle();
+      if (proposalError || !proposalRow) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Proposal not found or access denied" }),
+          { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+      // These types notify the proposal owner about a client's action — send to the
+      // caller's own verified email rather than an attacker-supplied address.
+      recipientEmail = user.email!;
+    } else if (type === "team_invite") {
+      const normalizedEmail = (bodyRecipientEmail || "").trim().toLowerCase();
+      const { data: inviteRow, error: inviteError } = await supabase
+        .from("team_members")
+        .select("id")
+        .eq("owner_id", user.id)
+        .eq("invited_email", normalizedEmail)
+        .eq("status", "pending")
+        .maybeSingle();
+      if (inviteError || !inviteRow) {
+        return new Response(
+          JSON.stringify({ success: false, error: "No pending invitation found for this recipient" }),
+          { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+      recipientEmail = normalizedEmail;
+    }
 
     console.log(`Sending ${type} notification email to ${recipientEmail}`);
 

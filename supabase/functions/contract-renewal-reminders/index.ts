@@ -10,6 +10,9 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+const escapeHtml = (s: string): string =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -119,9 +122,9 @@ const handler = async (req: Request): Promise<Response> => {
           return `
             <tr>
               <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">
-                <strong>${client?.client_name || "Unknown Client"}</strong>
+                <strong>${escapeHtml(client?.client_name || "Unknown Client")}</strong>
               </td>
-              <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${contract.contract_type}</td>
+              <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${escapeHtml(contract.contract_type)}</td>
               <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">
                 $${Number(contract.value).toLocaleString()}
               </td>

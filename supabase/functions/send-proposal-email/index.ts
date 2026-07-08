@@ -25,8 +25,6 @@ const isSafeHttpUrl = (url: string | null | undefined): url is string => {
 
 interface SendProposalRequest {
   proposalId: string;
-  clientEmail: string;
-  clientName: string;
   proposalTitle: string;
   customerGoals: string | null;
   totalAmount: string | null;
@@ -121,8 +119,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const {
-      clientEmail,
-      clientName,
+      proposalId,
       proposalTitle,
       customerGoals,
       totalAmount,
@@ -138,13 +135,49 @@ const handler = async (req: Request): Promise<Response> => {
       isReminder,
     }: SendProposalRequest = await req.json();
 
+    if (!proposalId) {
+      return new Response(
+        JSON.stringify({ success: false, error: "proposalId is required" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Resolve the proposal (and its client) through the RLS-scoped client, using the
+    // caller's own JWT. This fails closed if the proposal isn't in the caller's workspace,
+    // and it pins the recipient to the client actually attached to the proposal instead of
+    // trusting a client-supplied email address.
+    const { data: proposalRow, error: proposalError } = await supabase
+      .from("proposals")
+      .select("client_id")
+      .eq("id", proposalId)
+      .maybeSingle();
+
+    if (proposalError || !proposalRow) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Proposal not found or access denied" }),
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const { data: clientRow, error: clientError } = await supabase
+      .from("clients")
+      .select("email, client_name")
+      .eq("id", proposalRow.client_id)
+      .maybeSingle();
+
+    if (clientError || !clientRow?.email) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Client email not found" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const clientEmail = clientRow.email;
+    const clientName = clientRow.client_name;
+
     console.log(
       `Sending proposal email to ${clientEmail} for proposal: ${proposalTitle}`
     );
-
-    if (!clientEmail) {
-      throw new Error("Client email is required");
-    }
 
     const formattedValidity = validityDate
       ? new Date(validityDate).toLocaleDateString("en-US", {
