@@ -3,7 +3,9 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useWorkspaceUser } from '@/hooks/useWorkspaceUser';
 import { useTemplates, Template } from '@/hooks/useTemplates';
+import { CommentThread } from '@/components/shared/CommentThread';
 import { ArrowLeft, Loader2, FileText, Clock, CheckCircle2, XCircle, Send, PenLine, MessageSquare, Mail, Eye, Pencil, LinkIcon, Copy, MoreVertical, Users, RefreshCw, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -63,6 +65,7 @@ const statusColorMap: Record<string, string> = {
 export default function ProposalDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const { workspaceUserId } = useWorkspaceUser();
   const queryClient = useQueryClient();
   const { templates } = useTemplates();
   const [isSendDialogOpen, setIsSendDialogOpen] = useState(false);
@@ -169,6 +172,21 @@ export default function ProposalDetail() {
       return data;
     },
     enabled: !!proposal?.client_id,
+  });
+
+  const { data: comments = [] } = useQuery({
+    queryKey: ['document-comments', 'proposal', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('document_comments')
+        .select('id, author_type, author_name, content, created_at')
+        .eq('document_type', 'proposal')
+        .eq('document_id', id!)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id,
   });
 
   const updateProposalMutation = useMutation({
@@ -617,6 +635,16 @@ export default function ProposalDetail() {
             )}
           </CardContent>
         </Card>
+
+        {workspaceUserId && (
+          <CommentThread
+            documentType="proposal"
+            documentId={id!}
+            workspaceUserId={workspaceUserId}
+            comments={comments}
+            queryKeyToInvalidate={['document-comments', 'proposal', id]}
+          />
+        )}
       </div>
 
       {/* Send Email Confirmation Dialog */}

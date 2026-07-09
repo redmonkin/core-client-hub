@@ -1,28 +1,33 @@
 # Collaboration & Client Experience
 
-Status: planned, builds third (see [ROADMAP.md](../ROADMAP.md)), after [Team & Permissions](permissions.md) and [Revenue & Billing](billing.md).
+Status: shipped (drawn signature capture, append-only comments). Built third, after [Team & Permissions](permissions.md) and [Revenue & Billing](billing.md), per [ROADMAP.md](../ROADMAP.md).
 
 ## 1. E-signature capture
 
-Replaces (well — augments) the typed-name-only `contracts.client_signature` with a drawn signature via `react-signature-canvas` (new dependency), stored as a PNG in a new private `signatures` Storage bucket (folder-per-user RLS, same pattern as the existing `contract-files` bucket).
+Augments the typed-name-only `contracts.client_signature` with a drawn signature via `react-signature-canvas`, captured in `ClientPortal.tsx`'s approve dialog and stored as a PNG in a private `signatures` Storage bucket (folder-per-owner RLS, same pattern as `contract-files`).
 
-**Typed name stays required alongside the drawn signature** (confirmed decision) — used for the fallback text rendering on historical contracts that only have a typed name, and as a searchable/auditable field.
+**Typed name stays required alongside the drawn signature** (confirmed decision) — the drawn signature is optional; approving without drawing still records the typed name as before.
 
-The unauthenticated client-portal visitor has no Supabase session, so the signature image upload goes through `client-portal`'s existing `POST` handler (service-role client), not a direct client-side Storage upload.
+The unauthenticated client-portal visitor has no Supabase session, so the signature image upload goes through `client-portal`'s `POST` handler's `approve` action (service-role client) as a base64 `signature_image` data URL, capped at ~1MB decoded, decode/upload wrapped in its own try/catch so a malformed image never fails the approve action itself.
 
-New columns: `contracts.client_signature_image_url`, `contracts.client_signature_captured_at` (additive, non-breaking). `replacePlaceholders()` in `proposal-utils.ts` renders `{{clientSignature}}` as an image when present, falling back to the existing cursive-text typed-name rendering otherwise.
+New columns: `contracts.client_signature_image_url` (stores a Storage **path**, not a URL — a fresh signed URL is generated on every read, both server-side in `client-portal`'s GET/PUT responses and client-side in `ContractDetail.tsx` via `supabase.storage.from('signatures').createSignedUrl()`) and `client_signature_captured_at`. `replacePlaceholders()` in `proposal-utils.ts` renders `{{clientSignature}}` as an `<img>` when `clientSignatureImageUrl` is present (attribute-escaped), falling back to the existing cursive-text typed-name rendering otherwise.
 
 ## 2. Client comments
 
-A single `document_comments` table (`document_type IN ('proposal','contract','invoice')`, polymorphic `document_id`) rather than per-type tables — comments are identical in shape across document types, so one table avoids tripling the maintenance cost.
+A single `document_comments` table (`document_type IN ('proposal','contract','invoice')`, polymorphic `document_id`) rather than per-type tables.
 
-**Append-only** (confirmed decision) — no edit/delete, matching the existing audit-trail-style history tables (`proposal_status_history`/`contract_status_history`) and keeping RLS simple (no `UPDATE`/`DELETE` policy needed).
+**Append-only** (confirmed decision) — no edit/delete, matching `proposal_status_history`/`contract_status_history`; no `UPDATE`/`DELETE` RLS policy exists at all.
 
-RLS: owner/team-member `SELECT`/`INSERT` via the standard `get_accessible_user_ids()` check, with the Team & Permissions viewer-block (`get_workspace_role(...) != 'viewer'`) on insert. **No RLS policy allows client-side anonymous inserts** — client comments go through `client-portal`'s `POST` handler (service-role client), same as approve/reject/request-changes, so the token-resolution/password-gate logic isn't duplicated or bypassable. The document being commented on is always resolved from the **token**, never a client-supplied ID.
+RLS: owner/team-member `SELECT`/`INSERT` via `get_accessible_user_ids()`, INSERT additionally requires `get_workspace_role(...) IN ('owner','admin','editor')` (viewer-blocked). **No RLS policy allows anonymous inserts** — client comments go through `client-portal`'s `POST` handler's new `comment` action (service-role client, works for all three document types including invoices, which have no approve/reject flow). The document being commented on is always resolved from the **token**, never a client-supplied ID.
 
-Rendered as plain text (not `dangerouslySetInnerHTML`, even sanitized) — comments are user-authored text from an unauthenticated source with no legitimate need for markup, so the simplest safe choice is to never treat them as HTML at all.
+Rendered as plain text via React (never `dangerouslySetInnerHTML`) on both the owner side (`CommentThread.tsx`, used in `ProposalDetail.tsx`/`ContractDetail.tsx`) and the portal side (`ClientPortal.tsx`'s `renderCommentsSection`).
 
-New `notification_preferences.comment_added` toggle; new `send-notification-email` `comment_added` type.
+Shipped: `notification_preferences.comment_added` toggle (in-app notification only, matching the existing `proposal_viewed` precedent — no separate email type). Comment-count indicators on list views were **not** built (deferred, see open items).
+
+## Not shipped in this pass (scoped out)
+
+- Comments UI on `Invoices.tsx` — invoices use a list+dialog page rather than a dedicated detail page (see [billing.md](billing.md)'s simplification note), so there's no natural place for an inline comment thread yet. The `client-portal` API already supports posting/viewing invoice comments end-to-end; only the owner-side UI surface is missing.
+- Comment-count indicators on list views.
 
 ## Explicitly out of scope for this build
 
@@ -31,5 +36,5 @@ Global cross-entity search and notification digest mode were mentioned alongside
 ## Open items not yet decided
 
 - Should the owner's own contract signature (`mySignature`) also become drawn, for parity?
-- Should clients be required to type a name before posting a comment?
-- Worth building unread-comment indicators now, or defer?
+- Should clients be required to type a name before posting a comment? (Currently optional — falls back to the client's name on record.)
+- Worth building unread-comment indicators / invoice comment UI now, or defer further?

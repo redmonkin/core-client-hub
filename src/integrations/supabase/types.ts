@@ -301,6 +301,8 @@ export type Database = {
         Row: {
           client_id: string
           client_signature: string | null
+          client_signature_captured_at: string | null
+          client_signature_image_url: string | null
           content: string | null
           contract_type: string
           cost_breakdown: string | null
@@ -324,6 +326,8 @@ export type Database = {
         Insert: {
           client_id: string
           client_signature?: string | null
+          client_signature_captured_at?: string | null
+          client_signature_image_url?: string | null
           content?: string | null
           contract_type: string
           cost_breakdown?: string | null
@@ -347,6 +351,8 @@ export type Database = {
         Update: {
           client_id?: string
           client_signature?: string | null
+          client_signature_captured_at?: string | null
+          client_signature_image_url?: string | null
           content?: string | null
           contract_type?: string
           cost_breakdown?: string | null
@@ -404,6 +410,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      document_comments: {
+        Row: {
+          author_name: string
+          author_type: string
+          content: string
+          created_at: string
+          document_id: string
+          document_type: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          author_name: string
+          author_type: string
+          content: string
+          created_at?: string
+          document_id: string
+          document_type: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          author_name?: string
+          author_type?: string
+          content?: string
+          created_at?: string
+          document_id?: string
+          document_type?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       invoice_access_tokens: {
         Row: {
@@ -567,6 +606,7 @@ export type Database = {
       }
       notification_preferences: {
         Row: {
+          comment_added: boolean
           contract_renewal: boolean
           created_at: string
           id: string
@@ -577,6 +617,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          comment_added?: boolean
           contract_renewal?: boolean
           created_at?: string
           id?: string
@@ -587,6 +628,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          comment_added?: boolean
           contract_renewal?: boolean
           created_at?: string
           id?: string

@@ -24,6 +24,7 @@ export interface ProposalData {
   approvedDate?: string;
   clientSignature?: string;
   mySignature?: string;
+  clientSignatureImageUrl?: string;
 }
 
 const formatCurrency = (amount: number): string => {
@@ -271,7 +272,9 @@ export function replacePlaceholders(content: string, data: ProposalData, highlig
     '{{renewalFrequency}}': renewalLabels[data.renewalFrequency || ''] || data.renewalFrequency || '',
     '{{startDate}}': startDateFormatted,
     '{{endDate}}': endDateFormatted,
-    '{{clientSignature}}': data.clientSignature
+    '{{clientSignature}}': data.clientSignatureImageUrl
+      ? `<img src="${data.clientSignatureImageUrl.replace(/"/g, '&quot;')}" alt="Signature" style="max-height:80px;max-width:280px;" />`
+      : data.clientSignature
       ? `<span style="font-family:'Hurricane',cursive;font-size:2em;color:#1a1a1a;">${data.clientSignature}</span>`
       : '',
     '{{mySignature}}': data.mySignature

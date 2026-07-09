@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import DOMPurify from 'dompurify';
-import { FileText, Check, X, Loader2, AlertCircle, Clock, Globe, Mail, Download, ShieldCheck, ShieldX, Lock } from 'lucide-react';
+import SignatureCanvas from 'react-signature-canvas';
+import { FileText, Check, X, Loader2, AlertCircle, Clock, Globe, Mail, Download, ShieldCheck, ShieldX, Lock, MessageSquare, Send as SendIcon, Eraser } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -81,6 +82,11 @@ export default function ClientPortal() {
   const [invoice, setInvoice] = useState<PortalInvoice | null>(null);
   const [branding, setBranding] = useState<BrandingSettings | null>(null);
   const [template, setTemplate] = useState<TemplateData>(null);
+  const [comments, setComments] = useState<{ id: string; author_type: string; author_name: string; content: string; created_at: string }[]>([]);
+  const [commentText, setCommentText] = useState('');
+  const [commentAuthorName, setCommentAuthorName] = useState('');
+  const [postingComment, setPostingComment] = useState(false);
+  const signaturePadRef = useRef<SignatureCanvas>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -149,6 +155,7 @@ export default function ClientPortal() {
         setTemplate(result.template);
       }
       setBranding(result.branding);
+      setComments(result.comments || []);
       setDocumentType(result.document_type || 'proposal');
       setAuthenticated(true);
       setPasswordRequired(false);
@@ -182,6 +189,9 @@ export default function ClientPortal() {
       if (action === 'approve' && documentType === 'contract' && signatureName.trim()) {
         body.signature_name = signatureName.trim();
       }
+      if (action === 'approve' && documentType === 'contract' && signaturePadRef.current && !signaturePadRef.current.isEmpty()) {
+        body.signature_image = signaturePadRef.current.toDataURL('image/png');
+      }
       if (verifiedPassword) {
         body.password = verifiedPassword;
       }
@@ -205,12 +215,35 @@ export default function ClientPortal() {
       };
       toast.success(messages[action]);
       setChangeNotes('');
-      setSignatureName('');
+      setSignatureName(''); signaturePadRef.current?.clear();
     } catch (err: any) {
       console.error('Error updating proposal:', err);
       toast.error(err.message);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handlePostComment = async () => {
+    if (!token || !commentText.trim()) return;
+    setPostingComment(true);
+    try {
+      const body: any = { token, action: 'comment', comment_content: commentText.trim() };
+      if (commentAuthorName.trim()) body.comment_author_name = commentAuthorName.trim();
+      if (verifiedPassword) body.password = verifiedPassword;
+      const response = await fetch(
+        `https://jizouqjrdyfshhztqucd.supabase.co/functions/v1/client-portal`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+      );
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Failed to post comment');
+      setComments(result.comments || []);
+      setCommentText('');
+      toast.success('Comment posted');
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setPostingComment(false);
     }
   };
 
@@ -290,6 +323,59 @@ export default function ClientPortal() {
     );
   }
 
+  const renderCommentsSection = () => (
+    <div className="mt-6 space-y-4">
+      <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+        <MessageSquare className="h-4 w-4" />
+        Comments {comments.length > 0 && `(${comments.length})`}
+      </h3>
+      {comments.length > 0 && (
+        <div className="space-y-2">
+          {comments.map((comment) => (
+            <div key={comment.id} className="rounded-lg border bg-muted/30 p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">
+                  {comment.author_name}
+                  {comment.author_type === 'team' && (
+                    <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">Team</span>
+                  )}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+                </span>
+              </div>
+              <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">{comment.content}</p>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="space-y-2">
+        <Input
+          placeholder="Your name (optional)"
+          value={commentAuthorName}
+          onChange={(e) => setCommentAuthorName(e.target.value)}
+        />
+        <div className="flex gap-2">
+          <Textarea
+            placeholder="Add a comment..."
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
+            className="min-h-[60px]"
+          />
+          <Button
+            size="icon"
+            onClick={handlePostComment}
+            disabled={!commentText.trim() || postingComment}
+            className="self-end"
+            style={{ backgroundColor: primaryColor }}
+          >
+            {postingComment ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendIcon className="h-4 w-4" />}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+
   if (documentType === 'invoice') {
     if (!invoice) return null;
 
@@ -368,6 +454,8 @@ export default function ClientPortal() {
                 {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                 Download PDF
               </Button>
+
+              {renderCommentsSection()}
             </CardContent>
           </Card>
         </div>
@@ -405,6 +493,7 @@ export default function ClientPortal() {
       startDate: (proposal as any).start_date || '',
       endDate: (proposal as any).end_date || '',
       clientSignature: (proposal as any).client_signature || '',
+      clientSignatureImageUrl: (proposal as any).client_signature_image_url || '',
       mySignature: (proposal as any).my_signature || '',
     };
     return replacePlaceholders(template.content, proposalData, false);
@@ -616,6 +705,8 @@ export default function ClientPortal() {
               </div>
             </div>
           )}
+
+          <div className="px-6 sm:px-10 pb-8">{renderCommentsSection()}</div>
         </div>
 
         {/* Footer */}
@@ -651,7 +742,7 @@ export default function ClientPortal() {
       </div>
 
       {/* Confirmation Dialog */}
-      <AlertDialog open={!!confirmAction} onOpenChange={() => { setConfirmAction(null); setSignatureName(''); }}>
+      <AlertDialog open={!!confirmAction} onOpenChange={() => { setConfirmAction(null); setSignatureName(''); signaturePadRef.current?.clear(); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
@@ -667,17 +758,35 @@ export default function ClientPortal() {
                     : `Are you sure you want to decline this ${documentType}? The sender will be notified of your decision.`}
                 </p>
                 {confirmAction === 'approve' && documentType === 'contract' && (
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Your Full Name (as signature) *</label>
-                    <Input
-                      placeholder="Enter your full name"
-                      value={signatureName}
-                      onChange={(e) => setSignatureName(e.target.value)}
-                      className="text-base"
-                      autoFocus
-                    />
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-foreground">Your Full Name (as signature) *</label>
+                      <Input
+                        placeholder="Enter your full name"
+                        value={signatureName}
+                        onChange={(e) => setSignatureName(e.target.value)}
+                        className="text-base"
+                        autoFocus
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium text-foreground">Draw your signature (optional)</label>
+                        <Button type="button" variant="ghost" size="sm" onClick={() => signaturePadRef.current?.clear()}>
+                          <Eraser className="mr-1 h-3 w-3" />
+                          Clear
+                        </Button>
+                      </div>
+                      <div className="rounded-md border bg-white">
+                        <SignatureCanvas
+                          ref={signaturePadRef}
+                          penColor="#111827"
+                          canvasProps={{ className: 'w-full h-32' }}
+                        />
+                      </div>
+                    </div>
                     <p className="text-xs text-muted-foreground">
-                      Your name will appear as the digital signature on this contract.
+                      Your typed name is required and used as the signature of record; the drawn signature (if provided) is shown alongside it.
                     </p>
                   </div>
                 )}
@@ -693,7 +802,7 @@ export default function ClientPortal() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={submitting} onClick={() => { setChangeNotes(''); setSignatureName(''); }}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={submitting} onClick={() => { setChangeNotes(''); setSignatureName(''); signaturePadRef.current?.clear(); }}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => confirmAction && handleAction(confirmAction)}
               disabled={submitting || (confirmAction === 'request_changes' && !changeNotes.trim()) || (confirmAction === 'approve' && documentType === 'contract' && !signatureName.trim())}

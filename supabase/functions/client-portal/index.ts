@@ -18,11 +18,33 @@ const escapeHtml = (s: string): string =>
 const withFrozenContent = (template: any, frozenContent: string | null | undefined) =>
   frozenContent ? { ...(template || {}), content: frozenContent } : template;
 
+async function getComments(supabase: any, documentType: string, documentId: string) {
+  const { data } = await supabase
+    .from("document_comments")
+    .select("id, author_type, author_name, content, created_at")
+    .eq("document_type", documentType)
+    .eq("document_id", documentId)
+    .order("created_at", { ascending: true });
+  return data || [];
+}
+
+// client_signature_image_url stores a storage PATH (not a URL) so a fresh
+// signed URL can be generated on each read of a private bucket, rather than
+// persisting a URL that eventually expires.
+async function getSignedSignatureUrl(supabase: any, path: string | null | undefined) {
+  if (!path) return null;
+  const { data } = await supabase.storage.from("signatures").createSignedUrl(path, 60 * 60);
+  return data?.signedUrl || null;
+}
+
 interface UpdateProposalRequest {
   token: string;
-  action: "approve" | "reject" | "request_changes";
+  action: "approve" | "reject" | "request_changes" | "comment";
   notes?: string;
   signature_name?: string;
+  signature_image?: string;
+  comment_content?: string;
+  comment_author_name?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -189,6 +211,7 @@ const handler = async (req: Request): Promise<Response> => {
             success: true, document_type: "proposal",
             proposal: { ...proposal, client_name: client?.client_name, company_name: client?.company_name, client_email: client?.email, client_phone: client?.phone, client_designation: client?.designation, client_address: client?.billing_address, project_name: projectName },
             branding: branding || null, template: withFrozenContent(template, (proposal as any).content) || null,
+            comments: await getComments(supabase, "proposal", proposal.id),
           }),
           { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
@@ -196,7 +219,7 @@ const handler = async (req: Request): Promise<Response> => {
         // --- CONTRACT FLOW ---
         const { data: contract, error: contractError } = await supabase
           .from("contracts")
-          .select(`id, contract_type, start_date, end_date, value, renewal_frequency, status, scope_of_work, cost_breakdown, client_id, project_id, user_id, created_at, client_signature, template_id, content`)
+          .select(`id, contract_type, start_date, end_date, value, renewal_frequency, status, scope_of_work, cost_breakdown, client_id, project_id, user_id, created_at, client_signature, client_signature_image_url, template_id, content`)
           .eq("id", accessToken.contract_id)
           .single();
 
@@ -274,9 +297,11 @@ const handler = async (req: Request): Promise<Response> => {
               start_date: contract.start_date,
               end_date: contract.end_date,
               client_signature: contract.client_signature,
+              client_signature_image_url: await getSignedSignatureUrl(supabase, (contract as any).client_signature_image_url),
               my_signature: ownerName,
             },
             branding: branding || null, template: withFrozenContent(template, (contract as any).content) || null,
+            comments: await getComments(supabase, "contract", contract.id),
           }),
           { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
@@ -335,6 +360,7 @@ const handler = async (req: Request): Promise<Response> => {
               client_address: client?.billing_address,
             },
             branding: branding || null,
+            comments: await getComments(supabase, "invoice", invoice.id),
           }),
           { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
@@ -421,6 +447,7 @@ const handler = async (req: Request): Promise<Response> => {
             client_address: client?.billing_address,
           },
           branding: branding || null,
+          comments: await getComments(supabase, "invoice", invoice.id),
         }), { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } });
       } else if (documentType === "proposal") {
         const { data: proposal, error: proposalError } = await supabase
@@ -461,12 +488,13 @@ const handler = async (req: Request): Promise<Response> => {
         return new Response(JSON.stringify({
           proposal: { ...proposal, client_name: client?.client_name, company_name: client?.company_name, client_email: client?.email, client_phone: client?.phone, client_designation: client?.designation, client_address: client?.billing_address, project_name: projectName },
           branding: branding || null, template: withFrozenContent(template, (proposal as any).content) || null, document_type: documentType,
+          comments: await getComments(supabase, "proposal", proposal.id),
         }), { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } });
       } else {
         const contractTypeLabelsLocal: Record<string, string> = { amc: "Annual Maintenance Contract", fixed: "Fixed", retainer: "Retainer" };
         const { data: contract, error: contractError } = await supabase
           .from("contracts")
-          .select("id, contract_type, scope_of_work, cost_breakdown, start_date, end_date, value, renewal_frequency, status, client_id, project_id, user_id, created_at, template_id, client_signature, content")
+          .select("id, contract_type, scope_of_work, cost_breakdown, start_date, end_date, value, renewal_frequency, status, client_id, project_id, user_id, created_at, template_id, client_signature, client_signature_image_url, content")
           .eq("id", accessToken.contract_id)
           .single();
         if (contractError || !contract) {
@@ -496,30 +524,32 @@ const handler = async (req: Request): Promise<Response> => {
         const { data: ownerData2 } = await supabase.auth.admin.getUserById(contract.user_id);
         const ownerName2 = ownerData2?.user?.user_metadata?.full_name || '';
         return new Response(JSON.stringify({
-          proposal: { ...contract, client_name: client?.client_name, company_name: client?.company_name, client_email: client?.email, client_phone: client?.phone, client_designation: client?.designation, client_address: client?.billing_address, project_name: projectName, title: contractTypeLabelsLocal[contract.contract_type] || contract.contract_type, my_signature: ownerName2 },
+          proposal: { ...contract, client_name: client?.client_name, company_name: client?.company_name, client_email: client?.email, client_phone: client?.phone, client_designation: client?.designation, client_address: client?.billing_address, project_name: projectName, title: contractTypeLabelsLocal[contract.contract_type] || contract.contract_type, my_signature: ownerName2, client_signature_image_url: await getSignedSignatureUrl(supabase, (contract as any).client_signature_image_url) },
           branding: branding || null, template: withFrozenContent(template, (contract as any).content) || null, document_type: documentType,
+          comments: await getComments(supabase, "contract", contract.id),
         }), { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } });
       }
     }
 
-    // POST - Update proposal status (approve/reject)
+    // POST - Update proposal status (approve/reject) or post a comment
     if (req.method === "POST") {
-      const { token: bodyToken, action, notes, signature_name, password }: UpdateProposalRequest & { password?: string } = await req.json();
+      const { token: bodyToken, action, notes, signature_name, signature_image, comment_content, comment_author_name, password }: UpdateProposalRequest & { password?: string } = await req.json();
       const accessTokenValue = bodyToken || token;
 
       if (!accessTokenValue) {
         return new Response(JSON.stringify({ error: "Token is required" }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
       }
 
-      if (!action || !["approve", "reject", "request_changes"].includes(action)) {
-        return new Response(JSON.stringify({ error: "Valid action (approve/reject/request_changes) is required" }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+      if (!action || !["approve", "reject", "request_changes", "comment"].includes(action)) {
+        return new Response(JSON.stringify({ error: "Valid action (approve/reject/request_changes/comment) is required" }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
       }
 
       console.log(`Processing ${action} for token: ${accessTokenValue.substring(0, 8)}...`);
 
-      // Try proposal tokens first, then contract tokens
+      // Try proposal tokens first, then contract tokens, then invoice tokens
+      // (invoices only support the "comment" action — no approve/reject flow).
       let tokenData: any = null;
-      let documentType: "proposal" | "contract" = "proposal";
+      let documentType: "proposal" | "contract" | "invoice" = "proposal";
 
       const { data: pToken } = await supabase.from("proposal_access_tokens").select("*").eq("token", accessTokenValue).maybeSingle();
       if (pToken) {
@@ -530,6 +560,12 @@ const handler = async (req: Request): Promise<Response> => {
         if (cToken) {
           tokenData = cToken;
           documentType = "contract";
+        } else {
+          const { data: iToken } = await supabase.from("invoice_access_tokens").select("*").eq("token", accessTokenValue).maybeSingle();
+          if (iToken) {
+            tokenData = iToken;
+            documentType = "invoice";
+          }
         }
       }
 
@@ -555,6 +591,49 @@ const handler = async (req: Request): Promise<Response> => {
         }
       }
 
+      if (action === "comment") {
+        const documentId = documentType === "proposal" ? tokenData.proposal_id : documentType === "contract" ? tokenData.contract_id : tokenData.invoice_id;
+        const tableName = documentType === "proposal" ? "proposals" : documentType === "contract" ? "contracts" : "invoices";
+
+        if (!comment_content?.trim()) {
+          return new Response(JSON.stringify({ error: "Comment content is required" }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+        }
+
+        const { data: doc } = await supabase.from(tableName).select("user_id, client_id").eq("id", documentId).single();
+        if (!doc) {
+          return new Response(JSON.stringify({ error: "Document not found" }), { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } });
+        }
+
+        const { data: client } = await supabase.from("clients").select("client_name, company_name").eq("id", doc.client_id).maybeSingle();
+        const authorName = (comment_author_name?.trim()) || client?.client_name || client?.company_name || "Client";
+
+        const { error: commentError } = await supabase.from("document_comments").insert({
+          user_id: doc.user_id,
+          document_type: documentType,
+          document_id: documentId,
+          author_type: "client",
+          author_name: authorName,
+          content: comment_content.trim().slice(0, 4000),
+        });
+        if (commentError) throw commentError;
+
+        const { data: prefs } = await supabase.from("notification_preferences").select("comment_added").eq("user_id", doc.user_id).maybeSingle();
+        if (prefs?.comment_added !== false) {
+          await supabase.from("notifications").insert({
+            user_id: doc.user_id, type: "comment_added", title: "New Comment",
+            message: `${authorName} commented on your ${documentType}`,
+            reference_id: documentId, reference_type: documentType,
+          });
+        }
+
+        const comments = await getComments(supabase, documentType, documentId);
+        return new Response(JSON.stringify({ success: true, comments }), { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } });
+      }
+
+      if (documentType === "invoice") {
+        return new Response(JSON.stringify({ error: "This action is not available for invoices" }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+      }
+
       const newStatus = action === "approve" ? "approved" : action === "request_changes" ? "change_requested" : "rejected";
       const documentId = documentType === "proposal" ? tokenData.proposal_id : tokenData.contract_id;
       const tableName = documentType === "proposal" ? "proposals" : "contracts";
@@ -567,6 +646,31 @@ const handler = async (req: Request): Promise<Response> => {
       const updatePayload: any = { status: newStatus };
       if (documentType === "contract" && action === "approve" && signature_name) {
         updatePayload.client_signature = signature_name;
+      }
+      if (documentType === "contract" && action === "approve" && typeof signature_image === "string" && signature_image.startsWith("data:image/")) {
+        // Decoding/uploading a malformed or oversized signature must never fail the
+        // whole approve action (status update + typed-name signature) — only the
+        // drawn-image attachment is optional, so isolate its errors here.
+        try {
+          const base64Data = signature_image.split(",")[1] || "";
+          const bytes = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+          // Cap at ~1MB decoded to avoid abuse via an oversized data URL.
+          if (bytes.byteLength <= 1_000_000) {
+            const path = `${currentDoc?.user_id || "unknown"}/${documentId}.png`;
+            const { error: uploadError } = await supabase.storage.from("signatures").upload(path, bytes, {
+              contentType: "image/png",
+              upsert: true,
+            });
+            if (!uploadError) {
+              updatePayload.client_signature_image_url = path;
+              updatePayload.client_signature_captured_at = new Date().toISOString();
+            } else {
+              console.error("Signature upload failed:", uploadError);
+            }
+          }
+        } catch (signatureErr) {
+          console.error("Signature decode failed:", signatureErr);
+        }
       }
       const { error: updateError } = await supabase.from(tableName).update(updatePayload).eq("id", documentId);
       if (updateError) throw updateError;

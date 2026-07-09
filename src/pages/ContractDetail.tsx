@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusBadge } from '@/components/shared/StatusBadge';
+import { CommentThread } from '@/components/shared/CommentThread';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -94,7 +95,7 @@ function computeValueFromCostBreakdown(costBreakdown: string | null): number {
 export default function ContractDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
-  const { canViewFinancials } = useWorkspaceUser();
+  const { canViewFinancials, workspaceUserId } = useWorkspaceUser();
   const queryClient = useQueryClient();
   const { templates } = useTemplates();
 
@@ -139,6 +140,32 @@ export default function ContractDetail() {
       return data as any[];
     },
     enabled: !!id,
+  });
+
+  const { data: comments = [] } = useQuery({
+    queryKey: ['document-comments', 'contract', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('document_comments')
+        .select('id, author_type, author_name, content, created_at')
+        .eq('document_type', 'contract')
+        .eq('document_id', id!)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id,
+  });
+
+  const { data: signatureImageUrl } = useQuery({
+    queryKey: ['contract-signature-url', (contract as any)?.client_signature_image_url],
+    queryFn: async () => {
+      const path = (contract as any).client_signature_image_url as string;
+      const { data, error } = await supabase.storage.from('signatures').createSignedUrl(path, 60 * 60);
+      if (error) throw error;
+      return data.signedUrl;
+    },
+    enabled: !!(contract as any)?.client_signature_image_url,
   });
 
   const { data: client } = useQuery({
@@ -305,6 +332,7 @@ export default function ContractDetail() {
       endDate: contract.end_date,
       approvedDate: contract.status === 'approved' ? contract.updated_at : '',
       clientSignature: (contract as any).client_signature || '',
+      clientSignatureImageUrl: signatureImageUrl || '',
       mySignature: user?.user_metadata?.full_name || '',
     });
     setPreviewTemplate(savedTemplate);
@@ -834,6 +862,16 @@ export default function ContractDetail() {
             </div>
           </CardContent>
         </Card>
+
+        {workspaceUserId && (
+          <CommentThread
+            documentType="contract"
+            documentId={id!}
+            workspaceUserId={workspaceUserId}
+            comments={comments}
+            queryKeyToInvalidate={['document-comments', 'contract', id]}
+          />
+        )}
       </div>
 
       {/* Send Email Dialog */}

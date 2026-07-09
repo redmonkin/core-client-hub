@@ -31,6 +31,7 @@ interface NotificationPreferences {
   proposal_approved: boolean;
   proposal_rejected: boolean;
   contract_renewal: boolean;
+  comment_added: boolean;
 }
 
 const defaultPreferences: NotificationPreferences = {
@@ -38,6 +39,7 @@ const defaultPreferences: NotificationPreferences = {
   proposal_approved: true,
   proposal_rejected: true,
   contract_renewal: true,
+  comment_added: true,
 };
 
 export default function Profile() {
@@ -384,6 +386,12 @@ export default function Profile() {
       label: "Contract Renewal",
       description: "Get reminded about upcoming contract renewals",
       icon: Calendar,
+    },
+    {
+      key: "comment_added" as const,
+      label: "New Comment",
+      description: "Get notified when a client comments on a proposal, contract, or invoice",
+      icon: Bell,
     },
   ];
 
