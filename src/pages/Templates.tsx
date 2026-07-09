@@ -3,8 +3,9 @@ import { Plus, FileCode, MoreHorizontal, Copy, Pencil, Trash2, Eye, Globe, User 
 import { useWorkspaceUser } from '@/hooks/useWorkspaceUser';
 import { format } from 'date-fns';
 import { PageHeader } from '@/components/shared/PageHeader';
-import { RequireRole } from '@/components/shared/RequireRole';
+import { RequirePermission } from '@/components/shared/RequirePermission';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { NoAccessState } from '@/components/shared/NoAccessState';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -46,7 +47,7 @@ export default function Templates() {
   const [deletingTemplate, setDeletingTemplate] = useState<Template | null>(null);
   const [previewingTemplate, setPreviewingTemplate] = useState<Template | null>(null);
   const [viewMode, setViewMode] = useViewMode('templates', 'grid');
-  const { workspaceUserId } = useWorkspaceUser();
+  const { workspaceUserId, can, loading: permLoading } = useWorkspaceUser();
 
   const { 
     templates, 
@@ -97,7 +98,7 @@ export default function Templates() {
   };
 
 
-  if (isLoading) {
+  if (isLoading || permLoading) {
     return (
       <div className="space-y-6 p-8">
         <PageHeader
@@ -127,18 +128,27 @@ export default function Templates() {
     );
   }
 
+  if (!can('templates', 'read')) {
+    return (
+      <div className="space-y-6 p-8">
+        <PageHeader title="Templates" description="Manage document templates for proposals and contracts" />
+        <NoAccessState moduleLabel="templates" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 p-8">
       <PageHeader
         title="Templates"
         description="Manage document templates for proposals and contracts"
         actions={
-          <RequireRole atLeast="editor">
+          <RequirePermission module="templates" action="create">
             <Button size="lg" onClick={() => setIsDialogOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
               New Template
             </Button>
-          </RequireRole>
+          </RequirePermission>
         }
       />
 

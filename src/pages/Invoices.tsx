@@ -10,9 +10,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useWorkspaceUser } from '@/hooks/useWorkspaceUser';
 import { PageHeader } from '@/components/shared/PageHeader';
-import { RequireRole } from '@/components/shared/RequireRole';
+import { RequirePermission } from '@/components/shared/RequirePermission';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { NoAccessState } from '@/components/shared/NoAccessState';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -79,7 +80,7 @@ const emptyForm: InvoiceFormState = {
 
 export default function Invoices() {
   const { user } = useAuth();
-  const { workspaceUserId, canViewFinancials } = useWorkspaceUser();
+  const { workspaceUserId, canViewFinancials, can, loading: permLoading } = useWorkspaceUser();
   const queryClient = useQueryClient();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -381,18 +382,35 @@ export default function Invoices() {
   const clientProjects = projects.filter((p) => p.client_id === form.client_id);
   const clientContracts = contracts.filter((c) => c.client_id === form.client_id || !form.client_id);
 
+  if (permLoading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!can('invoices', 'read')) {
+    return (
+      <div className="space-y-6 p-4 sm:p-8">
+        <PageHeader title="Invoices" description="Bill clients for approved contracts or ad-hoc work" />
+        <NoAccessState moduleLabel="invoices" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 p-4 sm:p-8">
       <PageHeader
         title="Invoices"
         description="Bill clients for approved contracts or ad-hoc work"
         actions={
-          <RequireRole atLeast="editor">
+          <RequirePermission module="invoices" action="create">
             <Button size="lg" onClick={openCreateDialog}>
               <Plus className="mr-2 h-4 w-4" />
               New Invoice
             </Button>
-          </RequireRole>
+          </RequirePermission>
         }
       />
 
@@ -478,7 +496,7 @@ export default function Invoices() {
                               <Download className="mr-2 h-4 w-4" />
                               Download PDF
                             </DropdownMenuItem>
-                            <RequireRole atLeast="editor">
+                            <RequirePermission module="invoices" action="update">
                               <DropdownMenuItem onClick={() => openEditDialog(invoice)}>
                                 <Pencil className="mr-2 h-4 w-4" />
                                 Edit
@@ -497,6 +515,8 @@ export default function Invoices() {
                                   Mark as Paid
                                 </DropdownMenuItem>
                               )}
+                            </RequirePermission>
+                            <RequirePermission module="invoices" action="delete">
                               <DropdownMenuItem
                                 onClick={() => setDeletingId(invoice.id)}
                                 className="text-destructive focus:text-destructive"
@@ -504,7 +524,7 @@ export default function Invoices() {
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Delete
                               </DropdownMenuItem>
-                            </RequireRole>
+                            </RequirePermission>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>

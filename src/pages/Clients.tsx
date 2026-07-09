@@ -4,7 +4,8 @@ import { Plus, Search, MoreHorizontal, Mail, Phone, Building2, Loader2, Pencil, 
 import { PageHeader } from '@/components/shared/PageHeader';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { RequireRole } from '@/components/shared/RequireRole';
+import { NoAccessState } from '@/components/shared/NoAccessState';
+import { RequirePermission } from '@/components/shared/RequirePermission';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -72,7 +73,7 @@ interface Client {
 
 export default function Clients() {
   const { user } = useAuth();
-  const { workspaceUserId } = useWorkspaceUser();
+  const { workspaceUserId, can, loading: permLoading } = useWorkspaceUser();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'archived'>('all');
@@ -280,10 +281,19 @@ export default function Clients() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || permLoading) {
     return (
       <div className="flex items-center justify-center h-96">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!can('clients', 'read')) {
+    return (
+      <div className="space-y-6 p-8">
+        <PageHeader title="Clients" description="Manage your client relationships" />
+        <NoAccessState moduleLabel="clients" />
       </div>
     );
   }
@@ -294,7 +304,7 @@ export default function Clients() {
         title="Clients"
         description="Manage your client relationships"
         actions={
-          <RequireRole atLeast="editor">
+          <RequirePermission module="clients" action="create">
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button size="lg">
@@ -390,7 +400,7 @@ export default function Clients() {
               </form>
             </DialogContent>
           </Dialog>
-          </RequireRole>
+          </RequirePermission>
         }
       />
 

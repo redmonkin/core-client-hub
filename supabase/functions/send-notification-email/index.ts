@@ -439,12 +439,15 @@ const handler = async (req: Request): Promise<Response> => {
           { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
       }
-      // Viewers can read everything but must not be able to trigger sends.
-      const { data: contractRole } = await supabase.rpc("get_workspace_role", {
+      // Sending is treated as an 'update' action on the contract, checked against the
+      // per-module permission matrix (not just a coarse role label).
+      const { data: canSendContract } = await supabase.rpc("has_permission", {
         _user_id: user.id,
         _owner_id: (contractRow as any).user_id,
+        _module: "contracts",
+        _action: "update",
       });
-      if (contractRole === "viewer") {
+      if (!canSendContract) {
         return new Response(
           JSON.stringify({ success: false, error: "You don't have permission to send this contract" }),
           { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
@@ -482,11 +485,13 @@ const handler = async (req: Request): Promise<Response> => {
           { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
       }
-      const { data: proposalRole } = await supabase.rpc("get_workspace_role", {
+      const { data: canSendProposal } = await supabase.rpc("has_permission", {
         _user_id: user.id,
         _owner_id: (proposalRow as any).user_id,
+        _module: "proposals",
+        _action: "update",
       });
-      if (proposalRole === "viewer") {
+      if (!canSendProposal) {
         return new Response(
           JSON.stringify({ success: false, error: "You don't have permission to send this notification" }),
           { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
@@ -534,11 +539,13 @@ const handler = async (req: Request): Promise<Response> => {
           { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
       }
-      const { data: invoiceRole } = await supabase.rpc("get_workspace_role", {
+      const { data: canSendInvoice } = await supabase.rpc("has_permission", {
         _user_id: user.id,
         _owner_id: (invoiceRow as any).user_id,
+        _module: "invoices",
+        _action: "update",
       });
-      if (invoiceRole === "viewer") {
+      if (!canSendInvoice) {
         return new Response(
           JSON.stringify({ success: false, error: "You don't have permission to send this invoice" }),
           { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }

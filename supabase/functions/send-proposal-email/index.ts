@@ -159,14 +159,16 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Viewers can read everything but must not be able to trigger sends — this can't be
-    // enforced by RLS alone since the caller only needs SELECT access above, so check
-    // explicitly here.
-    const { data: role } = await supabase.rpc("get_workspace_role", {
+    // Sending is treated as an 'update' action on the proposal. This can't be enforced
+    // by RLS alone since the caller only needs SELECT access above, so check explicitly
+    // here against the per-module permission matrix (not just a coarse role label).
+    const { data: canSend } = await supabase.rpc("has_permission", {
       _user_id: user.id,
       _owner_id: (proposalRow as any).user_id,
+      _module: "proposals",
+      _action: "update",
     });
-    if (role === "viewer") {
+    if (!canSend) {
       return new Response(
         JSON.stringify({ success: false, error: "You don't have permission to send this proposal" }),
         { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }

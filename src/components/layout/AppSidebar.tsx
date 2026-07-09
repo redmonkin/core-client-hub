@@ -36,20 +36,20 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
-import { useWorkspaceUser } from '@/hooks/useWorkspaceUser';
+import { useWorkspaceUser, PermissionModule } from '@/hooks/useWorkspaceUser';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import clientraLogoLight from '@/assets/clientra-light.svg';
 import clientraLogoDark from '@/assets/clientra-dark.svg';
 
-const menuItems = [
+const menuItems: { title: string; url: string; icon: typeof LayoutDashboard; module?: PermissionModule }[] = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
   { title: 'Briefs', url: '/briefs', icon: ClipboardList },
-  { title: 'Clients', url: '/clients', icon: Users },
-  { title: 'Projects', url: '/projects', icon: FolderKanban },
-  { title: 'Proposals', url: '/proposals', icon: FileText },
-  { title: 'Contracts', url: '/contracts', icon: FileSignature },
-  { title: 'Invoices', url: '/invoices', icon: Receipt },
-  { title: 'Templates', url: '/templates', icon: FileCode },
+  { title: 'Clients', url: '/clients', icon: Users, module: 'clients' },
+  { title: 'Projects', url: '/projects', icon: FolderKanban, module: 'projects' },
+  { title: 'Proposals', url: '/proposals', icon: FileText, module: 'proposals' },
+  { title: 'Contracts', url: '/contracts', icon: FileSignature, module: 'contracts' },
+  { title: 'Invoices', url: '/invoices', icon: Receipt, module: 'invoices' },
+  { title: 'Templates', url: '/templates', icon: FileCode, module: 'templates' },
 ];
 
 export function AppSidebar() {
@@ -57,8 +57,14 @@ export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { role, isTeamMember } = useWorkspaceUser();
+  const { role, isTeamMember, can, loading: permLoading } = useWorkspaceUser();
   const collapsed = state === 'collapsed';
+  // While the permission matrix is still loading, only show module-independent
+  // items (Dashboard/Briefs) rather than flashing every nav item via a
+  // fail-open default.
+  const visibleMenuItems = permLoading
+    ? menuItems.filter((item) => !item.module)
+    : menuItems.filter((item) => !item.module || can(item.module, 'read'));
 
   const handleSignOut = async () => {
     await signOut();
@@ -112,7 +118,7 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1">
-              {menuItems.map((item) => {
+              {visibleMenuItems.map((item) => {
                 const isActive = item.url === '/dashboard' 
                   ? location.pathname === '/dashboard'
                   : location.pathname.startsWith(item.url);

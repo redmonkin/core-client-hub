@@ -7,9 +7,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useWorkspaceUser } from '@/hooks/useWorkspaceUser';
 import { PageHeader } from '@/components/shared/PageHeader';
-import { RequireRole } from '@/components/shared/RequireRole';
+import { RequirePermission } from '@/components/shared/RequirePermission';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { NoAccessState } from '@/components/shared/NoAccessState';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -131,7 +132,7 @@ const emptyProposal: ProposalFormData = {
 
 export default function Proposals() {
   const { user } = useAuth();
-  const { workspaceUserId } = useWorkspaceUser();
+  const { workspaceUserId, can, loading: permLoading } = useWorkspaceUser();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ProposalStatus | 'all'>('all');
@@ -630,10 +631,19 @@ export default function Proposals() {
   };
 
 
-  if (proposalsLoading) {
+  if (proposalsLoading || permLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!can('proposals', 'read')) {
+    return (
+      <div className="space-y-6 p-8">
+        <PageHeader title="Proposals" description="Create and manage client proposals" />
+        <NoAccessState moduleLabel="proposals" />
       </div>
     );
   }
@@ -644,12 +654,12 @@ export default function Proposals() {
         title="Proposals"
         description="Create and manage client proposals"
         actions={
-          <RequireRole atLeast="editor">
+          <RequirePermission module="proposals" action="create">
             <Button size="lg" onClick={() => setIsDialogOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
               New Proposal
             </Button>
-          </RequireRole>
+          </RequirePermission>
         }
       />
 

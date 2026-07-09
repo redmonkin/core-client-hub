@@ -7,9 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { RequireRole } from "@/components/shared/RequireRole";
+import { RequirePermission } from "@/components/shared/RequirePermission";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { NoAccessState } from "@/components/shared/NoAccessState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -150,7 +151,7 @@ export default function Contracts() {
   const [regenerateBeforeSend, setRegenerateBeforeSend] = useState(false);
 
   const { user } = useAuth();
-  const { workspaceUserId, canViewFinancials } = useWorkspaceUser();
+  const { workspaceUserId, canViewFinancials, can, loading: permLoading } = useWorkspaceUser();
   const { toast: uiToast } = useToast();
   const queryClient = useQueryClient();
   const { templates } = useTemplates();
@@ -668,10 +669,19 @@ export default function Contracts() {
     };
   };
 
-  if (contractsLoading) {
+  if (contractsLoading || permLoading) {
     return (
       <div className="flex h-96 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!can('contracts', 'read')) {
+    return (
+      <div className="space-y-6 p-4 sm:p-8">
+        <PageHeader title="Contracts" description="Manage contracts, annual maintenance agreements, master service agreements, work orders" />
+        <NoAccessState moduleLabel="contracts" />
       </div>
     );
   }
@@ -683,12 +693,12 @@ export default function Contracts() {
         title="Contracts"
         description="Manage contracts, annual maintenance agreements, master service agreements, work orders"
         actions={
-          <RequireRole atLeast="editor">
+          <RequirePermission module="contracts" action="create">
             <Button size="lg" onClick={() => { setDuplicateInitialData(undefined); setIsDialogOpen(true); }}>
               <Plus className="mr-2 h-4 w-4" />
               New Contract
             </Button>
-          </RequireRole>
+          </RequirePermission>
         }
       />
 

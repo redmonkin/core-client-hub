@@ -7,9 +7,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useWorkspaceUser } from '@/hooks/useWorkspaceUser';
 import { PageHeader } from '@/components/shared/PageHeader';
-import { RequireRole } from '@/components/shared/RequireRole';
+import { RequirePermission } from '@/components/shared/RequirePermission';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { NoAccessState } from '@/components/shared/NoAccessState';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -93,7 +94,7 @@ export default function Projects() {
   const [editProject, setEditProject] = useState(emptyProject);
 
   const { user } = useAuth();
-  const { workspaceUserId } = useWorkspaceUser();
+  const { workspaceUserId, can, loading: permLoading } = useWorkspaceUser();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -239,10 +240,19 @@ export default function Projects() {
     updateProject.mutate({ id: selectedProject.id, ...editProject });
   };
 
-  if (projectsLoading) {
+  if (projectsLoading || permLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!can('projects', 'read')) {
+    return (
+      <div className="space-y-6 p-8">
+        <PageHeader title="Projects" description="Track and manage all your projects" />
+        <NoAccessState moduleLabel="projects" />
       </div>
     );
   }
@@ -253,7 +263,7 @@ export default function Projects() {
         title="Projects"
         description="Track and manage all your projects"
         actions={
-          <RequireRole atLeast="editor">
+          <RequirePermission module="projects" action="create">
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button size="lg">
@@ -362,7 +372,7 @@ export default function Projects() {
               </form>
             </DialogContent>
           </Dialog>
-          </RequireRole>
+          </RequirePermission>
         }
       />
 

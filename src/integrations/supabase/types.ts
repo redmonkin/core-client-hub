@@ -953,6 +953,44 @@ export type Database = {
           },
         ]
       }
+      team_member_permissions: {
+        Row: {
+          can_create: boolean
+          can_delete: boolean
+          can_read: boolean
+          can_update: boolean
+          id: string
+          module: string
+          team_member_id: string
+        }
+        Insert: {
+          can_create?: boolean
+          can_delete?: boolean
+          can_read?: boolean
+          can_update?: boolean
+          id?: string
+          module: string
+          team_member_id: string
+        }
+        Update: {
+          can_create?: boolean
+          can_delete?: boolean
+          can_read?: boolean
+          can_update?: boolean
+          id?: string
+          module?: string
+          team_member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_member_permissions_team_member_id_fkey"
+            columns: ["team_member_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_members: {
         Row: {
           can_view_financials: boolean
@@ -1250,6 +1288,15 @@ export type Database = {
       get_workspace_role: {
         Args: { _owner_id: string; _user_id: string }
         Returns: string
+      }
+      has_permission: {
+        Args: {
+          _action: string
+          _module: string
+          _owner_id: string
+          _user_id: string
+        }
+        Returns: boolean
       }
     }
     Enums: {
