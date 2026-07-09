@@ -346,12 +346,23 @@ const handler = async (req: Request): Promise<Response> => {
       }
       const { data: contractRow, error: contractError } = await supabase
         .from("contracts")
-        .select("client_id")
+        .select("client_id, user_id")
         .eq("id", contractId)
         .maybeSingle();
       if (contractError || !contractRow) {
         return new Response(
           JSON.stringify({ success: false, error: "Contract not found or access denied" }),
+          { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+      // Viewers can read everything but must not be able to trigger sends.
+      const { data: contractRole } = await supabase.rpc("get_workspace_role", {
+        _user_id: user.id,
+        _owner_id: (contractRow as any).user_id,
+      });
+      if (contractRole === "viewer") {
+        return new Response(
+          JSON.stringify({ success: false, error: "You don't have permission to send this contract" }),
           { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
       }
@@ -378,7 +389,7 @@ const handler = async (req: Request): Promise<Response> => {
       }
       const { data: proposalRow, error: proposalError } = await supabase
         .from("proposals")
-        .select("id")
+        .select("id, user_id")
         .eq("id", proposalId)
         .maybeSingle();
       if (proposalError || !proposalRow) {
@@ -387,15 +398,29 @@ const handler = async (req: Request): Promise<Response> => {
           { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
       }
+      const { data: proposalRole } = await supabase.rpc("get_workspace_role", {
+        _user_id: user.id,
+        _owner_id: (proposalRow as any).user_id,
+      });
+      if (proposalRole === "viewer") {
+        return new Response(
+          JSON.stringify({ success: false, error: "You don't have permission to send this notification" }),
+          { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
       // These types notify the proposal owner about a client's action — send to the
       // caller's own verified email rather than an attacker-supplied address.
       recipientEmail = user.email!;
     } else if (type === "team_invite") {
       const normalizedEmail = (bodyRecipientEmail || "").trim().toLowerCase();
+      // Resolve the actual workspace owner_id (not just auth.uid()) so an admin —
+      // not only the owner — can trigger this invite email; team_members rows are
+      // always keyed by the workspace owner's id, never the inviting admin's own id.
+      const { data: ownerId } = await supabase.rpc("get_owner_id", { _user_id: user.id });
       const { data: inviteRow, error: inviteError } = await supabase
         .from("team_members")
         .select("id")
-        .eq("owner_id", user.id)
+        .eq("owner_id", (ownerId as string) || user.id)
         .eq("invited_email", normalizedEmail)
         .eq("status", "pending")
         .maybeSingle();

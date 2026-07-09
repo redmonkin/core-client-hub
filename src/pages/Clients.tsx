@@ -4,6 +4,7 @@ import { Plus, Search, MoreHorizontal, Mail, Phone, Building2, Loader2, Pencil, 
 import { PageHeader } from '@/components/shared/PageHeader';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { RequireRole } from '@/components/shared/RequireRole';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -293,6 +294,7 @@ export default function Clients() {
         title="Clients"
         description="Manage your client relationships"
         actions={
+          <RequireRole atLeast="editor">
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button size="lg">
@@ -388,6 +390,7 @@ export default function Clients() {
               </form>
             </DialogContent>
           </Dialog>
+          </RequireRole>
         }
       />
 

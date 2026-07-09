@@ -753,6 +753,7 @@ export type Database = {
       }
       team_members: {
         Row: {
+          can_view_financials: boolean
           created_at: string
           id: string
           invited_email: string
@@ -763,6 +764,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          can_view_financials?: boolean
           created_at?: string
           id?: string
           invited_email: string
@@ -773,6 +775,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          can_view_financials?: boolean
           created_at?: string
           id?: string
           invited_email?: string
@@ -1037,6 +1040,10 @@ export type Database = {
           full_name: string
           user_id: string
         }[]
+      }
+      get_workspace_role: {
+        Args: { _owner_id: string; _user_id: string }
+        Returns: string
       }
     }
     Enums: {

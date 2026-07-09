@@ -3,6 +3,7 @@ import { Plus, FileCode, MoreHorizontal, Copy, Pencil, Trash2, Eye, Globe, User 
 import { useWorkspaceUser } from '@/hooks/useWorkspaceUser';
 import { format } from 'date-fns';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { RequireRole } from '@/components/shared/RequireRole';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -132,10 +133,12 @@ export default function Templates() {
         title="Templates"
         description="Manage document templates for proposals and contracts"
         actions={
-          <Button size="lg" onClick={() => setIsDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            New Template
-          </Button>
+          <RequireRole atLeast="editor">
+            <Button size="lg" onClick={() => setIsDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              New Template
+            </Button>
+          </RequireRole>
         }
       />
 

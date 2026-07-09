@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useWorkspaceUser } from '@/hooks/useWorkspaceUser';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { RequireRole } from '@/components/shared/RequireRole';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { Button } from '@/components/ui/button';
@@ -643,10 +644,12 @@ export default function Proposals() {
         title="Proposals"
         description="Create and manage client proposals"
         actions={
-          <Button size="lg" onClick={() => setIsDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            New Proposal
-          </Button>
+          <RequireRole atLeast="editor">
+            <Button size="lg" onClick={() => setIsDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              New Proposal
+            </Button>
+          </RequireRole>
         }
       />
 

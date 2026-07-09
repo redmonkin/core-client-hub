@@ -148,13 +148,27 @@ const handler = async (req: Request): Promise<Response> => {
     // trusting a client-supplied email address.
     const { data: proposalRow, error: proposalError } = await supabase
       .from("proposals")
-      .select("client_id")
+      .select("client_id, user_id")
       .eq("id", proposalId)
       .maybeSingle();
 
     if (proposalError || !proposalRow) {
       return new Response(
         JSON.stringify({ success: false, error: "Proposal not found or access denied" }),
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Viewers can read everything but must not be able to trigger sends — this can't be
+    // enforced by RLS alone since the caller only needs SELECT access above, so check
+    // explicitly here.
+    const { data: role } = await supabase.rpc("get_workspace_role", {
+      _user_id: user.id,
+      _owner_id: (proposalRow as any).user_id,
+    });
+    if (role === "viewer") {
+      return new Response(
+        JSON.stringify({ success: false, error: "You don't have permission to send this proposal" }),
         { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }

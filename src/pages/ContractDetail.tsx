@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useWorkspaceUser } from '@/hooks/useWorkspaceUser';
 import { useTemplates, Template } from '@/hooks/useTemplates';
 import {
   ArrowLeft, Loader2, FileSignature, Clock, CheckCircle2, XCircle,
@@ -93,6 +94,7 @@ function computeValueFromCostBreakdown(costBreakdown: string | null): number {
 export default function ContractDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const { canViewFinancials } = useWorkspaceUser();
   const queryClient = useQueryClient();
   const { templates } = useTemplates();
 
@@ -704,7 +706,9 @@ export default function ContractDetail() {
             <Separator />
             <div className="flex justify-between">
               <span className="text-muted-foreground">Value</span>
-              <span className="font-semibold">₹{Number(contract.value).toLocaleString('en-IN')}</span>
+              <span className="font-semibold">
+                {canViewFinancials ? `₹${Number(contract.value).toLocaleString('en-IN')}` : '••••••'}
+              </span>
             </div>
 
             {/* Progress bar for active contracts */}

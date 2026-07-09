@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { RequireRole } from "@/components/shared/RequireRole";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { Button } from "@/components/ui/button";
@@ -149,7 +150,7 @@ export default function Contracts() {
   const [regenerateBeforeSend, setRegenerateBeforeSend] = useState(false);
 
   const { user } = useAuth();
-  const { workspaceUserId } = useWorkspaceUser();
+  const { workspaceUserId, canViewFinancials } = useWorkspaceUser();
   const { toast: uiToast } = useToast();
   const queryClient = useQueryClient();
   const { templates } = useTemplates();
@@ -682,10 +683,12 @@ export default function Contracts() {
         title="Contracts"
         description="Manage contracts, annual maintenance agreements, master service agreements, work orders"
         actions={
-          <Button size="lg" onClick={() => { setDuplicateInitialData(undefined); setIsDialogOpen(true); }}>
-            <Plus className="mr-2 h-4 w-4" />
-            New Contract
-          </Button>
+          <RequireRole atLeast="editor">
+            <Button size="lg" onClick={() => { setDuplicateInitialData(undefined); setIsDialogOpen(true); }}>
+              <Plus className="mr-2 h-4 w-4" />
+              New Contract
+            </Button>
+          </RequireRole>
         }
       />
 
@@ -854,7 +857,7 @@ export default function Contracts() {
                   <div className="min-w-0 flex items-baseline gap-2 lg:block">
                     <span className="text-xs uppercase tracking-wider text-muted-foreground lg:hidden shrink-0">Value</span>
                     <span className="font-semibold text-sm text-foreground">
-                      ₹{Number(contract.value).toLocaleString('en-IN')}
+                      {canViewFinancials ? `₹${Number(contract.value).toLocaleString('en-IN')}` : '••••••'}
                     </span>
                   </div>
 
@@ -1039,7 +1042,9 @@ export default function Contracts() {
                     <div className="mt-4 space-y-2 border-t border-border pt-4">
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Value</span>
-                        <span className="font-semibold text-foreground">₹{Number(contract.value).toLocaleString('en-IN')}</span>
+                        <span className="font-semibold text-foreground">
+                          {canViewFinancials ? `₹${Number(contract.value).toLocaleString('en-IN')}` : '••••••'}
+                        </span>
                       </div>
                       <div className="flex items-center gap-1.5 text-sm">
                         <Calendar className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />

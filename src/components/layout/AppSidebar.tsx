@@ -35,6 +35,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
+import { useWorkspaceUser } from '@/hooks/useWorkspaceUser';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import clientraLogoLight from '@/assets/clientra-light.svg';
 import clientraLogoDark from '@/assets/clientra-dark.svg';
@@ -54,6 +55,7 @@ export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { role, isTeamMember } = useWorkspaceUser();
   const collapsed = state === 'collapsed';
 
   const handleSignOut = async () => {
@@ -184,6 +186,9 @@ export function AppSidebar() {
               <div className="px-2 py-1.5">
                 <p className="text-sm font-medium text-foreground">{getUserName()}</p>
                 <p className="text-xs text-muted-foreground">{user.email}</p>
+                {isTeamMember && (
+                  <p className="mt-0.5 text-xs capitalize text-primary">{role} access</p>
+                )}
               </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
