@@ -23,11 +23,95 @@ interface NotificationEmailRequest {
     | "proposal_change_requested"
     | "contract_created"
     | "contract_sent"
-    | "team_invite";
+    | "team_invite"
+    | "invoice_sent"
+    | "invoice_overdue";
   recipientEmail: string;
   recipientName: string;
   data: Record<string, any>;
   ccEmails?: string[];
+}
+
+function buildInvoiceEmail(
+  recipientName: string,
+  data: Record<string, any>
+): { subject: string; html: string } {
+  const isOverdue = data.isOverdue === true;
+  const headerLabel = isOverdue ? "⏰ Invoice Overdue" : "🧾 New Invoice";
+  const subject = isOverdue
+    ? `Overdue: Invoice ${data.invoiceNumber}`
+    : `Invoice ${data.invoiceNumber}`;
+
+  const formattedDueDate = data.dueDate
+    ? new Date(data.dueDate).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+    : null;
+
+  const fromName = data.senderCompany || data.senderName || "Your Team";
+
+  return {
+    subject,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #1f2937; margin: 0; padding: 0; background-color: #f3f4f6;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f3f4f6; padding: 32px 16px;">
+            <tr>
+              <td align="center">
+                <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 520px; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+                  <tr>
+                    <td style="background-color: ${isOverdue ? "#b45309" : "#111827"}; padding: 28px 32px;">
+                      <h1 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 600;">${headerLabel}</h1>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 32px;">
+                      <p style="margin: 0 0 20px; font-size: 15px; color: #374151;">Hi ${escapeHtml(recipientName || "")},</p>
+                      <table width="100%" cellpadding="0" cellspacing="0" style="background: #f9fafb; border-radius: 10px; border: 1px solid #e5e7eb; margin-bottom: 24px;">
+                        <tr>
+                          <td style="padding: 20px 24px;">
+                            <h2 style="margin: 0 0 16px; font-size: 17px; font-weight: 700; color: #111827;">Invoice ${escapeHtml(data.invoiceNumber || "")}</h2>
+                            ${data.totalAmount ? `
+                            <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 14px;">
+                              <tr><td style="font-size: 12px; text-transform: uppercase; color: #6b7280; font-weight: 600; padding-bottom: 4px;">Amount Due</td></tr>
+                              <tr><td style="font-size: 24px; font-weight: 700; color: #111827;">${escapeHtml(String(data.totalAmount))}</td></tr>
+                            </table>` : ""}
+                            ${formattedDueDate ? `
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                              <tr><td style="font-size: 12px; text-transform: uppercase; color: #6b7280; font-weight: 600; padding-bottom: 4px;">Due Date</td></tr>
+                              <tr><td style="font-size: 14px; color: #374151;">${escapeHtml(formattedDueDate)}</td></tr>
+                            </table>` : ""}
+                          </td>
+                        </tr>
+                      </table>
+                      ${isSafeHttpUrl(data.portalLink) ? `
+                      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
+                        <tr><td align="center">
+                          <a href="${escapeHtml(data.portalLink)}" style="display: inline-block; background-color: #111827; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 600; padding: 14px 32px; border-radius: 8px;">View Invoice →</a>
+                        </td></tr>
+                      </table>
+                      ${data.portalPassword ? `
+                      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 24px;">
+                        <tr><td align="center" style="font-size: 13px; color: #6b7280;">
+                          Access Password: <strong style="color: #111827; font-family: monospace; letter-spacing: 2px;">${escapeHtml(data.portalPassword)}</strong>
+                        </td></tr>
+                      </table>` : ""}
+                      ` : ""}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 20px 32px; border-top: 1px solid #e5e7eb; background: #f9fafb;">
+                      <p style="margin: 0; font-size: 13px; color: #9ca3af; text-align: center;">Sent by ${escapeHtml(fromName)}</p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+      </html>
+    `,
+  };
 }
 
 function buildProposalStatusEmail(
@@ -431,6 +515,48 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
       recipientEmail = normalizedEmail;
+    } else if (type === "invoice_sent" || type === "invoice_overdue") {
+      const invoiceId = data?.invoiceId;
+      if (!invoiceId) {
+        return new Response(
+          JSON.stringify({ success: false, error: "invoiceId is required" }),
+          { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+      const { data: invoiceRow, error: invoiceError } = await supabase
+        .from("invoices")
+        .select("client_id, user_id")
+        .eq("id", invoiceId)
+        .maybeSingle();
+      if (invoiceError || !invoiceRow) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Invoice not found or access denied" }),
+          { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+      const { data: invoiceRole } = await supabase.rpc("get_workspace_role", {
+        _user_id: user.id,
+        _owner_id: (invoiceRow as any).user_id,
+      });
+      if (invoiceRole === "viewer") {
+        return new Response(
+          JSON.stringify({ success: false, error: "You don't have permission to send this invoice" }),
+          { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+      const { data: clientRow, error: clientError } = await supabase
+        .from("clients")
+        .select("email, client_name, primary_contact_name")
+        .eq("id", invoiceRow.client_id)
+        .maybeSingle();
+      if (clientError || !clientRow?.email) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Client email not found" }),
+          { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+      recipientEmail = clientRow.email;
+      recipientName = clientRow.primary_contact_name || clientRow.client_name;
     }
 
     console.log(`Sending ${type} notification email to ${recipientEmail}`);
@@ -445,6 +571,8 @@ const handler = async (req: Request): Promise<Response> => {
       emailContent = buildContractEmail(recipientName, data);
     } else if (type === "team_invite") {
       emailContent = buildTeamInviteEmail(recipientName, data);
+    } else if (type === "invoice_sent" || type === "invoice_overdue") {
+      emailContent = buildInvoiceEmail(recipientName, { ...data, isOverdue: type === "invoice_overdue" });
     } else {
       emailContent = buildProposalStatusEmail(type, recipientName, data);
     }

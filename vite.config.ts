@@ -22,6 +22,10 @@ export default defineConfig(({ mode }) => {
         workbox: {
           navigateFallbackDenylist: [/^\/~oauth/],
           globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+          // Main bundle has grown past the 2 MiB default as pages have been added
+          // without route-level code-splitting; raise the limit rather than fail
+          // the build. Splitting routes via React.lazy would be the real fix.
+          maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         },
         manifest: {
           name: "Clientra - Client Management",

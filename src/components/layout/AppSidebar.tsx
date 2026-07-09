@@ -5,6 +5,7 @@ import {
   FolderKanban,
   FileText,
   FileSignature,
+  Receipt,
   FileCode,
   ClipboardList,
   ChevronLeft,
@@ -47,6 +48,7 @@ const menuItems = [
   { title: 'Projects', url: '/projects', icon: FolderKanban },
   { title: 'Proposals', url: '/proposals', icon: FileText },
   { title: 'Contracts', url: '/contracts', icon: FileSignature },
+  { title: 'Invoices', url: '/invoices', icon: Receipt },
   { title: 'Templates', url: '/templates', icon: FileCode },
 ];
 

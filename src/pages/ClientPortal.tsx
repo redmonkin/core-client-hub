@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { replacePlaceholders, ProposalData } from '@/lib/proposal-utils';
+import { replacePlaceholders, ProposalData, buildCostTableHtml } from '@/lib/proposal-utils';
 import { exportToPdf } from '@/lib/pdf-export';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -56,11 +56,29 @@ type TemplateData = {
   name: string;
 } | null;
 
+type PortalInvoice = {
+  id: string;
+  invoice_number: string;
+  status: string;
+  currency: string;
+  cost_breakdown: string | null;
+  due_date: string | null;
+  issued_date: string;
+  notes: string | null;
+  total_amount: number | null;
+  amount_paid: number | null;
+  client_name: string | null;
+  company_name: string | null;
+  client_email: string | null;
+  client_address: string | null;
+};
+
 export default function ClientPortal() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   
   const [proposal, setProposal] = useState<PortalProposal | null>(null);
+  const [invoice, setInvoice] = useState<PortalInvoice | null>(null);
   const [branding, setBranding] = useState<BrandingSettings | null>(null);
   const [template, setTemplate] = useState<TemplateData>(null);
   const [loading, setLoading] = useState(true);
@@ -71,7 +89,7 @@ export default function ClientPortal() {
   const [confirmAction, setConfirmAction] = useState<'approve' | 'reject' | 'request_changes' | null>(null);
   const [changeNotes, setChangeNotes] = useState('');
   const [signatureName, setSignatureName] = useState('');
-  const [documentType, setDocumentType] = useState<'proposal' | 'contract'>('proposal');
+  const [documentType, setDocumentType] = useState<'proposal' | 'contract' | 'invoice'>('proposal');
   
   // Password gate state
   const [passwordRequired, setPasswordRequired] = useState(false);
@@ -124,9 +142,13 @@ export default function ClientPortal() {
       
       if (!response.ok) throw new Error(result.error || 'Failed to load proposal');
       
-      setProposal(result.proposal);
+      if (result.document_type === 'invoice') {
+        setInvoice(result.invoice);
+      } else {
+        setProposal(result.proposal);
+        setTemplate(result.template);
+      }
       setBranding(result.branding);
-      setTemplate(result.template);
       setDocumentType(result.document_type || 'proposal');
       setAuthenticated(true);
       setPasswordRequired(false);
@@ -264,6 +286,91 @@ export default function ClientPortal() {
             </form>
           </CardContent>
         </Card>
+      </div>
+    );
+  }
+
+  if (documentType === 'invoice') {
+    if (!invoice) return null;
+
+    const { tableHtml } = buildCostTableHtml(invoice.cost_breakdown || '{}');
+    const formatCurrency = (amount: number) =>
+      new Intl.NumberFormat('en-IN', { style: 'currency', currency: invoice.currency || 'INR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(amount);
+
+    const handleExportInvoicePdf = async () => {
+      setIsExporting(true);
+      const toastId = toast.loading('Generating PDF...');
+      try {
+        const html = `
+          <div style="font-family: Poppins, sans-serif; padding: 32px; max-width: 700px;">
+            <h1 style="font-size: 24px; margin-bottom: 4px;">Invoice ${invoice.invoice_number}</h1>
+            <p style="color: #6b7280; margin-bottom: 24px;">Issued ${format(new Date(invoice.issued_date), 'MMMM d, yyyy')}${invoice.due_date ? ` &middot; Due ${format(new Date(invoice.due_date), 'MMMM d, yyyy')}` : ''}</p>
+            <p style="font-weight: 600; margin-bottom: 4px;">Bill to</p>
+            <p style="margin-bottom: 24px;">${invoice.client_name || ''}${invoice.company_name ? ` (${invoice.company_name})` : ''}</p>
+            ${tableHtml}
+            ${invoice.total_amount != null ? `<p style="text-align: right; font-size: 18px; font-weight: 700; margin-top: 16px;">Total: ${formatCurrency(invoice.total_amount)}</p>` : ''}
+            ${invoice.notes ? `<p style="margin-top: 24px; color: #6b7280;">${invoice.notes}</p>` : ''}
+          </div>
+        `;
+        await exportToPdf(html, `${invoice.invoice_number}.pdf`);
+        toast.success('PDF downloaded successfully', { id: toastId });
+      } catch {
+        toast.error('Failed to generate PDF', { id: toastId });
+      } finally {
+        setIsExporting(false);
+      }
+    };
+
+    return (
+      <div className="min-h-screen" style={{ background: `linear-gradient(180deg, ${primaryColor}06 0%, #ffffff 40%)` }}>
+        <div className="mx-auto max-w-2xl px-4 py-10">
+          {branding?.company_name && (
+            <p className="mb-6 text-center text-sm font-medium text-muted-foreground">{branding.company_name}</p>
+          )}
+          <Card className="shadow-lg">
+            <CardContent className="space-y-6 p-8">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h1 className="text-2xl font-bold text-foreground">Invoice {invoice.invoice_number}</h1>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Issued {format(new Date(invoice.issued_date), 'MMMM d, yyyy')}
+                    {invoice.due_date && ` · Due ${format(new Date(invoice.due_date), 'MMMM d, yyyy')}`}
+                  </p>
+                </div>
+                <span className="rounded-full px-3 py-1 text-xs font-medium capitalize" style={{ background: `${primaryColor}15`, color: primaryColor }}>
+                  {invoice.status}
+                </span>
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Bill to</p>
+                <p className="mt-1 text-sm text-foreground">{invoice.client_name}{invoice.company_name ? ` (${invoice.company_name})` : ''}</p>
+              </div>
+
+              {invoice.cost_breakdown && (
+                <div
+                  className="overflow-x-auto text-sm [&_table]:w-full"
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(tableHtml) }}
+                />
+              )}
+
+              {invoice.total_amount != null && (
+                <div className="flex justify-end border-t pt-4">
+                  <p className="text-lg font-bold text-foreground">Total: {formatCurrency(invoice.total_amount)}</p>
+                </div>
+              )}
+
+              {invoice.notes && (
+                <p className="whitespace-pre-wrap text-sm text-muted-foreground">{invoice.notes}</p>
+              )}
+
+              <Button onClick={handleExportInvoicePdf} disabled={isExporting} className="w-full" style={{ backgroundColor: primaryColor }}>
+                {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                Download PDF
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }

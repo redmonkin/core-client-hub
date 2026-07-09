@@ -8,7 +8,7 @@ import { useTemplates, Template } from '@/hooks/useTemplates';
 import {
   ArrowLeft, Loader2, FileSignature, Clock, CheckCircle2, XCircle,
   Send, PenLine, MessageSquare, Mail, Eye, Pencil, LinkIcon, Copy,
-  MoreVertical, Users, Calendar, RefreshCw, AlertTriangle, FileText, Ban,
+  MoreVertical, Users, Calendar, RefreshCw, AlertTriangle, FileText, Ban, Receipt,
 } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -593,6 +593,12 @@ export default function ContractDetail() {
               <DropdownMenuItem onClick={handleShareLink}>
                 <LinkIcon className="mr-2 h-4 w-4" />
                 Share Link
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to={`/invoices?contractId=${contract.id}`}>
+                  <Receipt className="mr-2 h-4 w-4" />
+                  Generate Invoice
+                </Link>
               </DropdownMenuItem>
               {['approved', 'active', 'pending-renewal'].includes(contract.status) && (
                 <DropdownMenuItem onClick={() => setIsEndDialogOpen(true)}>

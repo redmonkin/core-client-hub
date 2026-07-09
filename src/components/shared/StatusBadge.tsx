@@ -5,7 +5,7 @@ type StatusType =
   | 'active' | 'archived' 
   | 'proposal' | 'planned' | 'on-hold' | 'completed' | 'cancelled' | 'maintenance' | 'new-request'
   | 'draft' | 'sent' | 'approved' | 'rejected' | 'change_requested'
-  | 'expired' | 'pending-renewal' | 'pending-review' | 'ended';
+  | 'expired' | 'pending-renewal' | 'pending-review' | 'ended' | 'paid' | 'void';
 
 interface StatusBadgeProps {
   status: StatusType;
@@ -31,6 +31,8 @@ const statusConfig: Record<StatusType, { label: string; variant: 'default' | 'se
   'pending-renewal': { label: 'Pending Renewal', variant: 'secondary' },
   'pending-review': { label: 'Pending Review', variant: 'outline' },
   ended: { label: 'Ended', variant: 'secondary' },
+  paid: { label: 'Paid', variant: 'default' },
+  void: { label: 'Void', variant: 'outline' },
 };
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {

@@ -405,6 +405,166 @@ export type Database = {
           },
         ]
       }
+      invoice_access_tokens: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          invoice_id: string
+          password_hash: string | null
+          token: string
+          viewed_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          invoice_id: string
+          password_hash?: string | null
+          token: string
+          viewed_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          invoice_id?: string
+          password_hash?: string | null
+          token?: string
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_access_tokens_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_amounts: {
+        Row: {
+          amount_paid: number
+          invoice_id: string
+          total_amount: number
+        }
+        Insert: {
+          amount_paid?: number
+          invoice_id: string
+          total_amount?: number
+        }
+        Update: {
+          amount_paid?: number
+          invoice_id?: string
+          total_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_amounts_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: true
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          client_id: string
+          contract_id: string | null
+          cost_breakdown: string | null
+          created_at: string
+          currency: string
+          due_date: string | null
+          id: string
+          invoice_number: string
+          issued_date: string
+          notes: string | null
+          paid_at: string | null
+          payment_provider: string | null
+          payment_reference: string | null
+          project_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          contract_id?: string | null
+          cost_breakdown?: string | null
+          created_at?: string
+          currency?: string
+          due_date?: string | null
+          id?: string
+          invoice_number: string
+          issued_date?: string
+          notes?: string | null
+          paid_at?: string | null
+          payment_provider?: string | null
+          payment_reference?: string | null
+          project_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          contract_id?: string | null
+          cost_breakdown?: string | null
+          created_at?: string
+          currency?: string
+          due_date?: string | null
+          id?: string
+          invoice_number?: string
+          issued_date?: string
+          notes?: string | null
+          paid_at?: string | null
+          payment_provider?: string | null
+          payment_reference?: string | null
+          project_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "public_portfolio_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "public_portfolio_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_preferences: {
         Row: {
           contract_renewal: boolean
@@ -1031,6 +1191,10 @@ export type Database = {
       }
     }
     Functions: {
+      can_view_financials: {
+        Args: { _owner_id: string; _user_id: string }
+        Returns: boolean
+      }
       get_accessible_user_ids: { Args: { _user_id: string }; Returns: string[] }
       get_owner_id: { Args: { _user_id: string }; Returns: string }
       get_team_roster: {

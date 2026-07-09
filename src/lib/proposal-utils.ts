@@ -163,6 +163,35 @@ export function buildCostTableHtml(costBreakdownJson: string): { tableHtml: stri
 }
 
 /**
+ * Grand total across all plans as a raw number. Use this instead of parsing
+ * buildCostTableHtml's `totalAmount` string when a numeric value is needed —
+ * that string is formatted for display (e.g. "Plan 1: ₹1,000 • Plan 2: ₹2,000"
+ * for multi-plan breakdowns) and isn't safe to strip/parse back into a number.
+ */
+export function getCostBreakdownTotal(costBreakdownJson: string): number {
+  try {
+    const data = JSON.parse(costBreakdownJson);
+
+    let plans: CostPlanLike[] = [];
+    if (Array.isArray(data?.plans) && data.plans.length > 0) {
+      plans = data.plans;
+    } else if (Array.isArray(data?.items)) {
+      plans = [{
+        name: 'Plan 1',
+        items: data.items,
+        additionalDiscount: data.additionalDiscount,
+        taxRate: data.taxRate,
+        notes: data.notes,
+      }];
+    }
+
+    return plans.reduce((sum, p) => sum + buildSinglePlanHtml(p, { showHeading: false }).total, 0);
+  } catch {
+    return 0;
+  }
+}
+
+/**
  * Once a proposal/contract has been sent, its `content` column holds a frozen
  * snapshot of the template body at send time, so later template edits don't
  * retroactively change what was already shared with (or signed by) the client.

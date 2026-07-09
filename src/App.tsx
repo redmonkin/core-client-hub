@@ -15,6 +15,7 @@ import Proposals from "./pages/Proposals";
 import ProposalDetail from "./pages/ProposalDetail";
 import Contracts from "./pages/Contracts";
 import ContractDetail from "./pages/ContractDetail";
+import Invoices from "./pages/Invoices";
 import Templates from "./pages/Templates";
 import Briefs from "./pages/Briefs";
 import Settings from "./pages/Settings";
@@ -184,6 +185,16 @@ const App = () => (
               <ProtectedRoute>
                 <AppLayout>
                   <ContractDetail />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/invoices"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <Invoices />
                 </AppLayout>
               </ProtectedRoute>
             }

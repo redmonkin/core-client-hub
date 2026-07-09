@@ -49,9 +49,9 @@ const handler = async (req: Request): Promise<Response> => {
 
       console.log(`Fetching document for token: ${token.substring(0, 8)}...`);
 
-      // Try proposal_access_tokens first
+      // Try proposal_access_tokens, then contract_access_tokens, then invoice_access_tokens
       let accessToken: any = null;
-      let documentType: "proposal" | "contract" = "proposal";
+      let documentType: "proposal" | "contract" | "invoice" = "proposal";
 
       const { data: proposalToken, error: proposalTokenError } = await supabase
         .from("proposal_access_tokens")
@@ -83,6 +83,23 @@ const handler = async (req: Request): Promise<Response> => {
         if (contractToken) {
           accessToken = contractToken;
           documentType = "contract";
+        } else {
+          // Try invoice_access_tokens
+          const { data: invoiceToken, error: invoiceTokenError } = await supabase
+            .from("invoice_access_tokens")
+            .select("*")
+            .eq("token", token)
+            .maybeSingle();
+
+          if (invoiceTokenError) {
+            console.error("Invoice token lookup error:", invoiceTokenError);
+            throw invoiceTokenError;
+          }
+
+          if (invoiceToken) {
+            accessToken = invoiceToken;
+            documentType = "invoice";
+          }
         }
       }
 
@@ -175,7 +192,7 @@ const handler = async (req: Request): Promise<Response> => {
           }),
           { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
-      } else {
+      } else if (documentType === "contract") {
         // --- CONTRACT FLOW ---
         const { data: contract, error: contractError } = await supabase
           .from("contracts")
@@ -263,6 +280,64 @@ const handler = async (req: Request): Promise<Response> => {
           }),
           { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
+      } else {
+        // --- INVOICE FLOW (view + PDF only, no payment/approval actions) ---
+        const { data: invoice, error: invoiceError } = await supabase
+          .from("invoices")
+          .select(`id, invoice_number, status, currency, cost_breakdown, due_date, issued_date, notes, client_id, user_id`)
+          .eq("id", accessToken.invoice_id)
+          .single();
+
+        if (invoiceError) { console.error("Invoice lookup error:", invoiceError); throw invoiceError; }
+
+        const { data: client } = await supabase
+          .from("clients")
+          .select("client_name, company_name, email, phone, designation, billing_address")
+          .eq("id", invoice.client_id)
+          .single();
+
+        const { data: branding } = await supabase
+          .from("branding_settings")
+          .select("company_name, company_logo_url, primary_color, accent_color, tagline, website_url, support_email")
+          .eq("user_id", invoice.user_id)
+          .maybeSingle();
+
+        // Service-role client bypasses RLS, so the can_view_financials gate on
+        // invoice_amounts doesn't apply here — that's fine, this is the client's
+        // own invoice amount, not a restricted team member's view.
+        const { data: amounts } = await supabase
+          .from("invoice_amounts")
+          .select("total_amount, amount_paid")
+          .eq("invoice_id", invoice.id)
+          .maybeSingle();
+
+        if (!accessToken.viewed_at) {
+          await supabase.from("invoice_access_tokens").update({ viewed_at: new Date().toISOString() }).eq("id", accessToken.id);
+        }
+
+        return new Response(
+          JSON.stringify({
+            success: true, document_type: "invoice",
+            invoice: {
+              id: invoice.id,
+              invoice_number: invoice.invoice_number,
+              status: invoice.status,
+              currency: invoice.currency,
+              cost_breakdown: invoice.cost_breakdown,
+              due_date: invoice.due_date,
+              issued_date: invoice.issued_date,
+              notes: invoice.notes,
+              total_amount: amounts?.total_amount ?? null,
+              amount_paid: amounts?.amount_paid ?? null,
+              client_name: client?.client_name,
+              company_name: client?.company_name,
+              client_email: client?.email,
+              client_address: client?.billing_address,
+            },
+            branding: branding || null,
+          }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
       }
     }
 
@@ -278,12 +353,16 @@ const handler = async (req: Request): Promise<Response> => {
 
       // Look up access token
       let accessToken: any = null;
-      let documentType: "proposal" | "contract" = "proposal";
+      let documentType: "proposal" | "contract" | "invoice" = "proposal";
       const { data: pToken } = await supabase.from("proposal_access_tokens").select("*").eq("token", token).maybeSingle();
       if (pToken) { accessToken = pToken; documentType = "proposal"; }
       else {
         const { data: cToken } = await supabase.from("contract_access_tokens").select("*").eq("token", token).maybeSingle();
         if (cToken) { accessToken = cToken; documentType = "contract"; }
+        else {
+          const { data: iToken } = await supabase.from("invoice_access_tokens").select("*").eq("token", token).maybeSingle();
+          if (iToken) { accessToken = iToken; documentType = "invoice"; }
+        }
       }
 
       if (!accessToken) {
@@ -308,7 +387,42 @@ const handler = async (req: Request): Promise<Response> => {
       const internalUrl = new URL(req.url);
       internalUrl.searchParams.set("ph", computedHash);
       // Fetch document data directly
-      if (documentType === "proposal") {
+      if (documentType === "invoice") {
+        const { data: invoice, error: invoiceError } = await supabase
+          .from("invoices")
+          .select("id, invoice_number, status, currency, cost_breakdown, due_date, issued_date, notes, client_id, user_id")
+          .eq("id", accessToken.invoice_id)
+          .single();
+        if (invoiceError || !invoice) {
+          return new Response(JSON.stringify({ error: "Invoice not found" }), { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } });
+        }
+        const { data: client } = await supabase.from("clients").select("client_name, company_name, email, phone, designation, billing_address").eq("id", invoice.client_id).single();
+        const { data: branding } = await supabase.from("branding_settings").select("*").eq("user_id", invoice.user_id).maybeSingle();
+        const { data: amounts } = await supabase.from("invoice_amounts").select("total_amount, amount_paid").eq("invoice_id", invoice.id).maybeSingle();
+        if (!accessToken.viewed_at) {
+          await supabase.from("invoice_access_tokens").update({ viewed_at: new Date().toISOString() }).eq("id", accessToken.id);
+        }
+        return new Response(JSON.stringify({
+          document_type: documentType,
+          invoice: {
+            id: invoice.id,
+            invoice_number: invoice.invoice_number,
+            status: invoice.status,
+            currency: invoice.currency,
+            cost_breakdown: invoice.cost_breakdown,
+            due_date: invoice.due_date,
+            issued_date: invoice.issued_date,
+            notes: invoice.notes,
+            total_amount: amounts?.total_amount ?? null,
+            amount_paid: amounts?.amount_paid ?? null,
+            client_name: client?.client_name,
+            company_name: client?.company_name,
+            client_email: client?.email,
+            client_address: client?.billing_address,
+          },
+          branding: branding || null,
+        }), { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } });
+      } else if (documentType === "proposal") {
         const { data: proposal, error: proposalError } = await supabase
           .from("proposals")
           .select("id, title, scope_of_work, cost_breakdown, validity_date, status, client_id, project_id, user_id, created_at, customer_goals, duration, template_id, content")
