@@ -193,11 +193,15 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
   const { data: timesheets = [], isLoading } = useQuery({
     queryKey: ['timesheets', projectId],
     queryFn: async () => {
+      // `date` has no time component, so entries on the same day need a real
+      // timestamp as a tiebreaker -- otherwise same-day rows come back in an
+      // undefined order instead of most-recently-created first.
       const { data, error } = await supabase
         .from('timesheets')
         .select('*')
         .eq('project_id', projectId)
-        .order('date', { ascending: false });
+        .order('date', { ascending: false })
+        .order('created_at', { ascending: false });
       if (error) throw error;
       return data;
     },
