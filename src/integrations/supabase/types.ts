@@ -613,6 +613,8 @@ export type Database = {
           proposal_approved: boolean
           proposal_rejected: boolean
           proposal_viewed: boolean
+          task_assigned: boolean
+          task_completed: boolean
           updated_at: string
           user_id: string
         }
@@ -624,6 +626,8 @@ export type Database = {
           proposal_approved?: boolean
           proposal_rejected?: boolean
           proposal_viewed?: boolean
+          task_assigned?: boolean
+          task_completed?: boolean
           updated_at?: string
           user_id: string
         }
@@ -635,6 +639,8 @@ export type Database = {
           proposal_approved?: boolean
           proposal_rejected?: boolean
           proposal_viewed?: boolean
+          task_assigned?: boolean
+          task_completed?: boolean
           updated_at?: string
           user_id?: string
         }
@@ -1065,9 +1071,11 @@ export type Database = {
       }
       timesheets: {
         Row: {
+          assignee_user_id: string | null
           created_at: string
           date: string
-          duration: number
+          due_date: string | null
+          duration: number | null
           id: string
           notes: string | null
           owner: string
@@ -1078,9 +1086,11 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          assignee_user_id?: string | null
           created_at?: string
           date?: string
-          duration?: number
+          due_date?: string | null
+          duration?: number | null
           id?: string
           notes?: string | null
           owner: string
@@ -1091,9 +1101,11 @@ export type Database = {
           user_id: string
         }
         Update: {
+          assignee_user_id?: string | null
           created_at?: string
           date?: string
-          duration?: number
+          due_date?: string | null
+          duration?: number | null
           id?: string
           notes?: string | null
           owner?: string

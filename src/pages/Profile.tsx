@@ -32,6 +32,8 @@ interface NotificationPreferences {
   proposal_rejected: boolean;
   contract_renewal: boolean;
   comment_added: boolean;
+  task_assigned: boolean;
+  task_completed: boolean;
 }
 
 const defaultPreferences: NotificationPreferences = {
@@ -40,6 +42,8 @@ const defaultPreferences: NotificationPreferences = {
   proposal_rejected: true,
   contract_renewal: true,
   comment_added: true,
+  task_assigned: true,
+  task_completed: true,
 };
 
 export default function Profile() {
@@ -392,6 +396,18 @@ export default function Profile() {
       label: "New Comment",
       description: "Get notified when a client comments on a proposal, contract, or invoice",
       icon: Bell,
+    },
+    {
+      key: "task_assigned" as const,
+      label: "Task Assigned",
+      description: "Get notified when a timesheet task is assigned to you",
+      icon: CheckCircle2,
+    },
+    {
+      key: "task_completed" as const,
+      label: "Task Completed",
+      description: "Get notified when a team member completes an assigned task",
+      icon: CheckCircle,
     },
   ];
 
