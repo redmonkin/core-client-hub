@@ -67,7 +67,7 @@ export default function Dashboard() {
   const isLoading = isLoadingClients || isLoadingProjects || isLoadingProposals || isLoadingContracts;
 
   const activeClients = clients.filter(c => c.status === 'active').length;
-  const activeProjects = projects.filter(p => p.status === 'active').length;
+  const activeProjects = projects.filter(p => p.status === 'active' || p.status === 'maintenance').length;
   const pendingProposals = proposals.filter(p => p.status === 'sent').length;
 
   const upcomingRenewals = contracts
