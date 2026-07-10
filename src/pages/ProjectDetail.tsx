@@ -1,10 +1,11 @@
 import { useParams, Link } from 'react-router-dom';
 import { useState, useRef } from 'react';
-import { ArrowLeft, Calendar, FolderKanban, FileText, FileSignature, Building2, Clock, StickyNote, Star, StarOff, Upload, Image as ImageIcon, Loader2, X } from 'lucide-react';
+import { ArrowLeft, Calendar, FolderKanban, FileText, FileSignature, Receipt, Files, Building2, Clock, StickyNote, Star, StarOff, Upload, Image as ImageIcon, Loader2, X } from 'lucide-react';
 
 import { format } from 'date-fns';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useWorkspaceUser } from '@/hooks/useWorkspaceUser';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -16,11 +17,31 @@ import { ProjectTimesheets } from '@/components/timesheets/ProjectTimesheets';
 import { ProjectNotes } from '@/components/notes/ProjectNotes';
 import { toast } from 'sonner';
 
+const formatCurrency = (amount: number): string =>
+  new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(amount);
+
+const CONTRACT_TYPE_LABELS: Record<string, string> = {
+  amc: 'Annual Maintenance Contract',
+  retainer: 'Retainer Contract',
+  fixed: 'Fixed Contract',
+};
+
+type DocumentItem = {
+  id: string;
+  kind: 'proposal' | 'contract' | 'invoice';
+  title: string;
+  subtitle: string;
+  status: string;
+  href: string;
+  sortDate: string;
+};
+
 export default function ProjectDetail() {
   const { id } = useParams();
   const queryClient = useQueryClient();
   const featureImageRef = useRef<HTMLInputElement>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const { canViewFinancials } = useWorkspaceUser();
 
   const { data: project, isLoading } = useQuery({
     queryKey: ['project', id],
@@ -77,6 +98,77 @@ export default function ProjectDetail() {
     },
     enabled: !!id,
   });
+
+  const { data: projectInvoices = [] } = useQuery({
+    queryKey: ['project-invoices', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('invoices')
+        .select('*')
+        .eq('project_id', id!);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id,
+  });
+
+  const { data: invoiceAmounts = [] } = useQuery({
+    queryKey: ['project-invoice-amounts', id, projectInvoices.map((i) => i.id).join(',')],
+    queryFn: async () => {
+      const ids = projectInvoices.map((i) => i.id);
+      if (ids.length === 0) return [];
+      const { data, error } = await supabase.from('invoice_amounts').select('invoice_id, total_amount').in('invoice_id', ids);
+      if (error) throw error;
+      return data;
+    },
+    enabled: projectInvoices.length > 0,
+  });
+  const invoiceAmountById = new Map(invoiceAmounts.map((a) => [a.invoice_id, a.total_amount]));
+
+  // Unified "Documents" list — proposals, contracts, and invoices for this
+  // project, sorted together by recency rather than split across separate
+  // near-empty tabs (a project typically only has a handful of each).
+  const documents: DocumentItem[] = [
+    ...projectProposals.map((p): DocumentItem => ({
+      id: p.id,
+      kind: 'proposal',
+      title: p.title,
+      subtitle: p.validity_date ? `Valid until ${format(new Date(p.validity_date), 'MMM d, yyyy')}` : '',
+      status: p.status,
+      href: `/proposals/${p.id}`,
+      sortDate: p.created_at,
+    })),
+    ...projectContracts.map((c): DocumentItem => ({
+      id: c.id,
+      kind: 'contract',
+      title: CONTRACT_TYPE_LABELS[c.contract_type] || c.contract_type,
+      subtitle: `${canViewFinancials ? formatCurrency(Number(c.value)) : '••••••'} · ${format(new Date(c.start_date), 'MMM d')} – ${format(new Date(c.end_date), 'MMM d, yyyy')}`,
+      status: c.status,
+      href: `/contracts/${c.id}`,
+      sortDate: c.created_at,
+    })),
+    ...projectInvoices.map((inv): DocumentItem => {
+      const amount = invoiceAmountById.get(inv.id);
+      return {
+        id: inv.id,
+        kind: 'invoice',
+        title: `Invoice ${inv.invoice_number}`,
+        subtitle: [
+          canViewFinancials ? (amount != null ? formatCurrency(amount) : null) : '••••••',
+          inv.due_date ? `Due ${format(new Date(inv.due_date), 'MMM d, yyyy')}` : null,
+        ].filter(Boolean).join(' · '),
+        status: inv.status,
+        href: '/invoices',
+        sortDate: inv.created_at,
+      };
+    }),
+  ].sort((a, b) => new Date(b.sortDate).getTime() - new Date(a.sortDate).getTime());
+
+  const DOCUMENT_ICONS: Record<DocumentItem['kind'], typeof FileText> = {
+    proposal: FileText,
+    contract: FileSignature,
+    invoice: Receipt,
+  };
 
   const toggleFeatured = useMutation({
     mutationFn: async () => {
@@ -275,7 +367,7 @@ export default function ProjectDetail() {
 
       {/* Tabs */}
       <Tabs defaultValue="timesheets" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="timesheets" className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
             Timesheets
@@ -284,13 +376,9 @@ export default function ProjectDetail() {
             <StickyNote className="h-4 w-4" />
             Notes
           </TabsTrigger>
-          <TabsTrigger value="proposals" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Proposals ({projectProposals.length})
-          </TabsTrigger>
-          <TabsTrigger value="contracts" className="flex items-center gap-2">
-            <FileSignature className="h-4 w-4" />
-            Contracts ({projectContracts.length})
+          <TabsTrigger value="documents" className="flex items-center gap-2">
+            <Files className="h-4 w-4" />
+            Documents ({documents.length})
           </TabsTrigger>
         </TabsList>
 
@@ -302,56 +390,33 @@ export default function ProjectDetail() {
           <ProjectNotes projectId={id!} />
         </TabsContent>
 
-        <TabsContent value="proposals" className="mt-4">
+        <TabsContent value="documents" className="mt-4">
           <div className="space-y-3">
-            {projectProposals.map(proposal => (
-              <Link key={proposal.id} to="/proposals" className="block">
-                <Card className="transition-all hover:border-primary/20 hover:shadow-sm">
-                  <CardContent className="flex items-center justify-between p-4">
-                    <div>
-                      <p className="font-medium text-foreground hover:text-primary transition-colors">{proposal.title}</p>
-                    {proposal.validity_date && (
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        Valid until {format(new Date(proposal.validity_date), 'MMM dd, yyyy')}
-                      </p>
-                    )}
-                  </div>
-                    <StatusBadge status={proposal.status as any} />
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-            {projectProposals.length === 0 && (
-              <p className="py-8 text-center text-muted-foreground">No proposals linked to this project</p>
-            )}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="contracts" className="mt-4">
-          <div className="space-y-3">
-            {projectContracts.map(contract => (
-              <Link key={contract.id} to={`/contracts/${contract.id}`} className="block">
-                <Card className="transition-all hover:border-primary/20 hover:shadow-sm">
-                  <CardContent className="flex items-center justify-between p-4">
-                    <div>
-                      <p className="font-medium text-foreground hover:text-primary transition-colors">
-                        {contract.contract_type === 'amc' ? 'Annual Maintenance Contract' : contract.contract_type === 'retainer' ? 'Retainer Contract' : contract.contract_type === 'fixed' ? 'Fixed Contract' : contract.contract_type}
-                      </p>
-                    <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
-                      <span>₹{Number(contract.value).toLocaleString('en-IN')}</span>
-                      <span>•</span>
-                      <span>
-                        {format(new Date(contract.start_date), 'MMM dd, yyyy')} – {format(new Date(contract.end_date), 'MMM dd, yyyy')}
-                      </span>
-                    </div>
-                  </div>
-                    <StatusBadge status={contract.status as any} />
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-            {projectContracts.length === 0 && (
-              <p className="py-8 text-center text-muted-foreground">No contracts linked to this project</p>
+            {documents.map((doc) => {
+              const Icon = DOCUMENT_ICONS[doc.kind];
+              return (
+                <Link key={`${doc.kind}-${doc.id}`} to={doc.href} className="block">
+                  <Card className="transition-all hover:border-primary/20 hover:shadow-sm">
+                    <CardContent className="flex items-center justify-between gap-4 p-4">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                          <Icon className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate font-medium text-foreground hover:text-primary transition-colors">{doc.title}</p>
+                          {doc.subtitle && (
+                            <p className="mt-1 text-sm text-muted-foreground">{doc.subtitle}</p>
+                          )}
+                        </div>
+                      </div>
+                      <StatusBadge status={doc.status as any} />
+                    </CardContent>
+                  </Card>
+                </Link>
+              );
+            })}
+            {documents.length === 0 && (
+              <p className="py-8 text-center text-muted-foreground">No proposals, contracts, or invoices linked to this project</p>
             )}
           </div>
         </TabsContent>
