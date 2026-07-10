@@ -35,14 +35,25 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { CostBreakdownTable } from '@/components/proposals/CostBreakdownTable';
-import { buildCostTableHtml, getCostBreakdownTotal } from '@/lib/proposal-utils';
+import { InvoiceLineItems } from '@/components/invoices/InvoiceLineItems';
+import {
+  buildInvoiceLineItemsHtml, getInvoiceTotalFromJson, formatInvoiceCurrency, numberToIndianWords,
+  createEmptyInvoiceLineItem, escapeInvoiceHtml,
+} from '@/lib/invoice-utils';
 import { exportToPdf } from '@/lib/pdf-export';
 import { getOrCreateInvoicePortalAccess } from '@/lib/invoice-portal-access';
 import { toast } from 'sonner';
 
-const formatCurrency = (amount: number): string =>
-  new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(amount);
+const formatCurrency = formatInvoiceCurrency;
+
+const PAYMENT_TERMS = [
+  { value: 'net15', label: 'Net 15', days: 15 },
+  { value: 'net30', label: 'Net 30', days: 30 },
+  { value: 'net45', label: 'Net 45', days: 45 },
+  { value: 'net60', label: 'Net 60', days: 60 },
+  { value: 'custom', label: 'Custom', days: null },
+] as const;
+const PAYMENT_TERMS_LABELS: Record<string, string> = Object.fromEntries(PAYMENT_TERMS.map((t) => [t.value, t.label]));
 
 interface Invoice {
   id: string;
@@ -56,6 +67,7 @@ interface Invoice {
   cost_breakdown: string | null;
   due_date: string | null;
   issued_date: string;
+  payment_terms: string | null;
   paid_at: string | null;
   notes: string | null;
 }
@@ -64,19 +76,31 @@ interface InvoiceFormState {
   client_id: string;
   project_id: string;
   contract_id: string;
+  issued_date: string;
+  payment_terms: string;
   due_date: string;
   notes: string;
   cost_breakdown: string;
 }
 
+const todayIso = () => new Date().toISOString().split('T')[0];
+
 const emptyForm: InvoiceFormState = {
   client_id: '',
   project_id: '',
   contract_id: '',
+  issued_date: todayIso(),
+  payment_terms: 'net15',
   due_date: '',
   notes: '',
   cost_breakdown: '',
 };
+
+function addDays(dateStr: string, days: number): string {
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split('T')[0];
+}
 
 export default function Invoices() {
   const { user } = useAuth();
@@ -118,7 +142,7 @@ export default function Invoices() {
   const { data: clients = [] } = useQuery({
     queryKey: ['clients-list', workspaceUserId],
     queryFn: async () => {
-      const { data, error } = await supabase.from('clients').select('id, client_name, company_name').order('client_name');
+      const { data, error } = await supabase.from('clients').select('id, client_name, company_name, billing_address').order('client_name');
       if (error) throw error;
       return data;
     },
@@ -138,28 +162,43 @@ export default function Invoices() {
   const { data: contracts = [] } = useQuery({
     queryKey: ['contracts-list', workspaceUserId],
     queryFn: async () => {
-      const { data, error } = await supabase.from('contracts').select('id, contract_type, client_id, value').order('created_at', { ascending: false });
+      const { data, error } = await supabase.from('contracts').select('id, contract_type, client_id, project_id, value, start_date, end_date').order('created_at', { ascending: false });
       if (error) throw error;
       return data;
     },
     enabled: !!workspaceUserId,
   });
 
+  const { data: branding } = useQuery({
+    queryKey: ['branding-settings', workspaceUserId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('branding_settings').select('*').eq('user_id', workspaceUserId!).maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!workspaceUserId,
+  });
+
+  const { data: invoiceSettings } = useQuery({
+    queryKey: ['invoice-settings', workspaceUserId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('invoice_settings').select('*').eq('user_id', workspaceUserId!).maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!workspaceUserId,
+  });
+
+  const getProjectName = (projectId: string | null) => projects.find((p) => p.id === projectId)?.project_name;
   const getClient = (clientId: string) => clients.find((c) => c.id === clientId);
   const getClientName = (clientId: string) => {
     const c = getClient(clientId);
     return c?.client_name || c?.company_name || 'Unknown Client';
   };
 
-  const nextInvoiceNumber = () => {
-    const year = new Date().getFullYear();
-    const thisYear = invoices.filter((inv) => inv.invoice_number.includes(String(year)));
-    return `INV-${year}-${String(thisYear.length + 1).padStart(4, '0')}`;
-  };
-
   const openCreateDialog = () => {
     setEditingId(null);
-    setForm({ ...emptyForm });
+    setForm({ ...emptyForm, issued_date: todayIso(), due_date: addDays(todayIso(), 15) });
     setIsDialogOpen(true);
   };
 
@@ -169,11 +208,29 @@ export default function Invoices() {
       client_id: invoice.client_id,
       project_id: invoice.project_id || '',
       contract_id: invoice.contract_id || '',
+      issued_date: invoice.issued_date || todayIso(),
+      payment_terms: invoice.payment_terms || 'custom',
       due_date: invoice.due_date || '',
       notes: invoice.notes || '',
       cost_breakdown: invoice.cost_breakdown || '',
     });
     setIsDialogOpen(true);
+  };
+
+  const applyPaymentTerms = (term: string, issuedDate = form.issued_date) => {
+    const termDef = PAYMENT_TERMS.find((t) => t.value === term);
+    setForm((prev) => ({
+      ...prev,
+      payment_terms: term,
+      due_date: termDef?.days != null ? addDays(issuedDate || todayIso(), termDef.days) : prev.due_date,
+    }));
+  };
+
+  const contractLabel = (c: { contract_type: string; project_id: string | null; start_date: string; end_date: string }) => {
+    const projectName = getProjectName(c.project_id);
+    const typeLabel = c.contract_type === 'amc' ? 'AMC' : c.contract_type === 'retainer' ? 'Retainer' : c.contract_type === 'fixed' ? 'Fixed' : c.contract_type;
+    const dateRange = `${format(new Date(c.start_date), 'MMM yyyy')}–${format(new Date(c.end_date), 'MMM yyyy')}`;
+    return `${typeLabel} — ${projectName || 'No project'} (${dateRange})`;
   };
 
   const applyContractPrefill = (contractId: string) => {
@@ -186,8 +243,9 @@ export default function Invoices() {
       ...prev,
       contract_id: contractId,
       client_id: contract.client_id,
+      project_id: contract.project_id || prev.project_id,
       cost_breakdown: JSON.stringify({
-        items: [{ description: `${contract.contract_type} contract`, quantity: 1, unitPrice: contract.value || 0, discount: 0 }],
+        items: [{ ...createEmptyInvoiceLineItem(), description: `${contract.contract_type} contract`, quantity: 1, unit: 'fixed', unitPrice: contract.value || 0 }],
         additionalDiscount: 0,
         taxRate: 0,
         notes: '',
@@ -211,13 +269,15 @@ export default function Invoices() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!form.client_id) throw new Error('Client is required');
-      const numericTotal = getCostBreakdownTotal(form.cost_breakdown || '{}');
+      const numericTotal = getInvoiceTotalFromJson(form.cost_breakdown || '{}');
 
       if (editingId) {
         const { error } = await supabase.from('invoices').update({
           client_id: form.client_id,
           project_id: form.project_id || null,
           contract_id: form.contract_id || null,
+          issued_date: form.issued_date || todayIso(),
+          payment_terms: form.payment_terms || null,
           due_date: form.due_date || null,
           notes: form.notes || null,
           cost_breakdown: form.cost_breakdown || null,
@@ -234,38 +294,28 @@ export default function Invoices() {
         return editingId;
       }
 
-      // Retry on invoice_number collisions from concurrent creates by other
-      // team members (nextInvoiceNumber() is derived from a client-cached
-      // list, so it isn't guaranteed unique under concurrency).
-      let inserted: { id: string } | null = null;
-      for (let attempt = 0; attempt < 3 && !inserted; attempt++) {
-        const { data, error } = await supabase.from('invoices').insert({
-          user_id: workspaceUserId!,
-          client_id: form.client_id,
-          project_id: form.project_id || null,
-          contract_id: form.contract_id || null,
-          invoice_number: `${nextInvoiceNumber()}${attempt > 0 ? `-${attempt}` : ''}`,
-          due_date: form.due_date || null,
-          notes: form.notes || null,
-          cost_breakdown: form.cost_breakdown || null,
-        }).select('id').single();
-        if (error) {
-          if (error.code === '23505' && attempt < 2) continue;
-          throw error;
+      // Number allocation, the invoices insert, and the invoice_amounts insert
+      // all happen atomically in one server-side function so a failure partway
+      // through can't burn/skip an invoice number (see create_invoice migration).
+      const { data: invoiceId, error } = await supabase.rpc('create_invoice', {
+        _client_id: form.client_id,
+        _project_id: form.project_id || null,
+        _contract_id: form.contract_id || null,
+        _issued_date: form.issued_date || todayIso(),
+        _payment_terms: form.payment_terms || null,
+        _due_date: form.due_date || null,
+        _notes: form.notes || null,
+        _cost_breakdown: form.cost_breakdown || null,
+        _total_amount: canViewFinancials ? numericTotal : null,
+      });
+      if (error) {
+        if (error.message?.includes('permission denied')) {
+          throw new Error('You do not have permission to create invoices');
         }
-        inserted = data;
-      }
-      if (!inserted) throw new Error('Failed to create invoice');
-
-      if (canViewFinancials) {
-        const { error: amountError } = await supabase.from('invoice_amounts').insert({
-          invoice_id: inserted.id,
-          total_amount: numericTotal,
-        });
-        if (amountError) throw amountError;
+        throw error;
       }
 
-      return inserted.id;
+      return invoiceId as string;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
@@ -321,10 +371,12 @@ export default function Invoices() {
             invoiceId: sendingInvoice.id,
             invoiceNumber: sendingInvoice.invoice_number,
             totalAmount: amount ? formatCurrency(amount.total_amount) : null,
+            issuedDate: sendingInvoice.issued_date,
             dueDate: sendingInvoice.due_date,
             portalLink: portal.link,
             portalPassword: portal.password,
             senderName: user?.user_metadata?.full_name || null,
+            senderCompany: branding?.company_name || null,
           },
         },
       });
@@ -357,16 +409,70 @@ export default function Invoices() {
   const handleDownloadPdf = (invoice: Invoice) => {
     const client = getClient(invoice.client_id);
     const amount = amountsByInvoice.get(invoice.id);
-    const { tableHtml } = buildCostTableHtml(invoice.cost_breakdown || '{}');
+    const { tableHtml } = buildInvoiceLineItemsHtml(invoice.cost_breakdown, invoice.currency);
+    const balanceDue = amount ? amount.total_amount - amount.amount_paid : null;
+
+    const bankRows = [
+      invoiceSettings?.bank_account_name ? `<div>${escapeInvoiceHtml(invoiceSettings.bank_account_name)}</div>` : '',
+      invoiceSettings?.account_number ? `<div>Account: #${escapeInvoiceHtml(invoiceSettings.account_number)}</div>` : '',
+      invoiceSettings?.swift_code ? `<div>SWIFT: ${escapeInvoiceHtml(invoiceSettings.swift_code)}</div>` : '',
+      invoiceSettings?.ifsc_code ? `<div>IFSC: ${escapeInvoiceHtml(invoiceSettings.ifsc_code)}</div>` : '',
+      invoiceSettings?.pan ? `<div>PAN: ${escapeInvoiceHtml(invoiceSettings.pan)}</div>` : '',
+      invoiceSettings?.upi_id ? `<div>UPI: ${escapeInvoiceHtml(invoiceSettings.upi_id)}</div>` : '',
+    ].filter(Boolean).join('');
+
+    const termsItems = (invoiceSettings?.terms_and_conditions || '')
+      .split('\n').map((l) => l.trim()).filter(Boolean);
+
     const html = `
-      <div style="font-family: Poppins, sans-serif; padding: 32px; max-width: 700px;">
-        <h1 style="font-size: 24px; margin-bottom: 4px;">Invoice ${invoice.invoice_number}</h1>
-        <p style="color: #6b7280; margin-bottom: 24px;">Issued ${format(new Date(invoice.issued_date), 'MMMM d, yyyy')}${invoice.due_date ? ` &middot; Due ${format(new Date(invoice.due_date), 'MMMM d, yyyy')}` : ''}</p>
-        <p style="font-weight: 600; margin-bottom: 4px;">Bill to</p>
-        <p style="margin-bottom: 24px;">${client?.client_name || ''}${client?.company_name ? ` (${client.company_name})` : ''}</p>
-        ${tableHtml}
-        ${amount ? `<p style="text-align: right; font-size: 18px; font-weight: 700; margin-top: 16px;">Total: ${formatCurrency(amount.total_amount)}</p>` : ''}
-        ${invoice.notes ? `<p style="margin-top: 24px; color: #6b7280;">${invoice.notes}</p>` : ''}
+      <div style="font-family: Poppins, sans-serif; padding: 40px; max-width: 760px; color: #1f2937; font-size: 13px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div>
+            ${branding?.company_logo_url ? `<img src="${escapeInvoiceHtml(branding.company_logo_url)}" alt="Logo" style="max-height:56px; margin-bottom:8px;" />` : ''}
+            <div style="font-weight:700; font-size:16px;">${escapeInvoiceHtml(branding?.company_name || '')}</div>
+            ${branding?.company_address ? `<div style="color:#6b7280; white-space:pre-line; margin-top:4px;">${escapeInvoiceHtml(branding.company_address)}</div>` : ''}
+            ${branding?.support_email ? `<div style="color:#6b7280; margin-top:4px;">${escapeInvoiceHtml(branding.support_email)}</div>` : ''}
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:20px; font-weight:700;"># ${escapeInvoiceHtml(invoice.invoice_number)}</div>
+            <div style="margin-top:12px; color:#6b7280; font-size:11px; text-transform:uppercase; letter-spacing:0.5px;">Balance Due</div>
+            <div style="font-size:22px; font-weight:700; color:#c0392b;">${balanceDue != null ? formatCurrency(balanceDue, invoice.currency) : '—'}</div>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; margin-top:32px;">
+          <div>
+            <div style="font-weight:700; margin-bottom:4px;">${escapeInvoiceHtml(client?.client_name || '')}${client?.company_name ? ` (${escapeInvoiceHtml(client.company_name)})` : ''}</div>
+            ${client?.billing_address ? `<div style="color:#6b7280; white-space:pre-line;">${escapeInvoiceHtml(client.billing_address)}</div>` : ''}
+          </div>
+          <table style="font-size:13px;">
+            <tr><td style="padding:2px 12px 2px 0; color:#6b7280;">Invoice Date:</td><td style="padding:2px 0; text-align:right; font-weight:600;">${format(new Date(invoice.issued_date), 'dd/MM/yyyy')}</td></tr>
+            ${invoice.payment_terms ? `<tr><td style="padding:2px 12px 2px 0; color:#6b7280;">Terms:</td><td style="padding:2px 0; text-align:right; font-weight:600;">${escapeInvoiceHtml(PAYMENT_TERMS_LABELS[invoice.payment_terms] || invoice.payment_terms)}</td></tr>` : ''}
+            ${invoice.due_date ? `<tr><td style="padding:2px 12px 2px 0; color:#6b7280;">Due Date:</td><td style="padding:2px 0; text-align:right; font-weight:600;">${format(new Date(invoice.due_date), 'dd/MM/yyyy')}</td></tr>` : ''}
+          </table>
+        </div>
+
+        <div style="margin-top:24px;">${tableHtml}</div>
+
+        ${amount ? `<p style="text-align:right; margin-top:8px; color:#6b7280; font-size:12px;">Total In Words: <strong style="color:#1f2937;">Indian Rupee ${escapeInvoiceHtml(numberToIndianWords(amount.total_amount))} Only</strong></p>` : ''}
+
+        <p style="margin-top:32px; color:#374151;">Thank you for your business! Please make the payment by the due date noted above. ${escapeInvoiceHtml(invoiceSettings?.payment_instructions || '')}</p>
+
+        ${bankRows ? `
+        <div style="margin-top:16px;">
+          <div style="font-weight:700; margin-bottom:4px;">Bank Transfer Details</div>
+          <div style="color:#374151;">${bankRows}</div>
+        </div>` : ''}
+
+        ${invoice.notes ? `<p style="margin-top:16px; color:#6b7280;">${escapeInvoiceHtml(invoice.notes)}</p>` : ''}
+
+        ${termsItems.length > 0 ? `
+        <div style="margin-top:24px; padding-top:16px; border-top:1px solid #e5e7eb; font-size:11px; color:#6b7280;">
+          <div style="font-weight:700; margin-bottom:6px;">Terms and Conditions</div>
+          <ol style="margin:0; padding-left:18px;">
+            ${termsItems.map((t) => `<li style="margin-bottom:4px;">${escapeInvoiceHtml(t)}</li>`).join('')}
+          </ol>
+        </div>` : ''}
       </div>
     `;
     exportToPdf(html, `${invoice.invoice_number}.pdf`);
@@ -574,18 +680,43 @@ export default function Invoices() {
                 <SelectTrigger><SelectValue placeholder="Optional — pre-fills line items from a contract" /></SelectTrigger>
                 <SelectContent>
                   {clientContracts.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.contract_type} contract</SelectItem>
+                    <SelectItem key={c.id} value={c.id}>{contractLabel(c)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>Due Date</Label>
-              <Input type="date" value={form.due_date} onChange={(e) => setForm((prev) => ({ ...prev, due_date: e.target.value }))} />
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label>Invoice Date</Label>
+                <Input
+                  type="date"
+                  value={form.issued_date}
+                  onChange={(e) => {
+                    const issued_date = e.target.value;
+                    setForm((prev) => ({ ...prev, issued_date }));
+                    if (form.payment_terms !== 'custom') applyPaymentTerms(form.payment_terms, issued_date);
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Terms</Label>
+                <Select value={form.payment_terms} onValueChange={(value) => applyPaymentTerms(value)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {PAYMENT_TERMS.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Due Date</Label>
+                <Input type="date" value={form.due_date} onChange={(e) => setForm((prev) => ({ ...prev, due_date: e.target.value, payment_terms: 'custom' }))} />
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Line Items</Label>
-              <CostBreakdownTable
+              <InvoiceLineItems
                 value={form.cost_breakdown}
                 onChange={(value) => setForm((prev) => ({ ...prev, cost_breakdown: value }))}
               />

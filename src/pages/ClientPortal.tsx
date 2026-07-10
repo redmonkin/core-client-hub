@@ -9,7 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { replacePlaceholders, ProposalData, buildCostTableHtml } from '@/lib/proposal-utils';
+import { replacePlaceholders, ProposalData } from '@/lib/proposal-utils';
+import { buildInvoiceLineItemsHtml, formatInvoiceCurrency, numberToIndianWords, escapeInvoiceHtml } from '@/lib/invoice-utils';
 import { exportToPdf } from '@/lib/pdf-export';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -45,11 +46,24 @@ type PortalProposal = {
 type BrandingSettings = {
   company_name: string | null;
   company_logo_url: string | null;
+  company_address?: string | null;
   primary_color: string | null;
   accent_color: string | null;
   tagline: string | null;
   website_url: string | null;
   support_email: string | null;
+};
+
+type PortalInvoiceSettings = {
+  bank_account_name: string | null;
+  bank_name: string | null;
+  account_number: string | null;
+  ifsc_code: string | null;
+  swift_code: string | null;
+  pan: string | null;
+  upi_id: string | null;
+  payment_instructions: string | null;
+  terms_and_conditions: string | null;
 };
 
 type TemplateData = {
@@ -65,6 +79,7 @@ type PortalInvoice = {
   cost_breakdown: string | null;
   due_date: string | null;
   issued_date: string;
+  payment_terms: string | null;
   notes: string | null;
   total_amount: number | null;
   amount_paid: number | null;
@@ -80,6 +95,7 @@ export default function ClientPortal() {
   
   const [proposal, setProposal] = useState<PortalProposal | null>(null);
   const [invoice, setInvoice] = useState<PortalInvoice | null>(null);
+  const [invoiceSettings, setInvoiceSettings] = useState<PortalInvoiceSettings | null>(null);
   const [branding, setBranding] = useState<BrandingSettings | null>(null);
   const [template, setTemplate] = useState<TemplateData>(null);
   const [comments, setComments] = useState<{ id: string; author_type: string; author_name: string; content: string; created_at: string }[]>([]);
@@ -150,6 +166,7 @@ export default function ClientPortal() {
       
       if (result.document_type === 'invoice') {
         setInvoice(result.invoice);
+        setInvoiceSettings(result.invoiceSettings || null);
       } else {
         setProposal(result.proposal);
         setTemplate(result.template);
@@ -379,23 +396,74 @@ export default function ClientPortal() {
   if (documentType === 'invoice') {
     if (!invoice) return null;
 
-    const { tableHtml } = buildCostTableHtml(invoice.cost_breakdown || '{}');
-    const formatCurrency = (amount: number) =>
-      new Intl.NumberFormat('en-IN', { style: 'currency', currency: invoice.currency || 'INR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(amount);
+    const { tableHtml } = buildInvoiceLineItemsHtml(invoice.cost_breakdown, invoice.currency || 'INR');
+    const formatCurrency = (amount: number) => formatInvoiceCurrency(amount, invoice.currency || 'INR');
+    const balanceDue = invoice.total_amount != null ? invoice.total_amount - (invoice.amount_paid ?? 0) : null;
+    const paymentTermsLabel: Record<string, string> = { net15: 'Net 15', net30: 'Net 30', net45: 'Net 45', net60: 'Net 60', custom: 'Custom' };
 
     const handleExportInvoicePdf = async () => {
       setIsExporting(true);
       const toastId = toast.loading('Generating PDF...');
       try {
+        const bankRows = [
+          invoiceSettings?.bank_account_name ? `<div>${escapeInvoiceHtml(invoiceSettings.bank_account_name)}</div>` : '',
+          invoiceSettings?.account_number ? `<div>Account: #${escapeInvoiceHtml(invoiceSettings.account_number)}</div>` : '',
+          invoiceSettings?.swift_code ? `<div>SWIFT: ${escapeInvoiceHtml(invoiceSettings.swift_code)}</div>` : '',
+          invoiceSettings?.ifsc_code ? `<div>IFSC: ${escapeInvoiceHtml(invoiceSettings.ifsc_code)}</div>` : '',
+          invoiceSettings?.pan ? `<div>PAN: ${escapeInvoiceHtml(invoiceSettings.pan)}</div>` : '',
+          invoiceSettings?.upi_id ? `<div>UPI: ${escapeInvoiceHtml(invoiceSettings.upi_id)}</div>` : '',
+        ].filter(Boolean).join('');
+        const termsItems = (invoiceSettings?.terms_and_conditions || '').split('\n').map((l) => l.trim()).filter(Boolean);
+
         const html = `
-          <div style="font-family: Poppins, sans-serif; padding: 32px; max-width: 700px;">
-            <h1 style="font-size: 24px; margin-bottom: 4px;">Invoice ${invoice.invoice_number}</h1>
-            <p style="color: #6b7280; margin-bottom: 24px;">Issued ${format(new Date(invoice.issued_date), 'MMMM d, yyyy')}${invoice.due_date ? ` &middot; Due ${format(new Date(invoice.due_date), 'MMMM d, yyyy')}` : ''}</p>
-            <p style="font-weight: 600; margin-bottom: 4px;">Bill to</p>
-            <p style="margin-bottom: 24px;">${invoice.client_name || ''}${invoice.company_name ? ` (${invoice.company_name})` : ''}</p>
-            ${tableHtml}
-            ${invoice.total_amount != null ? `<p style="text-align: right; font-size: 18px; font-weight: 700; margin-top: 16px;">Total: ${formatCurrency(invoice.total_amount)}</p>` : ''}
-            ${invoice.notes ? `<p style="margin-top: 24px; color: #6b7280;">${invoice.notes}</p>` : ''}
+          <div style="font-family: Poppins, sans-serif; padding: 40px; max-width: 760px; color: #1f2937; font-size: 13px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+              <div>
+                ${branding?.company_logo_url ? `<img src="${escapeInvoiceHtml(branding.company_logo_url)}" alt="Logo" style="max-height:56px; margin-bottom:8px;" />` : ''}
+                <div style="font-weight:700; font-size:16px;">${escapeInvoiceHtml(branding?.company_name || '')}</div>
+                ${branding?.company_address ? `<div style="color:#6b7280; white-space:pre-line; margin-top:4px;">${escapeInvoiceHtml(branding.company_address)}</div>` : ''}
+                ${branding?.support_email ? `<div style="color:#6b7280; margin-top:4px;">${escapeInvoiceHtml(branding.support_email)}</div>` : ''}
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:20px; font-weight:700;"># ${escapeInvoiceHtml(invoice.invoice_number)}</div>
+                <div style="margin-top:12px; color:#6b7280; font-size:11px; text-transform:uppercase; letter-spacing:0.5px;">Balance Due</div>
+                <div style="font-size:22px; font-weight:700; color:#c0392b;">${balanceDue != null ? formatCurrency(balanceDue) : '—'}</div>
+              </div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; margin-top:32px;">
+              <div>
+                <div style="font-weight:700; margin-bottom:4px;">${escapeInvoiceHtml(invoice.client_name || '')}${invoice.company_name ? ` (${escapeInvoiceHtml(invoice.company_name)})` : ''}</div>
+                ${invoice.client_address ? `<div style="color:#6b7280; white-space:pre-line;">${escapeInvoiceHtml(invoice.client_address)}</div>` : ''}
+              </div>
+              <table style="font-size:13px;">
+                <tr><td style="padding:2px 12px 2px 0; color:#6b7280;">Invoice Date:</td><td style="padding:2px 0; text-align:right; font-weight:600;">${format(new Date(invoice.issued_date), 'dd/MM/yyyy')}</td></tr>
+                ${invoice.payment_terms ? `<tr><td style="padding:2px 12px 2px 0; color:#6b7280;">Terms:</td><td style="padding:2px 0; text-align:right; font-weight:600;">${escapeInvoiceHtml(paymentTermsLabel[invoice.payment_terms] || invoice.payment_terms)}</td></tr>` : ''}
+                ${invoice.due_date ? `<tr><td style="padding:2px 12px 2px 0; color:#6b7280;">Due Date:</td><td style="padding:2px 0; text-align:right; font-weight:600;">${format(new Date(invoice.due_date), 'dd/MM/yyyy')}</td></tr>` : ''}
+              </table>
+            </div>
+
+            <div style="margin-top:24px;">${tableHtml}</div>
+
+            ${invoice.total_amount != null ? `<p style="text-align:right; margin-top:8px; color:#6b7280; font-size:12px;">Total In Words: <strong style="color:#1f2937;">Indian Rupee ${escapeInvoiceHtml(numberToIndianWords(invoice.total_amount))} Only</strong></p>` : ''}
+
+            <p style="margin-top:32px; color:#374151;">Thank you for your business! Please make the payment by the due date noted above. ${escapeInvoiceHtml(invoiceSettings?.payment_instructions || '')}</p>
+
+            ${bankRows ? `
+            <div style="margin-top:16px;">
+              <div style="font-weight:700; margin-bottom:4px;">Bank Transfer Details</div>
+              <div style="color:#374151;">${bankRows}</div>
+            </div>` : ''}
+
+            ${invoice.notes ? `<p style="margin-top:16px; color:#6b7280;">${escapeInvoiceHtml(invoice.notes)}</p>` : ''}
+
+            ${termsItems.length > 0 ? `
+            <div style="margin-top:24px; padding-top:16px; border-top:1px solid #e5e7eb; font-size:11px; color:#6b7280;">
+              <div style="font-weight:700; margin-bottom:6px;">Terms and Conditions</div>
+              <ol style="margin:0; padding-left:18px;">
+                ${termsItems.map((t) => `<li style="margin-bottom:4px;">${escapeInvoiceHtml(t)}</li>`).join('')}
+              </ol>
+            </div>` : ''}
           </div>
         `;
         await exportToPdf(html, `${invoice.invoice_number}.pdf`);
@@ -440,9 +508,9 @@ export default function ClientPortal() {
                 />
               )}
 
-              {invoice.total_amount != null && (
+              {balanceDue != null && (
                 <div className="flex justify-end border-t pt-4">
-                  <p className="text-lg font-bold text-foreground">Total: {formatCurrency(invoice.total_amount)}</p>
+                  <p className="text-lg font-bold text-foreground">Balance Due: {formatCurrency(balanceDue)}</p>
                 </div>
               )}
 

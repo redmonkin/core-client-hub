@@ -37,16 +37,21 @@ function buildInvoiceEmail(
   data: Record<string, any>
 ): { subject: string; html: string } {
   const isOverdue = data.isOverdue === true;
-  const headerLabel = isOverdue ? "⏰ Invoice Overdue" : "🧾 New Invoice";
-  const subject = isOverdue
-    ? `Overdue: Invoice ${data.invoiceNumber}`
-    : `Invoice ${data.invoiceNumber}`;
-
-  const formattedDueDate = data.dueDate
-    ? new Date(data.dueDate).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
-    : null;
-
   const fromName = data.senderCompany || data.senderName || "Your Team";
+  const subject = isOverdue
+    ? `Payment Reminder: Invoice ${data.invoiceNumber} from ${fromName}`
+    : `Invoice ${data.invoiceNumber} from ${fromName}`;
+
+  const formatDate = (d: string | null | undefined) =>
+    d ? new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : null;
+
+  const formattedIssuedDate = formatDate(data.issuedDate);
+  const formattedDueDate = formatDate(data.dueDate);
+
+  const bannerColor = isOverdue ? "#b45309" : "#0284C5";
+  const greetingMessage = isOverdue
+    ? `This is a friendly reminder that invoice <strong>${escapeHtml(data.invoiceNumber || "")}</strong> for <strong>${escapeHtml(String(data.totalAmount || ""))}</strong> is now overdue. Please arrange payment at your earliest convenience.`
+    : `The following invoice has been raised for the services rendered. Please review the details below.`;
 
   return {
     subject,
@@ -60,34 +65,50 @@ function buildInvoiceEmail(
               <td align="center">
                 <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 520px; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
                   <tr>
-                    <td style="background-color: ${isOverdue ? "#b45309" : "#111827"}; padding: 28px 32px;">
-                      <h1 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 600;">${headerLabel}</h1>
+                    <td style="background-color: ${bannerColor}; padding: 32px; text-align: center;">
+                      <h1 style="color: #ffffff; margin: 0 0 6px; font-size: 22px; font-weight: 700;">${isOverdue ? "Payment Reminder" : "New Invoice"}</h1>
+                      <p style="color: #e0f2fe; margin: 0; font-size: 14px;">from ${escapeHtml(fromName)}</p>
                     </td>
                   </tr>
                   <tr>
                     <td style="padding: 32px;">
-                      <p style="margin: 0 0 20px; font-size: 15px; color: #374151;">Hi ${escapeHtml(recipientName || "")},</p>
+                      <p style="margin: 0 0 16px; font-size: 15px; color: #374151;">Hi ${escapeHtml(recipientName || "")},</p>
+                      <p style="margin: 0 0 24px; font-size: 15px; color: #374151;">${greetingMessage}</p>
+
                       <table width="100%" cellpadding="0" cellspacing="0" style="background: #f9fafb; border-radius: 10px; border: 1px solid #e5e7eb; margin-bottom: 24px;">
                         <tr>
                           <td style="padding: 20px 24px;">
-                            <h2 style="margin: 0 0 16px; font-size: 17px; font-weight: 700; color: #111827;">Invoice ${escapeHtml(data.invoiceNumber || "")}</h2>
                             ${data.totalAmount ? `
-                            <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 14px;">
+                            <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 16px;">
                               <tr><td style="font-size: 12px; text-transform: uppercase; color: #6b7280; font-weight: 600; padding-bottom: 4px;">Amount Due</td></tr>
-                              <tr><td style="font-size: 24px; font-weight: 700; color: #111827;">${escapeHtml(String(data.totalAmount))}</td></tr>
+                              <tr><td style="font-size: 26px; font-weight: 700; color: #111827;">${escapeHtml(String(data.totalAmount))}</td></tr>
                             </table>` : ""}
-                            ${formattedDueDate ? `
                             <table width="100%" cellpadding="0" cellspacing="0">
-                              <tr><td style="font-size: 12px; text-transform: uppercase; color: #6b7280; font-weight: 600; padding-bottom: 4px;">Due Date</td></tr>
-                              <tr><td style="font-size: 14px; color: #374151;">${escapeHtml(formattedDueDate)}</td></tr>
-                            </table>` : ""}
+                              <tr>
+                                <td style="width: 33%; vertical-align: top;">
+                                  <div style="font-size: 11px; text-transform: uppercase; color: #6b7280; font-weight: 600; padding-bottom: 4px;">Invoice No.</div>
+                                  <div style="font-size: 14px; color: #111827; font-weight: 600;">${escapeHtml(data.invoiceNumber || "")}</div>
+                                </td>
+                                ${formattedIssuedDate ? `
+                                <td style="width: 33%; vertical-align: top;">
+                                  <div style="font-size: 11px; text-transform: uppercase; color: #6b7280; font-weight: 600; padding-bottom: 4px;">Invoice Date</div>
+                                  <div style="font-size: 14px; color: #111827;">${escapeHtml(formattedIssuedDate)}</div>
+                                </td>` : ""}
+                                ${formattedDueDate ? `
+                                <td style="width: 33%; vertical-align: top;">
+                                  <div style="font-size: 11px; text-transform: uppercase; color: #6b7280; font-weight: 600; padding-bottom: 4px;">Due Date</div>
+                                  <div style="font-size: 14px; color: #111827;">${escapeHtml(formattedDueDate)}</div>
+                                </td>` : ""}
+                              </tr>
+                            </table>
                           </td>
                         </tr>
                       </table>
+
                       ${isSafeHttpUrl(data.portalLink) ? `
                       <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
                         <tr><td align="center">
-                          <a href="${escapeHtml(data.portalLink)}" style="display: inline-block; background-color: #111827; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 600; padding: 14px 32px; border-radius: 8px;">View Invoice →</a>
+                          <a href="${escapeHtml(data.portalLink)}" style="display: inline-block; background-color: #16a34a; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 700; padding: 14px 40px; border-radius: 8px;">VIEW INVOICE</a>
                         </td></tr>
                       </table>
                       ${data.portalPassword ? `
@@ -97,6 +118,9 @@ function buildInvoiceEmail(
                         </td></tr>
                       </table>` : ""}
                       ` : ""}
+
+                      <p style="margin: 24px 0 0; font-size: 14px; color: #374151;">Thank you for your business.</p>
+                      <p style="margin: 4px 0 0; font-size: 14px; color: #374151;">Regards,<br>${escapeHtml(fromName)}</p>
                     </td>
                   </tr>
                   <tr>

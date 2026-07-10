@@ -309,7 +309,7 @@ const handler = async (req: Request): Promise<Response> => {
         // --- INVOICE FLOW (view + PDF only, no payment/approval actions) ---
         const { data: invoice, error: invoiceError } = await supabase
           .from("invoices")
-          .select(`id, invoice_number, status, currency, cost_breakdown, due_date, issued_date, notes, client_id, user_id`)
+          .select(`id, invoice_number, status, currency, cost_breakdown, due_date, issued_date, payment_terms, notes, client_id, user_id`)
           .eq("id", accessToken.invoice_id)
           .single();
 
@@ -323,7 +323,13 @@ const handler = async (req: Request): Promise<Response> => {
 
         const { data: branding } = await supabase
           .from("branding_settings")
-          .select("company_name, company_logo_url, primary_color, accent_color, tagline, website_url, support_email")
+          .select("company_name, company_logo_url, company_address, primary_color, accent_color, tagline, website_url, support_email")
+          .eq("user_id", invoice.user_id)
+          .maybeSingle();
+
+        const { data: invoiceSettings } = await supabase
+          .from("invoice_settings")
+          .select("bank_account_name, bank_name, account_number, ifsc_code, swift_code, pan, upi_id, payment_instructions, terms_and_conditions")
           .eq("user_id", invoice.user_id)
           .maybeSingle();
 
@@ -351,6 +357,7 @@ const handler = async (req: Request): Promise<Response> => {
               cost_breakdown: invoice.cost_breakdown,
               due_date: invoice.due_date,
               issued_date: invoice.issued_date,
+              payment_terms: invoice.payment_terms,
               notes: invoice.notes,
               total_amount: amounts?.total_amount ?? null,
               amount_paid: amounts?.amount_paid ?? null,
@@ -360,6 +367,7 @@ const handler = async (req: Request): Promise<Response> => {
               client_address: client?.billing_address,
             },
             branding: branding || null,
+            invoiceSettings: invoiceSettings || null,
             comments: await getComments(supabase, "invoice", invoice.id),
           }),
           { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
@@ -416,7 +424,7 @@ const handler = async (req: Request): Promise<Response> => {
       if (documentType === "invoice") {
         const { data: invoice, error: invoiceError } = await supabase
           .from("invoices")
-          .select("id, invoice_number, status, currency, cost_breakdown, due_date, issued_date, notes, client_id, user_id")
+          .select("id, invoice_number, status, currency, cost_breakdown, due_date, issued_date, payment_terms, notes, client_id, user_id")
           .eq("id", accessToken.invoice_id)
           .single();
         if (invoiceError || !invoice) {
@@ -424,6 +432,11 @@ const handler = async (req: Request): Promise<Response> => {
         }
         const { data: client } = await supabase.from("clients").select("client_name, company_name, email, phone, designation, billing_address").eq("id", invoice.client_id).single();
         const { data: branding } = await supabase.from("branding_settings").select("*").eq("user_id", invoice.user_id).maybeSingle();
+        const { data: invoiceSettings } = await supabase
+          .from("invoice_settings")
+          .select("bank_account_name, bank_name, account_number, ifsc_code, swift_code, pan, upi_id, payment_instructions, terms_and_conditions")
+          .eq("user_id", invoice.user_id)
+          .maybeSingle();
         const { data: amounts } = await supabase.from("invoice_amounts").select("total_amount, amount_paid").eq("invoice_id", invoice.id).maybeSingle();
         if (!accessToken.viewed_at) {
           await supabase.from("invoice_access_tokens").update({ viewed_at: new Date().toISOString() }).eq("id", accessToken.id);
@@ -438,6 +451,7 @@ const handler = async (req: Request): Promise<Response> => {
             cost_breakdown: invoice.cost_breakdown,
             due_date: invoice.due_date,
             issued_date: invoice.issued_date,
+            payment_terms: invoice.payment_terms,
             notes: invoice.notes,
             total_amount: amounts?.total_amount ?? null,
             amount_paid: amounts?.amount_paid ?? null,
@@ -447,6 +461,7 @@ const handler = async (req: Request): Promise<Response> => {
             client_address: client?.billing_address,
           },
           branding: branding || null,
+          invoiceSettings: invoiceSettings || null,
           comments: await getComments(supabase, "invoice", invoice.id),
         }), { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } });
       } else if (documentType === "proposal") {

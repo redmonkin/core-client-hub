@@ -1,3 +1,5 @@
+import DOMPurify from 'dompurify';
+
 /**
  * Before rendering to canvas, split heading text nodes into
  * individual word spans with explicit margins so html2canvas
@@ -66,7 +68,7 @@ export async function exportToPdf(html: string, filename: string) {
       .pdf-content table tfoot td { font-weight: 600; }
       .pdf-content img { max-width: 100%; height: auto; }
     </style>
-    <div class="pdf-content">${html}</div>
+    <div class="pdf-content">${DOMPurify.sanitize(html)}</div>
   `;
 
   try {

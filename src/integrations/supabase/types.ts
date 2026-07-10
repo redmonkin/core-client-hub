@@ -17,6 +17,7 @@ export type Database = {
       branding_settings: {
         Row: {
           accent_color: string | null
+          company_address: string | null
           company_logo_url: string | null
           company_name: string | null
           created_at: string
@@ -31,6 +32,7 @@ export type Database = {
         }
         Insert: {
           accent_color?: string | null
+          company_address?: string | null
           company_logo_url?: string | null
           company_name?: string | null
           created_at?: string
@@ -45,6 +47,7 @@ export type Database = {
         }
         Update: {
           accent_color?: string | null
+          company_address?: string | null
           company_logo_url?: string | null
           company_name?: string | null
           created_at?: string
@@ -508,6 +511,63 @@ export type Database = {
           },
         ]
       }
+      invoice_settings: {
+        Row: {
+          account_number: string | null
+          bank_account_name: string | null
+          bank_name: string | null
+          created_at: string
+          id: string
+          ifsc_code: string | null
+          invoice_prefix: string
+          next_invoice_number: number
+          number_padding: number
+          pan: string | null
+          payment_instructions: string | null
+          swift_code: string | null
+          terms_and_conditions: string | null
+          updated_at: string
+          upi_id: string | null
+          user_id: string
+        }
+        Insert: {
+          account_number?: string | null
+          bank_account_name?: string | null
+          bank_name?: string | null
+          created_at?: string
+          id?: string
+          ifsc_code?: string | null
+          invoice_prefix?: string
+          next_invoice_number?: number
+          number_padding?: number
+          pan?: string | null
+          payment_instructions?: string | null
+          swift_code?: string | null
+          terms_and_conditions?: string | null
+          updated_at?: string
+          upi_id?: string | null
+          user_id: string
+        }
+        Update: {
+          account_number?: string | null
+          bank_account_name?: string | null
+          bank_name?: string | null
+          created_at?: string
+          id?: string
+          ifsc_code?: string | null
+          invoice_prefix?: string
+          next_invoice_number?: number
+          number_padding?: number
+          pan?: string | null
+          payment_instructions?: string | null
+          swift_code?: string | null
+          terms_and_conditions?: string | null
+          updated_at?: string
+          upi_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       invoices: {
         Row: {
           client_id: string
@@ -523,6 +583,7 @@ export type Database = {
           paid_at: string | null
           payment_provider: string | null
           payment_reference: string | null
+          payment_terms: string | null
           project_id: string | null
           status: string
           updated_at: string
@@ -542,6 +603,7 @@ export type Database = {
           paid_at?: string | null
           payment_provider?: string | null
           payment_reference?: string | null
+          payment_terms?: string | null
           project_id?: string | null
           status?: string
           updated_at?: string
@@ -561,6 +623,7 @@ export type Database = {
           paid_at?: string | null
           payment_provider?: string | null
           payment_reference?: string | null
+          payment_terms?: string | null
           project_id?: string | null
           status?: string
           updated_at?: string
@@ -1287,6 +1350,20 @@ export type Database = {
         Args: { _owner_id: string; _user_id: string }
         Returns: boolean
       }
+      create_invoice: {
+        Args: {
+          _client_id: string
+          _contract_id: string
+          _cost_breakdown: string
+          _due_date: string
+          _issued_date: string
+          _notes: string
+          _payment_terms: string
+          _project_id: string
+          _total_amount: number
+        }
+        Returns: string
+      }
       get_accessible_user_ids: { Args: { _user_id: string }; Returns: string[] }
       get_owner_id: { Args: { _user_id: string }; Returns: string }
       get_team_roster: {
@@ -1308,6 +1385,10 @@ export type Database = {
           _owner_id: string
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_valid_timesheet_assignee: {
+        Args: { _assignee: string; _owner_id: string }
         Returns: boolean
       }
     }

@@ -8,13 +8,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspaceUser } from "@/hooks/useWorkspaceUser";
-import { Loader2, Upload, Trash2, Palette, Globe, Building2, Mail } from "lucide-react";
+import { Loader2, Upload, Trash2, Palette, Globe, Building2, Mail, MapPin } from "lucide-react";
 import { TeamManagement } from "@/components/settings/TeamManagement";
+import { InvoiceSettings } from "@/components/settings/InvoiceSettings";
+import { Textarea } from "@/components/ui/textarea";
 
 interface BrandingSettings {
   id?: string;
   company_name: string;
   company_logo_url: string;
+  company_address: string;
   primary_color: string;
   accent_color: string;
   tagline: string;
@@ -26,6 +29,7 @@ interface BrandingSettings {
 const defaultBranding: BrandingSettings = {
   company_name: "",
   company_logo_url: "",
+  company_address: "",
   primary_color: "#8B5CF6",
   accent_color: "#F59E0B",
   tagline: "",
@@ -68,6 +72,7 @@ export default function Settings() {
           id: data.id,
           company_name: data.company_name || "",
           company_logo_url: data.company_logo_url || "",
+          company_address: data.company_address || "",
           primary_color: data.primary_color || "#8B5CF6",
           accent_color: data.accent_color || "#F59E0B",
           tagline: data.tagline || "",
@@ -143,6 +148,7 @@ export default function Settings() {
         user_id: workspaceUserId!,
         company_name: branding.company_name || null,
         company_logo_url: branding.company_logo_url || null,
+        company_address: branding.company_address || null,
         primary_color: branding.primary_color,
         accent_color: branding.accent_color,
         tagline: branding.tagline || null,
@@ -183,6 +189,9 @@ export default function Settings() {
 
       {/* Team Management */}
       <TeamManagement />
+
+      {/* Invoice Settings */}
+      <InvoiceSettings />
 
       {/* Client Portal Branding */}
       <Card>
@@ -280,6 +289,22 @@ export default function Settings() {
                   onChange={(e) => setBranding(prev => ({ ...prev, tagline: e.target.value }))}
                 />
               </div>
+            </div>
+
+            {/* Company Address (shown on invoice PDFs) */}
+            <div className="space-y-2">
+              <Label htmlFor="companyAddress">Company Address</Label>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Textarea
+                  id="companyAddress"
+                  placeholder="381 Siraj Layout 7th Cross Electronic City Phase 1&#10;Bangalore Karnataka 560100 India"
+                  value={branding.company_address}
+                  onChange={(e) => setBranding(prev => ({ ...prev, company_address: e.target.value }))}
+                  className="pl-10 min-h-[70px]"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">Shown as your "From" address on invoice PDFs and emails.</p>
             </div>
 
             {/* Contact Info */}
