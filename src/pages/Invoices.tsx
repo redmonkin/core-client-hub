@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import {
   Plus, Search, MoreHorizontal, Loader2, Pencil, Trash2, Send, LinkIcon,
-  CheckCircle2, Download, FileText,
+  CheckCircle2, Download, FileText, Wallet, Ban, Eye,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -102,6 +102,9 @@ function addDays(dateStr: string, days: number): string {
   return d.toISOString().split('T')[0];
 }
 
+const isInvoiceOverdue = (invoice: Pick<Invoice, 'status' | 'due_date'>) =>
+  (invoice.status === 'sent' || invoice.status === 'partial') && !!invoice.due_date && new Date(invoice.due_date) < new Date();
+
 export default function Invoices() {
   const { user } = useAuth();
   const { workspaceUserId, canViewFinancials, can, loading: permLoading } = useWorkspaceUser();
@@ -113,8 +116,12 @@ export default function Invoices() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<InvoiceFormState>({ ...emptyForm });
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [voidingId, setVoidingId] = useState<string | null>(null);
   const [sendingInvoice, setSendingInvoice] = useState<Invoice | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const [payingInvoice, setPayingInvoice] = useState<Invoice | null>(null);
+  const [paymentAmountInput, setPaymentAmountInput] = useState('');
+  const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
 
   const { data: invoices = [], isLoading } = useQuery({
     queryKey: ['invoices', workspaceUserId],
@@ -339,16 +346,59 @@ export default function Invoices() {
     onError: (error: Error) => toast.error('Failed to delete: ' + error.message),
   });
 
-  const markPaidMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('invoices').update({ status: 'paid', paid_at: new Date().toISOString() }).eq('id', id);
+  const recordPaymentMutation = useMutation({
+    mutationFn: async ({ id, amount }: { id: string; amount: number }) => {
+      const { error } = await supabase.rpc('record_invoice_payment', { _invoice_id: id, _amount: amount });
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      toast.success('Invoice marked as paid');
+      queryClient.invalidateQueries({ queryKey: ['invoice-amounts'] });
+      toast.success('Payment recorded');
+      setPayingInvoice(null);
+      setPaymentAmountInput('');
     },
-    onError: (error: Error) => toast.error('Failed to update: ' + error.message),
+    onError: (error: Error) => toast.error('Failed to record payment: ' + error.message),
+  });
+
+  const openPaymentDialog = (invoice: Invoice) => {
+    const amount = amountsByInvoice.get(invoice.id);
+    const balanceDue = amount ? amount.total_amount - amount.amount_paid : 0;
+    setPaymentAmountInput(balanceDue > 0 ? balanceDue.toFixed(2) : '');
+    setPayingInvoice(invoice);
+  };
+
+  const confirmRecordPayment = () => {
+    if (!payingInvoice) return;
+    const amount = parseFloat(paymentAmountInput);
+    if (!amount || amount <= 0) {
+      toast.error('Enter a payment amount greater than zero');
+      return;
+    }
+    recordPaymentMutation.mutate({ id: payingInvoice.id, amount });
+  };
+
+  const markFullyPaid = (invoice: Invoice) => {
+    const amount = amountsByInvoice.get(invoice.id);
+    const balanceDue = amount ? amount.total_amount - amount.amount_paid : 0;
+    if (balanceDue <= 0) {
+      toast.error('No outstanding balance to record');
+      return;
+    }
+    recordPaymentMutation.mutate({ id: invoice.id, amount: balanceDue });
+  };
+
+  const voidMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('invoices').update({ status: 'void' }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      setVoidingId(null);
+      toast.success('Invoice voided');
+    },
+    onError: (error: Error) => toast.error('Failed to void invoice: ' + error.message),
   });
 
   const handleSend = (invoice: Invoice) => setSendingInvoice(invoice);
@@ -361,16 +411,17 @@ export default function Invoices() {
     try {
       const portal = await getOrCreateInvoicePortalAccess(sendingInvoice.id, window.location.origin);
       const amount = amountsByInvoice.get(sendingInvoice.id);
+      const balanceDue = amount ? amount.total_amount - amount.amount_paid : null;
 
       const { error } = await supabase.functions.invoke('send-notification-email', {
         body: {
-          type: 'invoice_sent',
+          type: isInvoiceOverdue(sendingInvoice) ? 'invoice_overdue' : 'invoice_sent',
           recipientEmail: '',
           recipientName: '',
           data: {
             invoiceId: sendingInvoice.id,
             invoiceNumber: sendingInvoice.invoice_number,
-            totalAmount: amount ? formatCurrency(amount.total_amount) : null,
+            totalAmount: balanceDue != null ? formatCurrency(balanceDue) : (amount ? formatCurrency(amount.total_amount) : null),
             issuedDate: sendingInvoice.issued_date,
             dueDate: sendingInvoice.due_date,
             portalLink: portal.link,
@@ -406,7 +457,7 @@ export default function Invoices() {
     }
   };
 
-  const handleDownloadPdf = (invoice: Invoice) => {
+  const buildInvoicePdfHtml = (invoice: Invoice): string => {
     const client = getClient(invoice.client_id);
     const amount = amountsByInvoice.get(invoice.id);
     const { tableHtml } = buildInvoiceLineItemsHtml(invoice.cost_breakdown, invoice.currency);
@@ -475,8 +526,14 @@ export default function Invoices() {
         </div>` : ''}
       </div>
     `;
-    exportToPdf(html, `${invoice.invoice_number}.pdf`);
+    return html;
   };
+
+  const handleDownloadPdf = (invoice: Invoice) => {
+    exportToPdf(buildInvoicePdfHtml(invoice), `${invoice.invoice_number}.pdf`);
+  };
+
+  const handlePreview = (invoice: Invoice) => setPreviewInvoice(invoice);
 
   const filteredInvoices = invoices.filter((inv) => {
     const clientName = getClientName(inv.client_id).toLowerCase();
@@ -538,6 +595,7 @@ export default function Invoices() {
             <SelectItem value="all">All statuses</SelectItem>
             <SelectItem value="draft">Draft</SelectItem>
             <SelectItem value="sent">Sent</SelectItem>
+            <SelectItem value="partial">Partially Paid</SelectItem>
             <SelectItem value="paid">Paid</SelectItem>
             <SelectItem value="void">Void</SelectItem>
           </SelectContent>
@@ -571,7 +629,8 @@ export default function Invoices() {
               <TableBody>
                 {filteredInvoices.map((invoice) => {
                   const amount = amountsByInvoice.get(invoice.id);
-                  const isOverdue = invoice.status === 'sent' && invoice.due_date && new Date(invoice.due_date) < new Date();
+                  const isOverdue = isInvoiceOverdue(invoice);
+                  const balanceDue = amount ? amount.total_amount - amount.amount_paid : null;
                   return (
                     <TableRow key={invoice.id}>
                       <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
@@ -581,14 +640,16 @@ export default function Invoices() {
                         </Link>
                       </TableCell>
                       <TableCell>
-                        <StatusBadge status={(isOverdue ? 'rejected' : invoice.status) as 'draft' | 'sent' | 'paid' | 'void' | 'rejected'} />
+                        <StatusBadge status={(isOverdue ? 'rejected' : invoice.status) as 'draft' | 'sent' | 'partial' | 'paid' | 'void' | 'rejected'} />
                         {isOverdue && <span className="ml-1 text-xs text-destructive">Overdue</span>}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {invoice.due_date ? format(new Date(invoice.due_date), 'MMM d, yyyy') : '—'}
                       </TableCell>
                       <TableCell className="text-right font-semibold">
-                        {canViewFinancials ? (amount ? formatCurrency(amount.total_amount) : '—') : '••••••'}
+                        {canViewFinancials
+                          ? (amount ? (invoice.status === 'partial' && balanceDue != null ? `${formatCurrency(balanceDue)} due` : formatCurrency(amount.total_amount)) : '—')
+                          : '••••••'}
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
@@ -598,27 +659,47 @@ export default function Invoices() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handlePreview(invoice)}>
+                              <Eye className="mr-2 h-4 w-4" />
+                              Preview
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleDownloadPdf(invoice)}>
                               <Download className="mr-2 h-4 w-4" />
                               Download PDF
                             </DropdownMenuItem>
                             <RequirePermission module="invoices" action="update">
-                              <DropdownMenuItem onClick={() => openEditDialog(invoice)}>
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleSend(invoice)}>
-                                <Send className="mr-2 h-4 w-4" />
-                                Send to Client
-                              </DropdownMenuItem>
+                              {invoice.status !== 'void' && (
+                                <DropdownMenuItem onClick={() => openEditDialog(invoice)}>
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  Edit
+                                </DropdownMenuItem>
+                              )}
+                              {invoice.status !== 'void' && (
+                                <DropdownMenuItem onClick={() => handleSend(invoice)}>
+                                  <Send className="mr-2 h-4 w-4" />
+                                  {isInvoiceOverdue(invoice) ? 'Send Reminder' : 'Send to Client'}
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuItem onClick={() => handleCopyLink(invoice)}>
                                 <LinkIcon className="mr-2 h-4 w-4" />
                                 Copy Share Link
                               </DropdownMenuItem>
-                              {invoice.status !== 'paid' && (
-                                <DropdownMenuItem onClick={() => markPaidMutation.mutate(invoice.id)}>
-                                  <CheckCircle2 className="mr-2 h-4 w-4" />
-                                  Mark as Paid
+                              {canViewFinancials && invoice.status !== 'paid' && invoice.status !== 'void' && (
+                                <>
+                                  <DropdownMenuItem onClick={() => openPaymentDialog(invoice)}>
+                                    <Wallet className="mr-2 h-4 w-4" />
+                                    Record Payment...
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => markFullyPaid(invoice)}>
+                                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                                    Mark as Paid
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {invoice.status !== 'void' && (
+                                <DropdownMenuItem onClick={() => setVoidingId(invoice.id)}>
+                                  <Ban className="mr-2 h-4 w-4" />
+                                  Void
                                 </DropdownMenuItem>
                               )}
                             </RequirePermission>
@@ -777,6 +858,94 @@ export default function Invoices() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Void Confirmation */}
+      <AlertDialog open={!!voidingId} onOpenChange={() => setVoidingId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Void Invoice</AlertDialogTitle>
+            <AlertDialogDescription>
+              The invoice number stays reserved for your records, but the invoice is marked void and no longer counted as outstanding.
+              {(() => {
+                const inv = invoices.find((i) => i.id === voidingId);
+                const amount = inv ? amountsByInvoice.get(inv.id) : undefined;
+                return amount && amount.amount_paid > 0
+                  ? ' This invoice has recorded payments — voiding it does not reverse or refund them.'
+                  : '';
+              })()}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => voidingId && voidMutation.mutate(voidingId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {voidMutation.isPending ? 'Voiding...' : 'Void Invoice'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Record Payment Dialog */}
+      <Dialog open={!!payingInvoice} onOpenChange={(open) => !open && setPayingInvoice(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Record Payment</DialogTitle>
+          </DialogHeader>
+          {payingInvoice && (() => {
+            const amount = amountsByInvoice.get(payingInvoice.id);
+            const balanceDue = amount ? amount.total_amount - amount.amount_paid : 0;
+            return (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Invoice {payingInvoice.invoice_number} — balance due {formatCurrency(balanceDue)}
+                </p>
+                <div className="space-y-2">
+                  <Label>Amount Received</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    value={paymentAmountInput}
+                    onChange={(e) => setPaymentAmountInput(e.target.value)}
+                  />
+                </div>
+              </div>
+            );
+          })()}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPayingInvoice(null)}>Cancel</Button>
+            <Button onClick={confirmRecordPayment} disabled={recordPaymentMutation.isPending}>
+              {recordPaymentMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Record Payment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Preview Dialog */}
+      <Dialog open={!!previewInvoice} onOpenChange={(open) => !open && setPreviewInvoice(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Preview — {previewInvoice?.invoice_number}</DialogTitle>
+          </DialogHeader>
+          {previewInvoice && (
+            <iframe
+              title="Invoice preview"
+              srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0;">${buildInvoicePdfHtml(previewInvoice)}</body></html>`}
+              className="w-full flex-1 border rounded-md bg-white"
+            />
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPreviewInvoice(null)}>Close</Button>
+            <Button onClick={() => previewInvoice && handleDownloadPdf(previewInvoice)}>
+              <Download className="mr-2 h-4 w-4" />
+              Download PDF
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -10,7 +10,7 @@ import {
   Send, PenLine, MessageSquare, Mail, Eye, Pencil, LinkIcon, Copy,
   MoreVertical, Users, Calendar, RefreshCw, AlertTriangle, FileText, Ban, Receipt,
 } from 'lucide-react';
-import { format, differenceInDays } from 'date-fns';
+import { format, differenceInDays, addMonths, addYears } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,6 +49,17 @@ const renewalLabels: Record<string, string> = {
   '1-year': '1 Year',
   '3-years': '3 Years',
 };
+
+function addRenewalPeriod(date: Date, frequency: string): Date {
+  switch (frequency) {
+    case '1-month': return addMonths(date, 1);
+    case '3-months': return addMonths(date, 3);
+    case '6-months': return addMonths(date, 6);
+    case '1-year': return addYears(date, 1);
+    case '3-years': return addYears(date, 3);
+    default: return addMonths(date, 1);
+  }
+}
 
 const statusIconMap: Record<string, React.ElementType> = {
   draft: PenLine,
@@ -195,6 +206,20 @@ export default function ContractDetail() {
       return data;
     },
     enabled: !!contract?.project_id,
+  });
+
+  const { data: contractInvoices = [] } = useQuery({
+    queryKey: ['contract-invoices', contract?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('invoices')
+        .select('id, invoice_number, status, issued_date, due_date')
+        .eq('contract_id', contract!.id)
+        .order('issued_date', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!contract?.id && ['amc', 'retainer'].includes(contract?.contract_type || ''),
   });
 
   const { data: clients = [] } = useQuery({
@@ -770,6 +795,53 @@ export default function ContractDetail() {
             )}
           </CardContent>
         </Card>
+
+        {/* Recurring Invoices Card (AMC/retainer only) */}
+        {['amc', 'retainer'].includes(contract.contract_type) && (
+          <Card className="lg:col-span-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Receipt className="h-4 w-4" />
+                Invoices
+              </CardTitle>
+              <Button asChild size="sm" variant="outline">
+                <Link to={`/invoices?contractId=${contract.id}`}>
+                  <Receipt className="mr-2 h-4 w-4" />
+                  Generate Next Invoice
+                </Link>
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {contractInvoices.length > 0 ? (
+                <>
+                  <div className="space-y-2">
+                    {contractInvoices.map((inv) => (
+                      <Link
+                        key={inv.id}
+                        to="/invoices"
+                        className="flex items-center justify-between rounded-md border p-2.5 text-sm hover:bg-muted/50 transition-colors"
+                      >
+                        <span className="font-medium">{inv.invoice_number}</span>
+                        <span className="text-muted-foreground">{format(new Date(inv.issued_date), 'MMM d, yyyy')}</span>
+                        <StatusBadge status={inv.status as any} />
+                      </Link>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Based on this contract's {renewalLabels[contract.renewal_frequency]?.toLowerCase() || contract.renewal_frequency} billing cycle,
+                    the next invoice would cover the period starting{' '}
+                    {format(addRenewalPeriod(new Date(contractInvoices[0].issued_date), contract.renewal_frequency), 'MMM d, yyyy')}.
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No invoices generated from this contract yet. This is a recurring {renewalLabels[contract.renewal_frequency]?.toLowerCase() || contract.renewal_frequency} engagement —
+                  use "Generate Next Invoice" each billing cycle; Clientra doesn't auto-generate these.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* External Contract File Card */}
         {(contract as any).is_external && (contract as any).file_url && (
