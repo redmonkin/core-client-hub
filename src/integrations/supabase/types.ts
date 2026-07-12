@@ -1391,6 +1391,10 @@ export type Database = {
         Args: { _assignee: string; _owner_id: string }
         Returns: boolean
       }
+      record_invoice_payment: {
+        Args: { _amount: number; _invoice_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

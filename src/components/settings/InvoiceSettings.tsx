@@ -77,6 +77,18 @@ export function InvoiceSettings() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
+      const candidateNumber = `${form.invoice_prefix}${String(form.next_invoice_number).padStart(form.number_padding, '0')}`;
+      const { data: collision, error: collisionError } = await supabase
+        .from('invoices')
+        .select('id')
+        .eq('user_id', workspaceUserId!)
+        .eq('invoice_number', candidateNumber)
+        .maybeSingle();
+      if (collisionError) throw collisionError;
+      if (collision) {
+        throw new Error(`Invoice ${candidateNumber} already exists — pick a higher "Next Number" to avoid a duplicate.`);
+      }
+
       const { error } = await supabase.from('invoice_settings').upsert({
         user_id: workspaceUserId!,
         ...form,
