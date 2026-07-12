@@ -9,6 +9,9 @@ verify_jwt = false
 [functions.contract-renewal-reminders]
 verify_jwt = false
 
+[functions.proposal-expiry-reminders]
+verify_jwt = false
+
 [functions.client-portal]
 verify_jwt = false
 
