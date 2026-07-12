@@ -34,8 +34,15 @@ export function InvoiceLineItems({ value, onChange }: InvoiceLineItemsProps) {
     onChange?.(JSON.stringify(next));
   };
 
+  const clampField = (field: keyof InvoiceLineItem, value: number): number => {
+    if (field === 'discount') return Math.min(100, Math.max(0, value));
+    if (field === 'quantity' || field === 'unitPrice') return Math.max(0, value);
+    return value;
+  };
+
   const updateItem = (itemId: string, field: keyof InvoiceLineItem, fieldValue: string | number) => {
-    persist({ ...data, items: data.items.map((i) => (i.id === itemId ? { ...i, [field]: fieldValue } : i)) });
+    const clamped = typeof fieldValue === 'number' ? clampField(field, fieldValue) : fieldValue;
+    persist({ ...data, items: data.items.map((i) => (i.id === itemId ? { ...i, [field]: clamped } : i)) });
   };
 
   const addItem = () => {
@@ -152,7 +159,7 @@ export function InvoiceLineItems({ value, onChange }: InvoiceLineItemsProps) {
               <Input
                 type="number"
                 value={data.additionalDiscount}
-                onChange={(e) => persist({ ...data, additionalDiscount: parseFloat(e.target.value) || 0 })}
+                onChange={(e) => persist({ ...data, additionalDiscount: Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)) })}
                 min={0}
                 max={100}
                 step={1}
@@ -167,7 +174,7 @@ export function InvoiceLineItems({ value, onChange }: InvoiceLineItemsProps) {
               <Input
                 type="number"
                 value={data.taxRate}
-                onChange={(e) => persist({ ...data, taxRate: parseFloat(e.target.value) || 0 })}
+                onChange={(e) => persist({ ...data, taxRate: Math.max(0, parseFloat(e.target.value) || 0) })}
                 min={0}
                 max={100}
                 step={1}

@@ -14,7 +14,7 @@ Invoice data model, manual CRUD (`src/pages/Invoices.tsx`), "Generate Invoice" f
 
 ## Data model
 
-`invoices` — `user_id` (workspace owner, via `workspaceUserId`), `client_id`, optional `project_id`/`contract_id`, `invoice_number` (app-generated `INV-<year>-<seq>`, unique per `user_id`; concurrent-creation collisions retried with a numeric suffix), `status` (`draft|sent|paid|void`; "overdue" is derived client-side from `due_date < today AND status == 'sent'`, not stored), `currency` (default `'INR'`), `cost_breakdown` (same JSON shape as proposals/contracts — reuses `buildCostTableHtml`/`getCostBreakdownTotal`), `due_date`, `issued_date`, `paid_at`, `payment_provider`/`payment_reference` (unused until the payment-gateway follow-up, present now to avoid a later migration).
+`invoices` — `user_id` (workspace owner, via `workspaceUserId`), `client_id`, optional `project_id`/`contract_id`, `invoice_number` (app-generated `<prefix><padded-seq>`, derived from an atomically-incremented `invoice_settings.next_invoice_number` counter inside `create_invoice()` — the atomic increment is what prevents concurrent-creation collisions, not a retry), `status` (`draft|sent|partial|paid|void`; "overdue" is derived client-side from `due_date < today AND status IN ('sent','partial')`, not stored), `currency` (default `'INR'`), `cost_breakdown` (same JSON shape as proposals/contracts — reuses `buildCostTableHtml`/`getCostBreakdownTotal`), `due_date`, `issued_date`, `paid_at`, `payment_provider`/`payment_reference` (unused until the payment-gateway follow-up, present now to avoid a later migration).
 
 `invoice_access_tokens` — mirrors `proposal_access_tokens`/`contract_access_tokens` exactly (opaque token, optional password, expiry).
 

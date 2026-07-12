@@ -77,16 +77,23 @@ export function InvoiceSettings() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const candidateNumber = `${form.invoice_prefix}${String(form.next_invoice_number).padStart(form.number_padding, '0')}`;
-      const { data: collision, error: collisionError } = await supabase
+      // Check the whole prospective range, not just the immediate next number --
+      // lowering "Next Number" past a gap of already-used numbers (e.g. after a
+      // Zoho migration with non-contiguous numbers) would otherwise only be
+      // caught invoice-by-invoice, as a raw Postgres unique-violation later.
+      const { data: existing, error: existingError } = await supabase
         .from('invoices')
-        .select('id')
+        .select('invoice_number')
         .eq('user_id', workspaceUserId!)
-        .eq('invoice_number', candidateNumber)
-        .maybeSingle();
-      if (collisionError) throw collisionError;
+        .like('invoice_number', `${form.invoice_prefix}%`);
+      if (existingError) throw existingError;
+      const collision = (existing || []).find((inv) => {
+        const suffix = inv.invoice_number.slice(form.invoice_prefix.length);
+        const n = parseInt(suffix, 10);
+        return /^\d+$/.test(suffix) && n >= form.next_invoice_number;
+      });
       if (collision) {
-        throw new Error(`Invoice ${candidateNumber} already exists — pick a higher "Next Number" to avoid a duplicate.`);
+        throw new Error(`Invoice ${collision.invoice_number} already exists — pick a higher "Next Number" to avoid a future duplicate.`);
       }
 
       const { error } = await supabase.from('invoice_settings').upsert({

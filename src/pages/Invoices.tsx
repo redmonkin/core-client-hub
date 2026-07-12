@@ -375,6 +375,12 @@ export default function Invoices() {
       toast.error('Enter a payment amount greater than zero');
       return;
     }
+    const existing = amountsByInvoice.get(payingInvoice.id);
+    const balanceDue = existing ? existing.total_amount - existing.amount_paid : null;
+    if (balanceDue != null && amount > balanceDue) {
+      toast.error(`Payment cannot exceed the balance due (${formatCurrency(balanceDue)})`);
+      return;
+    }
     recordPaymentMutation.mutate({ id: payingInvoice.id, amount });
   };
 
@@ -418,6 +424,7 @@ export default function Invoices() {
           type: isInvoiceOverdue(sendingInvoice) ? 'invoice_overdue' : 'invoice_sent',
           recipientEmail: '',
           recipientName: '',
+          ccEmails: user?.email ? [user.email] : [],
           data: {
             invoiceId: sendingInvoice.id,
             invoiceNumber: sendingInvoice.invoice_number,
@@ -640,15 +647,16 @@ export default function Invoices() {
                         </Link>
                       </TableCell>
                       <TableCell>
-                        <StatusBadge status={(isOverdue ? 'rejected' : invoice.status) as 'draft' | 'sent' | 'partial' | 'paid' | 'void' | 'rejected'} />
-                        {isOverdue && <span className="ml-1 text-xs text-destructive">Overdue</span>}
+                        <StatusBadge status={(isOverdue ? 'overdue' : invoice.status) as 'draft' | 'sent' | 'partial' | 'paid' | 'void' | 'overdue'} />
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {invoice.due_date ? format(new Date(invoice.due_date), 'MMM d, yyyy') : '—'}
                       </TableCell>
                       <TableCell className="text-right font-semibold">
                         {canViewFinancials
-                          ? (amount ? (invoice.status === 'partial' && balanceDue != null ? `${formatCurrency(balanceDue)} due` : formatCurrency(amount.total_amount)) : '—')
+                          ? (amount
+                              ? (invoice.status === 'partial' && balanceDue != null ? `${formatCurrency(balanceDue)} due` : formatCurrency(amount.total_amount))
+                              : <span className="text-xs font-normal text-muted-foreground italic">Needs amount</span>)
                           : '••••••'}
                       </TableCell>
                       <TableCell>

@@ -5,7 +5,7 @@ type StatusType =
   | 'active' | 'archived' 
   | 'proposal' | 'planned' | 'on-hold' | 'completed' | 'cancelled' | 'maintenance' | 'new-request'
   | 'draft' | 'sent' | 'approved' | 'rejected' | 'change_requested'
-  | 'expired' | 'pending-renewal' | 'pending-review' | 'ended' | 'paid' | 'partial' | 'void';
+  | 'expired' | 'pending-renewal' | 'pending-review' | 'ended' | 'paid' | 'partial' | 'void' | 'overdue';
 
 interface StatusBadgeProps {
   status: StatusType;
@@ -34,6 +34,7 @@ const statusConfig: Record<StatusType, { label: string; variant: 'default' | 'se
   paid: { label: 'Paid', variant: 'default' },
   partial: { label: 'Partially Paid', variant: 'secondary' },
   void: { label: 'Void', variant: 'outline' },
+  overdue: { label: 'Overdue', variant: 'destructive' },
 };
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
