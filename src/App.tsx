@@ -11,6 +11,7 @@ import Clients from "./pages/Clients";
 import ClientDetail from "./pages/ClientDetail";
 import Projects from "./pages/Projects";
 import ProjectDetail from "./pages/ProjectDetail";
+import Tasks from "./pages/Tasks";
 import Proposals from "./pages/Proposals";
 import ProposalDetail from "./pages/ProposalDetail";
 import Contracts from "./pages/Contracts";
@@ -145,6 +146,16 @@ const App = () => (
               <ProtectedRoute>
                 <AppLayout>
                   <ProjectDetail />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/tasks"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <Tasks />
                 </AppLayout>
               </ProtectedRoute>
             }

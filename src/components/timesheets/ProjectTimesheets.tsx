@@ -2,11 +2,20 @@ import { useState } from 'react';
 import { Plus, Upload, Trash2, Clock, Loader2, FileSpreadsheet, Pencil, Download, Play, CheckCircle2, CalendarClock } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useWorkspaceUser } from '@/hooks/useWorkspaceUser';
 import { RequirePermission } from '@/components/shared/RequirePermission';
+import {
+  useTaskMutations,
+  TASK_STATUSES,
+  TaskStatus,
+  STATUS_STYLES,
+  STATUS_LABELS,
+  TaskEntry,
+  emptyTaskEntry,
+} from '@/hooks/useTaskMutations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -54,68 +63,21 @@ import {
 } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 
-const TIMESHEET_STATUSES = ['new', 'in-progress', 'wont-do', 'pending', 'non-billable', 'billed'] as const;
-type TimesheetStatus = typeof TIMESHEET_STATUSES[number];
-
-const STATUS_STYLES: Record<TimesheetStatus, string> = {
-  new: 'bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-400',
-  'in-progress': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
-  'wont-do': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
-  pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
-  'non-billable': 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400',
-  billed: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
-};
-
-const STATUS_LABELS: Record<TimesheetStatus, string> = {
-  new: 'New',
-  'in-progress': 'In Progress',
-  'wont-do': "Won't Do",
-  pending: 'Pending',
-  'non-billable': 'Non Billable',
-  billed: 'Billed',
-};
-
 interface ProjectTimesheetsProps {
   projectId: string;
 }
 
-// Supabase/PostgREST doesn't error on an UPDATE/DELETE that RLS silently
-// filters down to zero rows -- it just returns success with nothing changed.
-// Without this check, a user lacking the `timesheets` permission would see a
-// false "success" toast while nothing actually happened server-side.
-const PERMISSION_DENIED_MESSAGE = "You don't have permission to do that.";
-function assertRowAffected<T>(data: T[] | null): void {
-  if (!data || data.length === 0) {
-    throw new Error(PERMISSION_DENIED_MESSAGE);
-  }
-}
-
-interface TimesheetEntry {
-  task: string;
-  owner: string;
-  assigneeUserId: string;
-  duration: string;
-  date: string;
-  dueDate: string;
-  notes: string;
-  status?: TimesheetStatus;
-}
-
-const emptyEntry: TimesheetEntry = {
-  task: '',
-  owner: '',
-  assigneeUserId: '',
-  duration: '',
-  date: new Date().toISOString().split('T')[0],
-  dueDate: '',
-  notes: '',
-  status: 'new',
-};
+// Local aliases so the rest of this file can keep referring to the old
+// "timesheet" naming without churn -- the underlying concepts (statuses,
+// entry shape) now live in the shared useTaskMutations hook.
+type TimesheetStatus = TaskStatus;
+const TIMESHEET_STATUSES = TASK_STATUSES;
+type TimesheetEntry = TaskEntry;
+const emptyEntry = emptyTaskEntry;
 
 export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
   const { user } = useAuth();
   const { workspaceUserId, can } = useWorkspaceUser();
-  const queryClient = useQueryClient();
 
   const userFirstName = (() => {
     const meta = (user?.user_metadata ?? {}) as Record<string, any>;
@@ -207,165 +169,29 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
     },
   });
 
-  const assignMutation = useMutation({
-    mutationFn: async (e: TimesheetEntry) => {
-      const { error } = await supabase.from('timesheets').insert({
-        project_id: projectId,
-        user_id: workspaceUserId,
-        task: e.task,
-        owner: e.owner,
-        assignee_user_id: e.assigneeUserId || null,
-        duration: null,
-        date: e.date,
-        due_date: e.dueDate || null,
-        notes: e.notes || null,
-        status: 'new',
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['timesheets', projectId] });
+  const {
+    assignMutation,
+    importMutation,
+    deleteMutation,
+    updateMutation,
+    startMutation,
+    completeMutation,
+    bulkStatusMutation,
+  } = useTaskMutations({
+    projectId,
+    workspaceUserId,
+    onAssignSuccess: () => {
       setIsAssignOpen(false);
       setEntry({ ...emptyEntry });
-      toast.success('Task assigned');
     },
-    onError: (error: any) => {
-      toast.error('Failed to assign task: ' + error.message);
-    },
-  });
-
-  const importMutation = useMutation({
-    mutationFn: async (entries: TimesheetEntry[]) => {
-      const rows = entries.map(e => ({
-        project_id: projectId,
-        user_id: workspaceUserId,
-        task: e.task,
-        owner: e.owner,
-        duration: parseFloat(e.duration) || 0,
-        date: e.date,
-        notes: e.notes || null,
-        status: e.status || 'pending',
-      }));
-      const { error } = await supabase.from('timesheets').insert(rows);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['timesheets', projectId] });
-      toast.success('Timesheet entries imported');
-    },
-    onError: (error: any) => {
-      toast.error('Failed to import entries: ' + error.message);
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { data, error } = await supabase.from('timesheets').delete().eq('id', id).select('id');
-      if (error) throw error;
-      assertRowAffected(data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['timesheets', projectId] });
-      setDeleteId(null);
-      toast.success('Entry deleted');
-    },
-    onError: (error: any) => {
-      toast.error('Failed to delete: ' + error.message);
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: TimesheetEntry }) => {
-      const { data: rows, error } = await supabase
-        .from('timesheets')
-        .update({
-          task: data.task,
-          owner: data.owner,
-          assignee_user_id: data.assigneeUserId || null,
-          duration: data.duration ? parseFloat(data.duration) : null,
-          date: data.date,
-          due_date: data.dueDate || null,
-          notes: data.notes || null,
-          status: data.status || 'new',
-        })
-        .eq('id', id)
-        .select('id');
-      if (error) throw error;
-      assertRowAffected(rows);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['timesheets', projectId] });
+    onUpdateSuccess: () => {
       setIsEditOpen(false);
       setEditId(null);
       setEntry({ ...emptyEntry });
-      toast.success('Timesheet entry updated');
     },
-    onError: (error: any) => {
-      toast.error('Failed to update entry: ' + error.message);
-    },
-  });
-
-  // One-click transition, no dialog -- friction here is the whole reason a
-  // "New" pile never gets started in most task trackers.
-  const startMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { data, error } = await supabase.from('timesheets').update({ status: 'in-progress' }).eq('id', id).select('id');
-      if (error) throw error;
-      assertRowAffected(data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['timesheets', projectId] });
-      toast.success('Task started');
-    },
-    onError: (error: any) => {
-      toast.error('Failed to start: ' + error.message);
-    },
-  });
-
-  // Completion is the only place duration gets entered -- it wasn't knowable
-  // at assignment time, since the work hadn't happened yet.
-  const completeMutation = useMutation({
-    mutationFn: async ({ id, duration, notes }: { id: string; duration: string; notes: string }) => {
-      const { data, error } = await supabase
-        .from('timesheets')
-        .update({ duration: parseFloat(duration) || 0, notes: notes || null, status: 'pending' })
-        .eq('id', id)
-        .select('id');
-      if (error) throw error;
-      assertRowAffected(data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['timesheets', projectId] });
+    onCompleteSuccess: () => {
       setIsCompleteOpen(false);
       setCompleteId(null);
-      toast.success('Task completed');
-    },
-    onError: (error: any) => {
-      toast.error('Failed to complete: ' + error.message);
-    },
-  });
-
-  const bulkStatusMutation = useMutation({
-    mutationFn: async ({ ids, status }: { ids: string[]; status: string }) => {
-      const { data, error } = await supabase
-        .from('timesheets')
-        .update({ status })
-        .in('id', ids)
-        .select('id');
-      if (error) throw error;
-      return data?.length ?? 0;
-    },
-    onSuccess: (updatedCount, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['timesheets', projectId] });
-      setSelectedIds(new Set());
-      if (updatedCount < variables.ids.length) {
-        toast.warning(`${updatedCount} of ${variables.ids.length} entries updated — you may not have permission to update the rest.`);
-      } else {
-        toast.success(`${updatedCount} entries updated to "${STATUS_LABELS[variables.status as TimesheetStatus]}"`);
-      }
-    },
-    onError: (error: any) => {
-      toast.error('Failed to update: ' + error.message);
     },
   });
 
@@ -421,7 +247,7 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
   const handleBulkStatus = (status: TimesheetStatus) => {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
-    bulkStatusMutation.mutate({ ids, status });
+    bulkStatusMutation.mutate({ ids, status }, { onSuccess: () => setSelectedIds(new Set()) });
   };
 
   const exportToExcel = (entries: typeof timesheets, filename: string) => {
@@ -945,7 +771,7 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deleteId && deleteMutation.mutate(deleteId)}
+              onClick={() => deleteId && deleteMutation.mutate(deleteId, { onSuccess: () => setDeleteId(null) })}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete
