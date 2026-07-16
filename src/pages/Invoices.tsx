@@ -35,7 +35,9 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { InvoiceLineItems } from '@/components/invoices/InvoiceLineItems';
+import { RecurringInvoices } from '@/components/invoices/RecurringInvoices';
 import {
   buildInvoiceLineItemsHtml, getInvoiceTotalFromJson, formatInvoiceCurrency, numberToIndianWords,
   createEmptyInvoiceLineItem, escapeInvoiceHtml,
@@ -574,17 +576,16 @@ export default function Invoices() {
       <PageHeader
         title="Invoices"
         description="Bill clients for approved contracts or ad-hoc work"
-        actions={
-          <RequirePermission module="invoices" action="create">
-            <Button size="lg" onClick={openCreateDialog}>
-              <Plus className="mr-2 h-4 w-4" />
-              New Invoice
-            </Button>
-          </RequirePermission>
-        }
       />
 
-      <div className="flex flex-col gap-4 sm:flex-row">
+      <Tabs defaultValue="invoices">
+        <TabsList>
+          <TabsTrigger value="invoices">Invoices</TabsTrigger>
+          <TabsTrigger value="recurring">Recurring</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="invoices" className="space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -607,6 +608,12 @@ export default function Invoices() {
             <SelectItem value="void">Void</SelectItem>
           </SelectContent>
         </Select>
+        <RequirePermission module="invoices" action="create">
+          <Button onClick={openCreateDialog}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Invoice
+          </Button>
+        </RequirePermission>
       </div>
 
       {isLoading ? (
@@ -731,6 +738,12 @@ export default function Invoices() {
           </CardContent>
         </Card>
       )}
+        </TabsContent>
+
+        <TabsContent value="recurring">
+          <RecurringInvoices clients={clients} projects={projects} />
+        </TabsContent>
+      </Tabs>
 
       {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

@@ -1022,6 +1022,102 @@ export type Database = {
           },
         ]
       }
+      recurring_invoices: {
+        Row: {
+          auto_send: boolean
+          client_id: string
+          cost_breakdown: string | null
+          created_at: string
+          day_of_month: number
+          end_date: string | null
+          frequency: string
+          id: string
+          is_active: boolean
+          last_generated_invoice_id: string | null
+          next_run_date: string
+          notes: string | null
+          payment_terms: string | null
+          project_id: string | null
+          start_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_send?: boolean
+          client_id: string
+          cost_breakdown?: string | null
+          created_at?: string
+          day_of_month: number
+          end_date?: string | null
+          frequency: string
+          id?: string
+          is_active?: boolean
+          last_generated_invoice_id?: string | null
+          next_run_date: string
+          notes?: string | null
+          payment_terms?: string | null
+          project_id?: string | null
+          start_date: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_send?: boolean
+          client_id?: string
+          cost_breakdown?: string | null
+          created_at?: string
+          day_of_month?: number
+          end_date?: string | null
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          last_generated_invoice_id?: string | null
+          next_run_date?: string
+          notes?: string | null
+          payment_terms?: string | null
+          project_id?: string | null
+          start_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_invoices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_invoices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "public_portfolio_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_invoices_last_generated_invoice_id_fkey"
+            columns: ["last_generated_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_invoices_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_invoices_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "public_portfolio_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_member_permissions: {
         Row: {
           can_create: boolean
@@ -1362,6 +1458,10 @@ export type Database = {
           _project_id: string
           _total_amount: number
         }
+        Returns: string
+      }
+      generate_invoice_number_for_owner: {
+        Args: { _owner_id: string }
         Returns: string
       }
       get_accessible_user_ids: { Args: { _user_id: string }; Returns: string[] }
