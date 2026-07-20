@@ -524,6 +524,7 @@ export type Database = {
           recorded_by: string
           reference_number: string | null
           tax_deducted: boolean
+          tax_deducted_amount: number
           thank_you_sent: boolean
         }
         Insert: {
@@ -538,6 +539,7 @@ export type Database = {
           recorded_by?: string
           reference_number?: string | null
           tax_deducted?: boolean
+          tax_deducted_amount?: number
           thank_you_sent?: boolean
         }
         Update: {
@@ -552,6 +554,7 @@ export type Database = {
           recorded_by?: string
           reference_number?: string | null
           tax_deducted?: boolean
+          tax_deducted_amount?: number
           thank_you_sent?: boolean
         }
         Relationships: [
@@ -1553,6 +1556,7 @@ export type Database = {
           _payment_date?: string
           _payment_mode?: string
           _reference_number?: string
+          _tax_amount?: number
           _tax_deducted?: boolean
           _thank_you_sent?: boolean
         }

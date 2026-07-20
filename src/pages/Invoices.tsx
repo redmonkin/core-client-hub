@@ -137,6 +137,7 @@ export default function Invoices() {
   const [paymentDateInput, setPaymentDateInput] = useState(todayIso());
   const [paymentModeInput, setPaymentModeInput] = useState('cash');
   const [taxDeductedInput, setTaxDeductedInput] = useState(false);
+  const [taxAmountInput, setTaxAmountInput] = useState('0');
   const [referenceNumberInput, setReferenceNumberInput] = useState('');
   const [paymentNotesInput, setPaymentNotesInput] = useState('');
   const [sendThankYou, setSendThankYou] = useState(true);
@@ -377,6 +378,7 @@ export default function Invoices() {
     paymentDate: string;
     paymentMode: string;
     taxDeducted: boolean;
+    taxAmount: number;
     referenceNumber: string;
     notes: string;
     thankYouSent: boolean;
@@ -391,6 +393,7 @@ export default function Invoices() {
         _payment_date: input.paymentDate,
         _payment_mode: input.paymentMode || null,
         _tax_deducted: input.taxDeducted,
+        _tax_amount: input.taxDeducted ? input.taxAmount : 0,
         _reference_number: input.referenceNumber || null,
         _notes: input.notes || null,
         _thank_you_sent: input.thankYouSent,
@@ -415,6 +418,7 @@ export default function Invoices() {
     setPaymentDateInput(todayIso());
     setPaymentModeInput('cash');
     setTaxDeductedInput(false);
+    setTaxAmountInput('0');
     setReferenceNumberInput('');
     setPaymentNotesInput('');
     setSendThankYou(true);
@@ -429,10 +433,16 @@ export default function Invoices() {
       toast.error('Enter a payment amount greater than zero');
       return;
     }
+    const taxAmount = taxDeductedInput ? parseFloat(taxAmountInput) || 0 : 0;
+    if (taxDeductedInput && taxAmount <= 0) {
+      toast.error('Enter the tax amount that was deducted');
+      return;
+    }
+    const settledAmount = amount + taxAmount;
     const existing = amountsByInvoice.get(payingInvoice.id);
     const balanceDue = existing ? existing.total_amount - existing.amount_paid : null;
-    if (balanceDue != null && amount > balanceDue) {
-      toast.error(`Payment cannot exceed the balance due (${formatCurrency(balanceDue)})`);
+    if (balanceDue != null && settledAmount > balanceDue) {
+      toast.error(`Amount received + tax deducted (${formatCurrency(settledAmount)}) cannot exceed the balance due (${formatCurrency(balanceDue)})`);
       return;
     }
     const client = getClient(payingInvoice.client_id);
@@ -447,6 +457,7 @@ export default function Invoices() {
         paymentDate: paymentDateInput || todayIso(),
         paymentMode: paymentModeInput,
         taxDeducted: taxDeductedInput,
+        taxAmount,
         referenceNumber: referenceNumberInput,
         notes: paymentNotesInput,
         thankYouSent: willSendThankYou,
@@ -462,7 +473,7 @@ export default function Invoices() {
             data: {
               invoiceId: payingInvoice.id,
               invoiceNumber: payingInvoice.invoice_number,
-              totalAmount: formatCurrency(amount),
+              totalAmount: formatCurrency(settledAmount),
               thankYouMessage,
               senderName: user?.user_metadata?.full_name || null,
               senderCompany: branding?.company_name || null,
@@ -1084,9 +1095,27 @@ export default function Invoices() {
                     </Select>
                   </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="tax-deducted">Tax deducted?</Label>
-                  <Switch id="tax-deducted" checked={taxDeductedInput} onCheckedChange={setTaxDeductedInput} />
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="tax-deducted">Tax deducted?</Label>
+                    <Switch id="tax-deducted" checked={taxDeductedInput} onCheckedChange={setTaxDeductedInput} />
+                  </div>
+                  {taxDeductedInput && (
+                    <>
+                      <Input
+                        type="number"
+                        min={0}
+                        step={0.01}
+                        placeholder="Tax amount deducted"
+                        value={taxAmountInput}
+                        onChange={(e) => setTaxAmountInput(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Settles {formatCurrency((parseFloat(paymentAmountInput) || 0) + (parseFloat(taxAmountInput) || 0))} against this invoice
+                        ({formatCurrency(parseFloat(paymentAmountInput) || 0)} received + {formatCurrency(parseFloat(taxAmountInput) || 0)} tax withheld).
+                      </p>
+                    </>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>Reference #</Label>
