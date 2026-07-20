@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import {
   Plus, Search, MoreHorizontal, Loader2, Pencil, Trash2, Send, LinkIcon,
-  CheckCircle2, Download, FileText, Wallet, Ban, Eye,
+  CheckCircle2, Download, FileText, Wallet, Ban, Eye, Copy, RefreshCw,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -43,7 +43,7 @@ import {
   createEmptyInvoiceLineItem, escapeInvoiceHtml,
 } from '@/lib/invoice-utils';
 import { exportToPdf } from '@/lib/pdf-export';
-import { getOrCreateInvoicePortalAccess } from '@/lib/invoice-portal-access';
+import { getOrCreateInvoicePortalAccess, regenerateInvoicePortalAccess, type PortalAccessResult } from '@/lib/invoice-portal-access';
 import { toast } from 'sonner';
 
 const formatCurrency = formatInvoiceCurrency;
@@ -124,6 +124,12 @@ export default function Invoices() {
   const [payingInvoice, setPayingInvoice] = useState<Invoice | null>(null);
   const [paymentAmountInput, setPaymentAmountInput] = useState('');
   const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
+  const [linkInvoice, setLinkInvoice] = useState<Invoice | null>(null);
+  const [portalAccess, setPortalAccess] = useState<PortalAccessResult | null>(null);
+  const [isLoadingLink, setIsLoadingLink] = useState(false);
+  const [markPaidInvoice, setMarkPaidInvoice] = useState<Invoice | null>(null);
+  const [thankYouMessage, setThankYouMessage] = useState('');
+  const [isMarkingPaid, setIsMarkingPaid] = useState(false);
 
   const { data: invoices = [], isLoading } = useQuery({
     queryKey: ['invoices', workspaceUserId],
@@ -386,14 +392,55 @@ export default function Invoices() {
     recordPaymentMutation.mutate({ id: payingInvoice.id, amount });
   };
 
-  const markFullyPaid = (invoice: Invoice) => {
+  const openMarkPaidDialog = (invoice: Invoice) => {
     const amount = amountsByInvoice.get(invoice.id);
     const balanceDue = amount ? amount.total_amount - amount.amount_paid : 0;
     if (balanceDue <= 0) {
       toast.error('No outstanding balance to record');
       return;
     }
-    recordPaymentMutation.mutate({ id: invoice.id, amount: balanceDue });
+    setThankYouMessage(`Thank you for your payment on invoice ${invoice.invoice_number}! We've received it in full and truly appreciate your business.`);
+    setMarkPaidInvoice(invoice);
+  };
+
+  const confirmMarkPaid = async () => {
+    if (!markPaidInvoice) return;
+    const client = getClient(markPaidInvoice.client_id);
+    const amount = amountsByInvoice.get(markPaidInvoice.id);
+    const balanceDue = amount ? amount.total_amount - amount.amount_paid : 0;
+    setIsMarkingPaid(true);
+    try {
+      await recordPaymentMutation.mutateAsync({ id: markPaidInvoice.id, amount: balanceDue });
+
+      if (client?.email) {
+        const { error } = await supabase.functions.invoke('send-notification-email', {
+          body: {
+            type: 'invoice_paid',
+            recipientEmail: '',
+            recipientName: '',
+            ccEmails: user?.email ? [user.email] : [],
+            data: {
+              invoiceId: markPaidInvoice.id,
+              invoiceNumber: markPaidInvoice.invoice_number,
+              totalAmount: formatCurrency(amount ? amount.total_amount : balanceDue),
+              thankYouMessage,
+              senderName: user?.user_metadata?.full_name || null,
+              senderCompany: branding?.company_name || null,
+            },
+          },
+        });
+        if (error) throw error;
+        toast.success(`Marked as paid — thank-you email sent to ${client.client_name}`);
+      } else {
+        toast.success('Marked as paid');
+      }
+      setMarkPaidInvoice(null);
+      setThankYouMessage('');
+    } catch (error: unknown) {
+      toast.error('Failed to complete: ' + (error instanceof Error ? error.message : String(error)));
+    } finally {
+      setIsMarkingPaid(false);
+    }
   };
 
   const voidMutation = useMutation({
@@ -456,13 +503,41 @@ export default function Invoices() {
     }
   };
 
-  const handleCopyLink = async (invoice: Invoice) => {
+  const openLinkDialog = async (invoice: Invoice) => {
+    setLinkInvoice(invoice);
+    setPortalAccess(null);
+    setIsLoadingLink(true);
     try {
       const portal = await getOrCreateInvoicePortalAccess(invoice.id, window.location.origin);
-      await navigator.clipboard.writeText(portal.link);
-      toast.success('Share link copied to clipboard');
+      setPortalAccess(portal);
     } catch {
       toast.error('Failed to generate share link');
+      setLinkInvoice(null);
+    } finally {
+      setIsLoadingLink(false);
+    }
+  };
+
+  const regenerateLink = async () => {
+    if (!linkInvoice) return;
+    setIsLoadingLink(true);
+    try {
+      const portal = await regenerateInvoicePortalAccess(linkInvoice.id, window.location.origin);
+      setPortalAccess(portal);
+      toast.success('New link and password generated — the old link no longer works');
+    } catch {
+      toast.error('Failed to regenerate share link');
+    } finally {
+      setIsLoadingLink(false);
+    }
+  };
+
+  const copyToClipboard = async (value: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      toast.success(`${label} copied to clipboard`);
+    } catch {
+      toast.error(`Failed to copy ${label.toLowerCase()}`);
     }
   };
 
@@ -538,8 +613,12 @@ export default function Invoices() {
     return html;
   };
 
-  const handleDownloadPdf = (invoice: Invoice) => {
-    exportToPdf(buildInvoicePdfHtml(invoice), `${invoice.invoice_number}.pdf`);
+  const handleDownloadPdf = async (invoice: Invoice) => {
+    try {
+      await exportToPdf(buildInvoicePdfHtml(invoice), `${invoice.invoice_number}.pdf`);
+    } catch (error: unknown) {
+      toast.error('Failed to generate PDF: ' + (error instanceof Error ? error.message : String(error)));
+    }
   };
 
   const handlePreview = (invoice: Invoice) => setPreviewInvoice(invoice);
@@ -695,7 +774,7 @@ export default function Invoices() {
                                   {isInvoiceOverdue(invoice) ? 'Send Reminder' : 'Send to Client'}
                                 </DropdownMenuItem>
                               )}
-                              <DropdownMenuItem onClick={() => handleCopyLink(invoice)}>
+                              <DropdownMenuItem onClick={() => openLinkDialog(invoice)}>
                                 <LinkIcon className="mr-2 h-4 w-4" />
                                 Copy Share Link
                               </DropdownMenuItem>
@@ -705,7 +784,7 @@ export default function Invoices() {
                                     <Wallet className="mr-2 h-4 w-4" />
                                     Record Payment...
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => markFullyPaid(invoice)}>
+                                  <DropdownMenuItem onClick={() => openMarkPaidDialog(invoice)}>
                                     <CheckCircle2 className="mr-2 h-4 w-4" />
                                     Mark as Paid
                                   </DropdownMenuItem>
@@ -967,6 +1046,83 @@ export default function Invoices() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Share Link Dialog */}
+      <Dialog open={!!linkInvoice} onOpenChange={(open) => { if (!open) { setLinkInvoice(null); setPortalAccess(null); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Share Invoice {linkInvoice?.invoice_number}</DialogTitle>
+          </DialogHeader>
+          {isLoadingLink ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : portalAccess ? (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Portal Link</Label>
+                <div className="flex gap-2">
+                  <Input readOnly value={portalAccess.link} className="font-mono text-xs" />
+                  <Button type="button" variant="outline" size="icon" onClick={() => copyToClipboard(portalAccess.link, 'Link')}>
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Access Password</Label>
+                {portalAccess.password ? (
+                  <div className="flex gap-2">
+                    <Input readOnly value={portalAccess.password} className="font-mono" />
+                    <Button type="button" variant="outline" size="icon" onClick={() => copyToClipboard(portalAccess.password!, 'Password')}>
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      This link already exists — its password was only shown once, when the link was first created (e.g. via "Send to Client"). Regenerate to get a new link and password.
+                    </p>
+                    <Button type="button" variant="outline" size="sm" onClick={regenerateLink}>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Regenerate Link &amp; Password
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : null}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setLinkInvoice(null); setPortalAccess(null); }}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Mark as Paid Confirmation */}
+      <AlertDialog open={!!markPaidInvoice} onOpenChange={(open) => !open && !isMarkingPaid && setMarkPaidInvoice(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mark Invoice {markPaidInvoice?.invoice_number} as Paid</AlertDialogTitle>
+            <AlertDialogDescription>
+              This records the full balance as paid and closes the invoice. Confirming will email the client the thank-you message below.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label>Thank-you message to client</Label>
+            <Textarea
+              value={thankYouMessage}
+              onChange={(e) => setThankYouMessage(e.target.value)}
+              rows={4}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isMarkingPaid}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmMarkPaid} disabled={isMarkingPaid}>
+              {isMarkingPaid ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+              Confirm &amp; Send
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
