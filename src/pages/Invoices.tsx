@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -56,6 +57,15 @@ const PAYMENT_TERMS = [
   { value: 'custom', label: 'Custom', days: null },
 ] as const;
 const PAYMENT_TERMS_LABELS: Record<string, string> = Object.fromEntries(PAYMENT_TERMS.map((t) => [t.value, t.label]));
+
+const PAYMENT_MODES = [
+  { value: 'cash', label: 'Cash' },
+  { value: 'bank_transfer', label: 'Bank Transfer' },
+  { value: 'card', label: 'Card' },
+  { value: 'upi', label: 'UPI' },
+  { value: 'cheque', label: 'Cheque' },
+  { value: 'other', label: 'Other' },
+] as const;
 
 interface Invoice {
   id: string;
@@ -123,13 +133,19 @@ export default function Invoices() {
   const [isSending, setIsSending] = useState(false);
   const [payingInvoice, setPayingInvoice] = useState<Invoice | null>(null);
   const [paymentAmountInput, setPaymentAmountInput] = useState('');
+  const [bankChargesInput, setBankChargesInput] = useState('0');
+  const [paymentDateInput, setPaymentDateInput] = useState(todayIso());
+  const [paymentModeInput, setPaymentModeInput] = useState('cash');
+  const [taxDeductedInput, setTaxDeductedInput] = useState(false);
+  const [referenceNumberInput, setReferenceNumberInput] = useState('');
+  const [paymentNotesInput, setPaymentNotesInput] = useState('');
+  const [sendThankYou, setSendThankYou] = useState(true);
+  const [thankYouMessage, setThankYouMessage] = useState('');
+  const [isRecordingPayment, setIsRecordingPayment] = useState(false);
   const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
   const [linkInvoice, setLinkInvoice] = useState<Invoice | null>(null);
   const [portalAccess, setPortalAccess] = useState<PortalAccessResult | null>(null);
   const [isLoadingLink, setIsLoadingLink] = useState(false);
-  const [markPaidInvoice, setMarkPaidInvoice] = useState<Invoice | null>(null);
-  const [thankYouMessage, setThankYouMessage] = useState('');
-  const [isMarkingPaid, setIsMarkingPaid] = useState(false);
 
   const { data: invoices = [], isLoading } = useQuery({
     queryKey: ['invoices', workspaceUserId],
@@ -157,7 +173,7 @@ export default function Invoices() {
   const { data: clients = [] } = useQuery({
     queryKey: ['clients-list', workspaceUserId],
     queryFn: async () => {
-      const { data, error } = await supabase.from('clients').select('id, client_name, company_name, billing_address').order('client_name');
+      const { data, error } = await supabase.from('clients').select('id, client_name, company_name, billing_address, email').order('client_name');
       if (error) throw error;
       return data;
     },
@@ -354,29 +370,59 @@ export default function Invoices() {
     onError: (error: Error) => toast.error('Failed to delete: ' + error.message),
   });
 
+  type RecordPaymentInput = {
+    id: string;
+    amount: number;
+    bankCharges: number;
+    paymentDate: string;
+    paymentMode: string;
+    taxDeducted: boolean;
+    referenceNumber: string;
+    notes: string;
+    thankYouSent: boolean;
+  };
+
   const recordPaymentMutation = useMutation({
-    mutationFn: async ({ id, amount }: { id: string; amount: number }) => {
-      const { error } = await supabase.rpc('record_invoice_payment', { _invoice_id: id, _amount: amount });
+    mutationFn: async (input: RecordPaymentInput) => {
+      const { error } = await supabase.rpc('record_invoice_payment', {
+        _invoice_id: input.id,
+        _amount: input.amount,
+        _bank_charges: input.bankCharges,
+        _payment_date: input.paymentDate,
+        _payment_mode: input.paymentMode || null,
+        _tax_deducted: input.taxDeducted,
+        _reference_number: input.referenceNumber || null,
+        _notes: input.notes || null,
+        _thank_you_sent: input.thankYouSent,
+      });
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['invoice-amounts'] });
-      toast.success('Payment recorded');
-      setPayingInvoice(null);
-      setPaymentAmountInput('');
     },
-    onError: (error: Error) => toast.error('Failed to record payment: ' + error.message),
   });
 
   const openPaymentDialog = (invoice: Invoice) => {
     const amount = amountsByInvoice.get(invoice.id);
     const balanceDue = amount ? amount.total_amount - amount.amount_paid : 0;
-    setPaymentAmountInput(balanceDue > 0 ? balanceDue.toFixed(2) : '');
+    if (balanceDue <= 0) {
+      toast.error('No outstanding balance to record');
+      return;
+    }
+    setPaymentAmountInput(balanceDue.toFixed(2));
+    setBankChargesInput('0');
+    setPaymentDateInput(todayIso());
+    setPaymentModeInput('cash');
+    setTaxDeductedInput(false);
+    setReferenceNumberInput('');
+    setPaymentNotesInput('');
+    setSendThankYou(true);
+    setThankYouMessage(`Thank you for your payment on invoice ${invoice.invoice_number}! We've received it and truly appreciate your business.`);
     setPayingInvoice(invoice);
   };
 
-  const confirmRecordPayment = () => {
+  const confirmRecordPayment = async () => {
     if (!payingInvoice) return;
     const amount = parseFloat(paymentAmountInput);
     if (!amount || amount <= 0) {
@@ -389,30 +435,24 @@ export default function Invoices() {
       toast.error(`Payment cannot exceed the balance due (${formatCurrency(balanceDue)})`);
       return;
     }
-    recordPaymentMutation.mutate({ id: payingInvoice.id, amount });
-  };
+    const client = getClient(payingInvoice.client_id);
+    const willSendThankYou = sendThankYou && !!client?.email;
 
-  const openMarkPaidDialog = (invoice: Invoice) => {
-    const amount = amountsByInvoice.get(invoice.id);
-    const balanceDue = amount ? amount.total_amount - amount.amount_paid : 0;
-    if (balanceDue <= 0) {
-      toast.error('No outstanding balance to record');
-      return;
-    }
-    setThankYouMessage(`Thank you for your payment on invoice ${invoice.invoice_number}! We've received it in full and truly appreciate your business.`);
-    setMarkPaidInvoice(invoice);
-  };
-
-  const confirmMarkPaid = async () => {
-    if (!markPaidInvoice) return;
-    const client = getClient(markPaidInvoice.client_id);
-    const amount = amountsByInvoice.get(markPaidInvoice.id);
-    const balanceDue = amount ? amount.total_amount - amount.amount_paid : 0;
-    setIsMarkingPaid(true);
+    setIsRecordingPayment(true);
     try {
-      await recordPaymentMutation.mutateAsync({ id: markPaidInvoice.id, amount: balanceDue });
+      await recordPaymentMutation.mutateAsync({
+        id: payingInvoice.id,
+        amount,
+        bankCharges: parseFloat(bankChargesInput) || 0,
+        paymentDate: paymentDateInput || todayIso(),
+        paymentMode: paymentModeInput,
+        taxDeducted: taxDeductedInput,
+        referenceNumber: referenceNumberInput,
+        notes: paymentNotesInput,
+        thankYouSent: willSendThankYou,
+      });
 
-      if (client?.email) {
+      if (willSendThankYou) {
         const { error } = await supabase.functions.invoke('send-notification-email', {
           body: {
             type: 'invoice_paid',
@@ -420,9 +460,9 @@ export default function Invoices() {
             recipientName: '',
             ccEmails: user?.email ? [user.email] : [],
             data: {
-              invoiceId: markPaidInvoice.id,
-              invoiceNumber: markPaidInvoice.invoice_number,
-              totalAmount: formatCurrency(amount ? amount.total_amount : balanceDue),
+              invoiceId: payingInvoice.id,
+              invoiceNumber: payingInvoice.invoice_number,
+              totalAmount: formatCurrency(amount),
               thankYouMessage,
               senderName: user?.user_metadata?.full_name || null,
               senderCompany: branding?.company_name || null,
@@ -430,16 +470,15 @@ export default function Invoices() {
           },
         });
         if (error) throw error;
-        toast.success(`Marked as paid — thank-you email sent to ${client.client_name}`);
+        toast.success(`Payment recorded — thank-you email sent to ${client!.client_name}`);
       } else {
-        toast.success('Marked as paid');
+        toast.success('Payment recorded');
       }
-      setMarkPaidInvoice(null);
-      setThankYouMessage('');
+      setPayingInvoice(null);
     } catch (error: unknown) {
-      toast.error('Failed to complete: ' + (error instanceof Error ? error.message : String(error)));
+      toast.error('Failed to record payment: ' + (error instanceof Error ? error.message : String(error)));
     } finally {
-      setIsMarkingPaid(false);
+      setIsRecordingPayment(false);
     }
   };
 
@@ -784,7 +823,7 @@ export default function Invoices() {
                                     <Wallet className="mr-2 h-4 w-4" />
                                     Record Payment...
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => openMarkPaidDialog(invoice)}>
+                                  <DropdownMenuItem onClick={() => openPaymentDialog(invoice)}>
                                     <CheckCircle2 className="mr-2 h-4 w-4" />
                                     Mark as Paid
                                   </DropdownMenuItem>
@@ -988,36 +1027,109 @@ export default function Invoices() {
       </AlertDialog>
 
       {/* Record Payment Dialog */}
-      <Dialog open={!!payingInvoice} onOpenChange={(open) => !open && setPayingInvoice(null)}>
-        <DialogContent className="max-w-sm">
+      <Dialog open={!!payingInvoice} onOpenChange={(open) => !open && !isRecordingPayment && setPayingInvoice(null)}>
+        <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Record Payment</DialogTitle>
           </DialogHeader>
           {payingInvoice && (() => {
             const amount = amountsByInvoice.get(payingInvoice.id);
             const balanceDue = amount ? amount.total_amount - amount.amount_paid : 0;
+            const client = getClient(payingInvoice.client_id);
             return (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
                   Invoice {payingInvoice.invoice_number} — balance due {formatCurrency(balanceDue)}
                 </p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Amount Received</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      value={paymentAmountInput}
+                      onChange={(e) => setPaymentAmountInput(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Bank Charges</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      value={bankChargesInput}
+                      onChange={(e) => setBankChargesInput(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Date</Label>
+                    <Input
+                      type="date"
+                      value={paymentDateInput}
+                      onChange={(e) => setPaymentDateInput(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Payment Mode</Label>
+                    <Select value={paymentModeInput} onValueChange={setPaymentModeInput}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {PAYMENT_MODES.map((m) => (
+                          <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="tax-deducted">Tax deducted?</Label>
+                  <Switch id="tax-deducted" checked={taxDeductedInput} onCheckedChange={setTaxDeductedInput} />
+                </div>
                 <div className="space-y-2">
-                  <Label>Amount Received</Label>
+                  <Label>Reference #</Label>
                   <Input
-                    type="number"
-                    min={0}
-                    step={0.01}
-                    value={paymentAmountInput}
-                    onChange={(e) => setPaymentAmountInput(e.target.value)}
+                    placeholder="Transaction / cheque number"
+                    value={referenceNumberInput}
+                    onChange={(e) => setReferenceNumberInput(e.target.value)}
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label>Notes</Label>
+                  <Textarea
+                    value={paymentNotesInput}
+                    onChange={(e) => setPaymentNotesInput(e.target.value)}
+                    rows={2}
+                  />
+                </div>
+                <div className="space-y-3 rounded-md border p-3">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="send-thank-you">Send a "Thank You" note</Label>
+                    <Switch id="send-thank-you" checked={sendThankYou} onCheckedChange={setSendThankYou} disabled={!client?.email} />
+                  </div>
+                  {sendThankYou && client?.email && (
+                    <>
+                      <p className="text-xs text-muted-foreground">Send to: {client.client_name} ({client.email})</p>
+                      <Textarea
+                        value={thankYouMessage}
+                        onChange={(e) => setThankYouMessage(e.target.value)}
+                        rows={3}
+                      />
+                    </>
+                  )}
+                  {!client?.email && (
+                    <p className="text-xs text-muted-foreground">This client has no email on file, so no note can be sent.</p>
+                  )}
                 </div>
               </div>
             );
           })()}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPayingInvoice(null)}>Cancel</Button>
-            <Button onClick={confirmRecordPayment} disabled={recordPaymentMutation.isPending}>
-              {recordPaymentMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button variant="outline" onClick={() => setPayingInvoice(null)} disabled={isRecordingPayment}>Cancel</Button>
+            <Button onClick={confirmRecordPayment} disabled={isRecordingPayment}>
+              {isRecordingPayment && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Record Payment
             </Button>
           </DialogFooter>
@@ -1026,7 +1138,7 @@ export default function Invoices() {
 
       {/* Preview Dialog */}
       <Dialog open={!!previewInvoice} onOpenChange={(open) => !open && setPreviewInvoice(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-4xl h-[85vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Preview — {previewInvoice?.invoice_number}</DialogTitle>
           </DialogHeader>
@@ -1034,7 +1146,7 @@ export default function Invoices() {
             <iframe
               title="Invoice preview"
               srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0;">${buildInvoicePdfHtml(previewInvoice)}</body></html>`}
-              className="w-full flex-1 border rounded-md bg-white"
+              className="w-full flex-1 min-h-0 border rounded-md bg-white"
             />
           )}
           <DialogFooter>
@@ -1097,32 +1209,6 @@ export default function Invoices() {
         </DialogContent>
       </Dialog>
 
-      {/* Mark as Paid Confirmation */}
-      <AlertDialog open={!!markPaidInvoice} onOpenChange={(open) => !open && !isMarkingPaid && setMarkPaidInvoice(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Mark Invoice {markPaidInvoice?.invoice_number} as Paid</AlertDialogTitle>
-            <AlertDialogDescription>
-              This records the full balance as paid and closes the invoice. Confirming will email the client the thank-you message below.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="space-y-2">
-            <Label>Thank-you message to client</Label>
-            <Textarea
-              value={thankYouMessage}
-              onChange={(e) => setThankYouMessage(e.target.value)}
-              rows={4}
-            />
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isMarkingPaid}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmMarkPaid} disabled={isMarkingPaid}>
-              {isMarkingPaid ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
-              Confirm &amp; Send
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
