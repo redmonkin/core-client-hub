@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
 import { useState, useRef } from 'react';
-import { ArrowLeft, Calendar, FolderKanban, FileText, FileSignature, Receipt, Files, Building2, Clock, StickyNote, Star, StarOff, Upload, Image as ImageIcon, Loader2, X } from 'lucide-react';
+import { ArrowLeft, Calendar, FolderKanban, FileText, FileSignature, Receipt, Files, Building2, Clock, StickyNote, Star, StarOff, Upload, Image as ImageIcon, Loader2, X, LayoutDashboard } from 'lucide-react';
 
 import { format } from 'date-fns';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -15,6 +15,7 @@ import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { ProjectTimesheets } from '@/components/timesheets/ProjectTimesheets';
 import { ProjectNotes } from '@/components/notes/ProjectNotes';
+import { ProjectOverview } from '@/components/projects/ProjectOverview';
 import { toast } from 'sonner';
 
 const formatCurrency = (amount: number): string =>
@@ -41,6 +42,7 @@ export default function ProjectDetail() {
   const queryClient = useQueryClient();
   const featureImageRef = useRef<HTMLInputElement>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
   const { canViewFinancials } = useWorkspaceUser();
 
   const { data: project, isLoading } = useQuery({
@@ -366,8 +368,12 @@ export default function ProjectDetail() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="timesheets" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview" className="flex items-center gap-2">
+            <LayoutDashboard className="h-4 w-4" />
+            Overview
+          </TabsTrigger>
           <TabsTrigger value="timesheets" className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
             Timesheets
@@ -381,6 +387,14 @@ export default function ProjectDetail() {
             Documents ({documents.length})
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="overview" className="mt-4">
+          <ProjectOverview
+            projectId={id!}
+            onViewTasks={() => setActiveTab('timesheets')}
+            onViewNotes={() => setActiveTab('notes')}
+          />
+        </TabsContent>
 
         <TabsContent value="timesheets" className="mt-4">
           <ProjectTimesheets projectId={id!} />
