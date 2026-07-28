@@ -50,6 +50,12 @@ export function ProjectOverview({ projectId, onViewNotes, onViewTasks }: Project
     acc[status] = tasks.filter((t) => t.status === status).length;
     return acc;
   }, {} as Record<TaskStatus, number>);
+  const statusHours = TASK_STATUSES.reduce((acc, status) => {
+    acc[status] = tasks
+      .filter((t) => t.status === status)
+      .reduce((sum, t) => sum + (Number(t.duration) || 0), 0);
+    return acc;
+  }, {} as Record<TaskStatus, number>);
   const openCount = OPEN_STATUSES.reduce((sum, s) => sum + statusCounts[s], 0);
   const completedCount = total - openCount - statusCounts['wont-do'];
   const overdueCount = tasks.filter(
@@ -134,6 +140,7 @@ export function ProjectOverview({ projectId, onViewNotes, onViewTasks }: Project
               <div className="space-y-2.5">
                 {TASK_STATUSES.filter((status) => statusCounts[status] > 0).map((status) => {
                   const count = statusCounts[status];
+                  const hours = statusHours[status];
                   const pct = total > 0 ? (count / total) * 100 : 0;
                   return (
                     <div key={status} className="flex items-center gap-3 text-sm">
@@ -143,7 +150,9 @@ export function ProjectOverview({ projectId, onViewNotes, onViewTasks }: Project
                       <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
                         <div className="h-full rounded-full bg-primary/70" style={{ width: `${pct}%` }} />
                       </div>
-                      <span className="w-6 shrink-0 text-right text-muted-foreground">{count}</span>
+                      <span className="w-20 shrink-0 text-right text-muted-foreground">
+                        {count} · {hours.toFixed(1)}h
+                      </span>
                     </div>
                   );
                 })}
