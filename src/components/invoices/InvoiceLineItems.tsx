@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Package, ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { useWorkspaceUser } from '@/hooks/useWorkspaceUser';
+import { useInvoiceItems, InvoiceItem } from '@/components/invoices/InvoiceItemsCatalog';
 import {
   InvoiceLineItem,
   INVOICE_UNITS,
@@ -23,6 +27,9 @@ interface InvoiceLineItemsProps {
 /** Single flat line-item table for invoices -- no multi-plan tabs like
  * proposals/contracts use, since an invoice is one finalized bill. */
 export function InvoiceLineItems({ value, onChange }: InvoiceLineItemsProps) {
+  const { workspaceUserId } = useWorkspaceUser();
+  const { data: catalogItems = [] } = useInvoiceItems(workspaceUserId);
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [data, setData] = useState(() => parseInvoiceLineItems(value));
 
   useEffect(() => {
@@ -49,6 +56,17 @@ export function InvoiceLineItems({ value, onChange }: InvoiceLineItemsProps) {
     persist({ ...data, items: [...data.items, createEmptyInvoiceLineItem()] });
   };
 
+  const addFromCatalog = (catalogItem: InvoiceItem) => {
+    const newItem: InvoiceLineItem = {
+      ...createEmptyInvoiceLineItem(),
+      description: catalogItem.description ? `${catalogItem.title} — ${catalogItem.description}` : catalogItem.title,
+      unit: catalogItem.unit,
+      unitPrice: catalogItem.cost,
+    };
+    persist({ ...data, items: [...data.items, newItem] });
+    setIsPickerOpen(false);
+  };
+
   const removeItem = (itemId: string) => {
     if (data.items.length <= 1) return;
     persist({ ...data, items: data.items.filter((i) => i.id !== itemId) });
@@ -58,8 +76,8 @@ export function InvoiceLineItems({ value, onChange }: InvoiceLineItemsProps) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border border-input overflow-hidden">
-        <Table>
+      <div className="rounded-lg border border-input overflow-x-auto">
+        <Table className="min-w-[720px]">
           <TableHeader>
             <TableRow className="bg-muted/50">
               <TableHead className="min-w-[200px]">Description</TableHead>
@@ -146,10 +164,51 @@ export function InvoiceLineItems({ value, onChange }: InvoiceLineItemsProps) {
         </Table>
       </div>
 
-      <Button type="button" variant="outline" size="sm" onClick={addItem} className="w-full border-dashed">
-        <Plus className="mr-2 h-4 w-4" />
-        Add Line Item
-      </Button>
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <Popover open={isPickerOpen} onOpenChange={setIsPickerOpen}>
+          <PopoverTrigger asChild>
+            <Button type="button" variant="outline" size="sm" className="flex-1 border-dashed">
+              <Package className="mr-2 h-4 w-4" />
+              Add From Catalog
+              <ChevronsUpDown className="ml-2 h-3.5 w-3.5 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80 p-0" align="start">
+            <Command>
+              <CommandInput placeholder="Search items..." />
+              <CommandList>
+                <CommandEmpty>
+                  {catalogItems.length === 0 ? 'No saved items yet. Add some from the Items tab.' : 'No matching items.'}
+                </CommandEmpty>
+                <CommandGroup>
+                  {catalogItems.map((item) => (
+                    <CommandItem
+                      key={item.id}
+                      value={item.title}
+                      onSelect={() => addFromCatalog(item)}
+                      className="flex items-center justify-between gap-2"
+                    >
+                      <div className="min-w-0">
+                        <div className="truncate font-medium">{item.title}</div>
+                        {item.description && (
+                          <div className="truncate text-xs text-muted-foreground">{item.description}</div>
+                        )}
+                      </div>
+                      <span className="shrink-0 text-xs text-muted-foreground">
+                        {formatInvoiceCurrency(item.cost)}/{item.unit}
+                      </span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+        <Button type="button" variant="outline" size="sm" onClick={addItem} className="flex-1 border-dashed">
+          <Plus className="mr-2 h-4 w-4" />
+          Add Custom Item
+        </Button>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-3">
