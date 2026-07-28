@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
 import { useState, useRef } from 'react';
-import { ArrowLeft, Calendar, FolderKanban, FileText, FileSignature, Receipt, Files, Building2, Clock, StickyNote, Star, StarOff, Upload, Image as ImageIcon, Loader2, X, ListTodo, AlertTriangle, CheckCircle2, Timer } from 'lucide-react';
+import { ArrowLeft, Calendar, FolderKanban, FileText, FileSignature, Receipt, Files, Building2, Clock, StickyNote, Star, StarOff, Upload, Image as ImageIcon, Loader2, X, ListTodo, AlertTriangle, Timer, Wallet } from 'lucide-react';
 
 import { format } from 'date-fns';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -147,8 +147,29 @@ export default function ProjectDetail() {
   const overdueTaskCount = tasks.filter(
     (t) => t.due_date && OPEN_TASK_STATUSES.includes(t.status) && new Date(t.due_date) < new Date(new Date().toDateString())
   ).length;
-  const completedTaskCount = tasks.length - openTaskCount - tasks.filter((t) => t.status === 'wont-do').length;
   const totalLoggedHours = tasks.reduce((sum, t) => sum + (Number(t.duration) || 0), 0);
+  // "pending" = duration logged, work done, not yet invoiced; "billed" = duration
+  // already carried into an invoice. These are the two hour buckets that matter
+  // for a billing-focused app -- what's ready to invoice vs. what's already gone out.
+  const pendingBillingHours = tasks.filter((t) => t.status === 'pending').reduce((sum, t) => sum + (Number(t.duration) || 0), 0);
+  const billedHours = tasks.filter((t) => t.status === 'billed').reduce((sum, t) => sum + (Number(t.duration) || 0), 0);
+
+  // Same key + shape ProjectNotes uses (no limit either), so this shares its
+  // cache instead of colliding with a differently-shaped query.
+  const { data: projectNotesPreview = [] } = useQuery({
+    queryKey: ['project-notes', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('project_notes')
+        .select('*')
+        .eq('project_id', id!)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id,
+  });
+  const latestNotes = projectNotesPreview.slice(0, 2);
 
   // Unified "Documents" list — proposals, contracts, and invoices for this
   // project, sorted together by recency rather than split across separate
@@ -407,15 +428,38 @@ export default function ProjectDetail() {
                   <span className={overdueTaskCount > 0 ? 'text-destructive font-medium' : 'text-foreground'}>{overdueTaskCount}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
-                  <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">Completed:</span>
-                  <span className="text-foreground">{completedTaskCount}</span>
+                  <Wallet className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">Pending Billing:</span>
+                  <span className="text-foreground">{pendingBillingHours.toFixed(1)}h</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Receipt className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">Billed:</span>
+                  <span className="text-foreground">{billedHours.toFixed(1)}h</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <Timer className="h-4 w-4 text-muted-foreground" />
                   <span className="text-muted-foreground">Logged:</span>
                   <span className="text-foreground">{totalLoggedHours.toFixed(1)}h</span>
                 </div>
+              </div>
+            </>
+          )}
+
+          {latestNotes.length > 0 && (
+            <>
+              <Separator className="my-4" />
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-foreground">Latest Notes</p>
+                {latestNotes.map((note) => (
+                  <div key={note.id} className="flex items-start gap-2 text-sm">
+                    <StickyNote className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    <p className="line-clamp-1 text-muted-foreground">
+                      {note.content}
+                      <span className="ml-2 text-xs">{format(new Date(note.created_at), 'MMM d')}</span>
+                    </p>
+                  </div>
+                ))}
               </div>
             </>
           )}
