@@ -504,8 +504,8 @@ export default function Portfolio() {
 
           {step === 'details' && (
             <form onSubmit={handleSubmitDetails} className="flex min-h-0 flex-1 flex-col">
-              <ScrollArea className="flex-1 pr-4 -mr-4">
-                <div className="space-y-4 pb-1">
+              <ScrollArea className="min-h-0 flex-1 -mx-6">
+                <div className="space-y-4 px-6 pb-1">
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label>Full Name *</Label>
@@ -582,8 +582,8 @@ export default function Portfolio() {
 
           {step === 'vision' && (
             <div className="flex min-h-0 flex-1 flex-col">
-              <ScrollArea className="flex-1 pr-4 -mr-4">
-                <div className="space-y-4 pb-1">
+              <ScrollArea className="min-h-0 flex-1 -mx-6">
+                <div className="space-y-4 px-6 pb-1">
                   <div className="space-y-2">
                     <Label className="text-sm">What is the primary goal of this project?</Label>
                     <Textarea
@@ -678,8 +678,8 @@ export default function Portfolio() {
 
           {step === 'scope' && (
             <div className="flex min-h-0 flex-1 flex-col">
-              <ScrollArea className="flex-1 pr-4 -mr-4">
-                <div className="space-y-4 pb-1">
+              <ScrollArea className="min-h-0 flex-1 -mx-6">
+                <div className="space-y-4 px-6 pb-1">
                   <div className="space-y-2">
                     <Label className="text-sm">What is your estimated budget range?</Label>
                     <Select
