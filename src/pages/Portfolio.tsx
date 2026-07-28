@@ -11,6 +11,13 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Progress } from '@/components/ui/progress';
+import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Globe, Building2, Send, CheckCircle, Loader2, Image as ImageIcon, Mail, Paperclip, X } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -23,6 +30,28 @@ const BUDGET_OPTIONS = [
 ];
 
 const REFERRAL_OPTIONS = ['Friends', 'Co-Worker', 'At an Event', 'Social Media', 'Others'];
+
+const FEATURE_OPTIONS = [
+  'E-commerce / Payments',
+  'User Accounts & Login',
+  'Booking / Scheduling',
+  'Blog / CMS',
+  'Multi-language',
+  'SEO Optimization',
+  'Third-party Integrations',
+  'Analytics / Reporting',
+];
+
+const CONTENT_READY_OPTIONS = [
+  { value: 'ready', label: 'Yes, all ready' },
+  { value: 'partial', label: 'Partially ready' },
+  { value: 'need-help', label: 'Need help creating it' },
+];
+
+const COMMUNICATION_OPTIONS = ['Email', 'Phone', 'WhatsApp', 'Slack', 'Other'];
+
+const FORM_STEPS = ['details', 'vision', 'scope'] as const;
+type FormStep = typeof FORM_STEPS[number] | 'success';
 
 const MAX_FILE_MB = 5;
 const ALLOWED_MIME = [
@@ -56,8 +85,9 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 export default function Portfolio() {
   const { userId: routeParam } = useParams();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [step, setStep] = useState<'details' | 'questionnaire' | 'success'>('details');
+  const [step, setStep] = useState<FormStep>('details');
   const [submitting, setSubmitting] = useState(false);
+  const [confirmDiscardOpen, setConfirmDiscardOpen] = useState(false);
 
   const [clientForm, setClientForm] = useState({
     name: '',
@@ -70,14 +100,31 @@ export default function Portfolio() {
 
   const [questionnaire, setQuestionnaire] = useState({
     primaryGoal: '',
+    targetAudience: '',
+    hasExistingSite: '',
+    existingSiteUrl: '',
+    designInspiration: '',
+    features: [] as string[],
     budget: '',
     timelineWeeks: '',
+    contentReady: '',
+    stakeholders: '',
+    communicationPreference: '',
     requirements: '',
     referral: '',
   });
 
   const [attachment, setAttachment] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const toggleFeature = (feature: string) => {
+    setQuestionnaire((p) => ({
+      ...p,
+      features: p.features.includes(feature)
+        ? p.features.filter((f) => f !== feature)
+        : [...p.features, feature],
+    }));
+  };
 
   const { data: branding } = useQuery({
     queryKey: ['portfolio-branding', routeParam],
@@ -173,7 +220,7 @@ export default function Portfolio() {
       toast.error('Name and email are required');
       return;
     }
-    setStep('questionnaire');
+    setStep('vision');
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -197,11 +244,22 @@ export default function Portfolio() {
       const timelineText = questionnaire.timelineWeeks
         ? `${questionnaire.timelineWeeks} week${Number(questionnaire.timelineWeeks) === 1 ? '' : 's'}`
         : '';
+      const existingSiteText = questionnaire.hasExistingSite === 'yes'
+        ? `Yes${questionnaire.existingSiteUrl.trim() ? ` — ${questionnaire.existingSiteUrl.trim()}` : ''}`
+        : questionnaire.hasExistingSite === 'no' ? 'No' : '';
+      const contentReadyLabel = CONTENT_READY_OPTIONS.find(o => o.value === questionnaire.contentReady)?.label || '';
 
       const answers: Record<string, string> = {
         'What is the primary goal of this project?': questionnaire.primaryGoal.trim(),
+        'Who is this project for? (target audience)': questionnaire.targetAudience.trim(),
+        'Do you have an existing website or product?': existingSiteText,
+        'Any websites or brands whose look/feel you like?': questionnaire.designInspiration.trim(),
+        'Which features do you need?': questionnaire.features.join(', '),
         'What is your estimated budget range?': budgetLabel,
         'What is your expected timeline?': timelineText,
+        'Do you already have content ready (copy, images, videos)?': contentReadyLabel,
+        'Who else will be involved in reviewing or approving this project?': questionnaire.stakeholders.trim(),
+        'Preferred way to communicate during the project?': questionnaire.communicationPreference,
         'Do you have any specific requirements or preferences?': questionnaire.requirements.trim(),
         'How did you hear about us?': questionnaire.referral,
       };
@@ -239,11 +297,42 @@ export default function Portfolio() {
   const resetForm = () => {
     setStep('details');
     setClientForm({ name: '', email: '', phone: '', company_name: '', project_name: '', project_type: 'one-time' });
-    setQuestionnaire({ primaryGoal: '', budget: '', timelineWeeks: '', requirements: '', referral: '' });
+    setQuestionnaire({
+      primaryGoal: '', targetAudience: '', hasExistingSite: '', existingSiteUrl: '', designInspiration: '',
+      features: [], budget: '', timelineWeeks: '', contentReady: '', stakeholders: '', communicationPreference: '',
+      requirements: '', referral: '',
+    });
     setAttachment(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
     setDialogOpen(false);
   };
+
+  // Any client-entered progress that would be silently lost if the dialog
+  // closed without confirmation (Escape / outside click / the X button all
+  // route through this same onOpenChange handler).
+  const hasProgress = () =>
+    Object.values(clientForm).some((v) => v.trim() && v !== 'one-time') ||
+    questionnaire.primaryGoal.trim() || questionnaire.targetAudience.trim() ||
+    questionnaire.hasExistingSite || questionnaire.existingSiteUrl.trim() ||
+    questionnaire.designInspiration.trim() || questionnaire.features.length > 0 ||
+    questionnaire.budget || questionnaire.timelineWeeks || questionnaire.contentReady ||
+    questionnaire.stakeholders.trim() || questionnaire.communicationPreference ||
+    questionnaire.requirements.trim() || questionnaire.referral || !!attachment;
+
+  const handleDialogOpenChange = (open: boolean) => {
+    if (open) {
+      setDialogOpen(true);
+      return;
+    }
+    if (step === 'success' || !hasProgress()) {
+      resetForm();
+      return;
+    }
+    setConfirmDiscardOpen(true);
+  };
+
+  const stepIndex = step === 'success' ? FORM_STEPS.length : FORM_STEPS.indexOf(step as typeof FORM_STEPS[number]);
+  const stepProgress = ((stepIndex + 1) / FORM_STEPS.length) * 100;
 
   const primaryColor = branding?.primary_color || '#8B5CF6';
   const accentColor = branding?.accent_color || '#F59E0B';
@@ -396,213 +485,344 @@ export default function Portfolio() {
       </footer>
 
       {/* Request Proposal Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) resetForm(); }}>
-        <DialogContent className="sm:max-w-lg">
-          {step === 'details' && (
-            <>
-              <DialogHeader>
-                <DialogTitle>Request a Proposal</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmitDetails} className="space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>Full Name *</Label>
-                    <Input
-                      value={clientForm.name}
-                      onChange={(e) => setClientForm(p => ({ ...p, name: e.target.value }))}
-                      placeholder="John Doe"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Email *</Label>
-                    <Input
-                      type="email"
-                      value={clientForm.email}
-                      onChange={(e) => setClientForm(p => ({ ...p, email: e.target.value }))}
-                      placeholder="john@example.com"
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>Phone</Label>
-                    <Input
-                      value={clientForm.phone}
-                      onChange={(e) => setClientForm(p => ({ ...p, phone: e.target.value }))}
-                      placeholder="+91 9876543210"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Company</Label>
-                    <Input
-                      value={clientForm.company_name}
-                      onChange={(e) => setClientForm(p => ({ ...p, company_name: e.target.value }))}
-                      placeholder="Company name"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Project Name</Label>
-                  <Input
-                    value={clientForm.project_name}
-                    onChange={(e) => setClientForm(p => ({ ...p, project_name: e.target.value }))}
-                    placeholder="e.g. Website Redesign"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Project Type</Label>
-                  <Select
-                    value={clientForm.project_type}
-                    onValueChange={(v) => setClientForm(p => ({ ...p, project_type: v }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="one-time">One-time Project</SelectItem>
-                      <SelectItem value="amc">Annual Maintenance (AMC)</SelectItem>
-                      <SelectItem value="retainer">Retainer</SelectItem>
-                      <SelectItem value="hourly">Hourly</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex justify-end pt-2">
-                  <Button type="submit" style={{ backgroundColor: primaryColor }} className="text-white">
-                    Next: Project Details →
-                  </Button>
-                </div>
-              </form>
-            </>
+      <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+          {step !== 'success' && (
+            <DialogHeader className="shrink-0">
+              <DialogTitle>
+                {step === 'details' ? 'Request a Proposal' : 'Tell us about your project'}
+              </DialogTitle>
+              <div className="flex items-center gap-3 pt-1">
+                <Progress value={stepProgress} className="h-1.5" />
+                <span className="shrink-0 text-xs text-muted-foreground">
+                  Step {stepIndex + 1} of {FORM_STEPS.length}
+                </span>
+              </div>
+            </DialogHeader>
           )}
 
-          {step === 'questionnaire' && (
-            <>
-              <DialogHeader>
-                <DialogTitle>Tell us about your project</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
-                <div className="space-y-2">
-                  <Label className="text-sm">What is the primary goal of this project?</Label>
-                  <Textarea
-                    value={questionnaire.primaryGoal}
-                    onChange={(e) => setQuestionnaire(p => ({ ...p, primaryGoal: e.target.value }))}
-                    placeholder="Describe what you want to achieve..."
-                    className="min-h-[90px] resize-y"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm">What is your estimated budget range?</Label>
-                  <Select
-                    value={questionnaire.budget}
-                    onValueChange={(v) => setQuestionnaire(p => ({ ...p, budget: v }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a budget range" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {BUDGET_OPTIONS.map(o => (
-                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm">Expected timeline (in weeks)</Label>
-                  <div className="flex items-center gap-2">
+          {step === 'details' && (
+            <form onSubmit={handleSubmitDetails} className="flex min-h-0 flex-1 flex-col">
+              <div className="min-h-0 flex-1 overflow-y-auto -mx-6">
+                <div className="space-y-4 px-6 pb-1">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>Full Name *</Label>
+                      <Input
+                        value={clientForm.name}
+                        onChange={(e) => setClientForm(p => ({ ...p, name: e.target.value }))}
+                        placeholder="John Doe"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Email *</Label>
+                      <Input
+                        type="email"
+                        value={clientForm.email}
+                        onChange={(e) => setClientForm(p => ({ ...p, email: e.target.value }))}
+                        placeholder="john@example.com"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>Phone</Label>
+                      <Input
+                        value={clientForm.phone}
+                        onChange={(e) => setClientForm(p => ({ ...p, phone: e.target.value }))}
+                        placeholder="+91 9876543210"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Company</Label>
+                      <Input
+                        value={clientForm.company_name}
+                        onChange={(e) => setClientForm(p => ({ ...p, company_name: e.target.value }))}
+                        placeholder="Company name"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Project Name</Label>
                     <Input
-                      type="number"
-                      min={1}
-                      max={104}
-                      value={questionnaire.timelineWeeks}
-                      onChange={(e) => setQuestionnaire(p => ({ ...p, timelineWeeks: e.target.value }))}
-                      placeholder="e.g. 4"
-                      className="w-32"
+                      value={clientForm.project_name}
+                      onChange={(e) => setClientForm(p => ({ ...p, project_name: e.target.value }))}
+                      placeholder="e.g. Website Redesign"
                     />
-                    <span className="text-sm text-muted-foreground">weeks</span>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Project Type</Label>
+                    <Select
+                      value={clientForm.project_type}
+                      onValueChange={(v) => setClientForm(p => ({ ...p, project_type: v }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="one-time">One-time Project</SelectItem>
+                        <SelectItem value="amc">Annual Maintenance (AMC)</SelectItem>
+                        <SelectItem value="retainer">Retainer</SelectItem>
+                        <SelectItem value="hourly">Hourly</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
+              </div>
+              <div className="flex shrink-0 justify-end pt-4">
+                <Button type="submit" style={{ backgroundColor: primaryColor }} className="text-white">
+                  Next: Project Vision →
+                </Button>
+              </div>
+            </form>
+          )}
 
-                <div className="space-y-2">
-                  <Label className="text-sm">Do you have any specific requirements or preferences?</Label>
-                  <Textarea
-                    value={questionnaire.requirements}
-                    onChange={(e) => setQuestionnaire(p => ({ ...p, requirements: e.target.value }))}
-                    placeholder="Share any details, references, must-haves..."
-                    className="min-h-[90px] resize-y"
-                  />
-                </div>
+          {step === 'vision' && (
+            <div className="flex min-h-0 flex-1 flex-col">
+              <div className="min-h-0 flex-1 overflow-y-auto -mx-6">
+                <div className="space-y-4 px-6 pb-1">
+                  <div className="space-y-2">
+                    <Label className="text-sm">What is the primary goal of this project?</Label>
+                    <Textarea
+                      value={questionnaire.primaryGoal}
+                      onChange={(e) => setQuestionnaire(p => ({ ...p, primaryGoal: e.target.value }))}
+                      placeholder="Describe what you want to achieve..."
+                      className="min-h-[90px] resize-y"
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label className="text-sm">How did you hear about us?</Label>
-                  <Select
-                    value={questionnaire.referral}
-                    onValueChange={(v) => setQuestionnaire(p => ({ ...p, referral: v }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select an option" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {REFERRAL_OPTIONS.map(o => (
-                        <SelectItem key={o} value={o}>{o}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm">Who is this project for? (target audience)</Label>
+                    <Textarea
+                      value={questionnaire.targetAudience}
+                      onChange={(e) => setQuestionnaire(p => ({ ...p, targetAudience: e.target.value }))}
+                      placeholder="e.g. Working professionals aged 25-40 looking for..."
+                      className="min-h-[70px] resize-y"
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label className="text-sm">Attach a file (optional)</Label>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    className="hidden"
-                    accept={ALLOWED_MIME.join(',')}
-                    onChange={handleFileSelect}
-                  />
-                  {attachment ? (
-                    <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/30 px-3 py-2 text-sm">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
-                        <span className="truncate">{attachment.name}</span>
-                        <span className="text-xs text-muted-foreground shrink-0">
-                          ({(attachment.size / 1024).toFixed(0)} KB)
-                        </span>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        aria-label="Remove attachment"
-                        className="h-7 w-7"
-                        onClick={() => {
-                          setAttachment(null);
-                          if (fileInputRef.current) fileInputRef.current.value = '';
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="w-full justify-start"
+                  <div className="space-y-2">
+                    <Label className="text-sm">Do you have an existing website or product?</Label>
+                    <RadioGroup
+                      className="flex gap-6"
+                      value={questionnaire.hasExistingSite}
+                      onValueChange={(v) => setQuestionnaire(p => ({ ...p, hasExistingSite: v }))}
                     >
-                      <Paperclip className="mr-2 h-4 w-4" />
-                      Choose file (max {MAX_FILE_MB}MB)
-                    </Button>
-                  )}
-                  <p className="text-xs text-muted-foreground">
-                    Images, PDF, Word, Excel, or text files.
-                  </p>
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem value="yes" id="existing-site-yes" />
+                        <Label htmlFor="existing-site-yes" className="font-normal">Yes</Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem value="no" id="existing-site-no" />
+                        <Label htmlFor="existing-site-no" className="font-normal">No</Label>
+                      </div>
+                    </RadioGroup>
+                    {questionnaire.hasExistingSite === 'yes' && (
+                      <Input
+                        value={questionnaire.existingSiteUrl}
+                        onChange={(e) => setQuestionnaire(p => ({ ...p, existingSiteUrl: e.target.value }))}
+                        placeholder="https://your-current-site.com"
+                        className="mt-2"
+                      />
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm">Any websites or brands whose look/feel you like?</Label>
+                    <Textarea
+                      value={questionnaire.designInspiration}
+                      onChange={(e) => setQuestionnaire(p => ({ ...p, designInspiration: e.target.value }))}
+                      placeholder="Share links or names of sites/brands you admire..."
+                      className="min-h-[70px] resize-y"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm">Which features do you need?</Label>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {FEATURE_OPTIONS.map((feature) => (
+                        <div key={feature} className="flex items-center gap-2">
+                          <Checkbox
+                            id={`feature-${feature}`}
+                            checked={questionnaire.features.includes(feature)}
+                            onCheckedChange={() => toggleFeature(feature)}
+                          />
+                          <Label htmlFor={`feature-${feature}`} className="font-normal">{feature}</Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm">Do you have any other specific requirements or preferences?</Label>
+                    <Textarea
+                      value={questionnaire.requirements}
+                      onChange={(e) => setQuestionnaire(p => ({ ...p, requirements: e.target.value }))}
+                      placeholder="Share any details, references, must-haves..."
+                      className="min-h-[90px] resize-y"
+                    />
+                  </div>
                 </div>
               </div>
-              <div className="flex justify-between pt-2">
+              <div className="flex shrink-0 justify-between pt-4">
                 <Button variant="outline" onClick={() => setStep('details')}>← Back</Button>
+                <Button onClick={() => setStep('scope')} style={{ backgroundColor: primaryColor }} className="text-white">
+                  Next: Scope & Logistics →
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {step === 'scope' && (
+            <div className="flex min-h-0 flex-1 flex-col">
+              <div className="min-h-0 flex-1 overflow-y-auto -mx-6">
+                <div className="space-y-4 px-6 pb-1">
+                  <div className="space-y-2">
+                    <Label className="text-sm">What is your estimated budget range?</Label>
+                    <Select
+                      value={questionnaire.budget}
+                      onValueChange={(v) => setQuestionnaire(p => ({ ...p, budget: v }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a budget range" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {BUDGET_OPTIONS.map(o => (
+                          <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm">Expected timeline (in weeks)</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        min={1}
+                        max={104}
+                        value={questionnaire.timelineWeeks}
+                        onChange={(e) => setQuestionnaire(p => ({ ...p, timelineWeeks: e.target.value }))}
+                        placeholder="e.g. 4"
+                        className="w-32"
+                      />
+                      <span className="text-sm text-muted-foreground">weeks</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm">Do you already have content ready (copy, images, videos)?</Label>
+                    <Select
+                      value={questionnaire.contentReady}
+                      onValueChange={(v) => setQuestionnaire(p => ({ ...p, contentReady: v }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select an option" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CONTENT_READY_OPTIONS.map(o => (
+                          <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm">Who else will be involved in reviewing or approving this project?</Label>
+                    <Input
+                      value={questionnaire.stakeholders}
+                      onChange={(e) => setQuestionnaire(p => ({ ...p, stakeholders: e.target.value }))}
+                      placeholder="e.g. Marketing manager, co-founder..."
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm">Preferred way to communicate during the project?</Label>
+                    <Select
+                      value={questionnaire.communicationPreference}
+                      onValueChange={(v) => setQuestionnaire(p => ({ ...p, communicationPreference: v }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select an option" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {COMMUNICATION_OPTIONS.map(o => (
+                          <SelectItem key={o} value={o}>{o}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm">How did you hear about us?</Label>
+                    <Select
+                      value={questionnaire.referral}
+                      onValueChange={(v) => setQuestionnaire(p => ({ ...p, referral: v }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select an option" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {REFERRAL_OPTIONS.map(o => (
+                          <SelectItem key={o} value={o}>{o}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm">Attach a file (optional)</Label>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      className="hidden"
+                      accept={ALLOWED_MIME.join(',')}
+                      onChange={handleFileSelect}
+                    />
+                    {attachment ? (
+                      <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/30 px-3 py-2 text-sm">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
+                          <span className="truncate">{attachment.name}</span>
+                          <span className="text-xs text-muted-foreground shrink-0">
+                            ({(attachment.size / 1024).toFixed(0)} KB)
+                          </span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Remove attachment"
+                          className="h-7 w-7"
+                          onClick={() => {
+                            setAttachment(null);
+                            if (fileInputRef.current) fileInputRef.current.value = '';
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-full justify-start"
+                      >
+                        <Paperclip className="mr-2 h-4 w-4" />
+                        Choose file (max {MAX_FILE_MB}MB)
+                      </Button>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Images, PDF, Word, Excel, or text files.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex shrink-0 justify-between pt-4">
+                <Button variant="outline" onClick={() => setStep('vision')}>← Back</Button>
                 <Button onClick={handleSubmitQuestionnaire} disabled={submitting}
                   style={{ backgroundColor: primaryColor }} className="text-white">
                   {submitting ? (
@@ -612,7 +832,7 @@ export default function Portfolio() {
                   )}
                 </Button>
               </div>
-            </>
+            </div>
           )}
 
           {step === 'success' && (
@@ -630,6 +850,27 @@ export default function Portfolio() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Confirm before an accidental Escape/outside-click/X throws away in-progress input */}
+      <AlertDialog open={confirmDiscardOpen} onOpenChange={setConfirmDiscardOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard this request?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved answers. Closing now will lose everything you've entered so far.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep Editing</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { setConfirmDiscardOpen(false); resetForm(); }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Discard
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
