@@ -15,7 +15,6 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -504,7 +503,7 @@ export default function Portfolio() {
 
           {step === 'details' && (
             <form onSubmit={handleSubmitDetails} className="flex min-h-0 flex-1 flex-col">
-              <ScrollArea className="min-h-0 flex-1 -mx-6">
+              <div className="min-h-0 flex-1 overflow-y-auto -mx-6">
                 <div className="space-y-4 px-6 pb-1">
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
@@ -571,7 +570,7 @@ export default function Portfolio() {
                     </Select>
                   </div>
                 </div>
-              </ScrollArea>
+              </div>
               <div className="flex shrink-0 justify-end pt-4">
                 <Button type="submit" style={{ backgroundColor: primaryColor }} className="text-white">
                   Next: Project Vision →
@@ -582,7 +581,7 @@ export default function Portfolio() {
 
           {step === 'vision' && (
             <div className="flex min-h-0 flex-1 flex-col">
-              <ScrollArea className="min-h-0 flex-1 -mx-6">
+              <div className="min-h-0 flex-1 overflow-y-auto -mx-6">
                 <div className="space-y-4 px-6 pb-1">
                   <div className="space-y-2">
                     <Label className="text-sm">What is the primary goal of this project?</Label>
@@ -666,7 +665,7 @@ export default function Portfolio() {
                     />
                   </div>
                 </div>
-              </ScrollArea>
+              </div>
               <div className="flex shrink-0 justify-between pt-4">
                 <Button variant="outline" onClick={() => setStep('details')}>← Back</Button>
                 <Button onClick={() => setStep('scope')} style={{ backgroundColor: primaryColor }} className="text-white">
@@ -678,7 +677,7 @@ export default function Portfolio() {
 
           {step === 'scope' && (
             <div className="flex min-h-0 flex-1 flex-col">
-              <ScrollArea className="min-h-0 flex-1 -mx-6">
+              <div className="min-h-0 flex-1 overflow-y-auto -mx-6">
                 <div className="space-y-4 px-6 pb-1">
                   <div className="space-y-2">
                     <Label className="text-sm">What is your estimated budget range?</Label>
@@ -821,7 +820,7 @@ export default function Portfolio() {
                     </p>
                   </div>
                 </div>
-              </ScrollArea>
+              </div>
               <div className="flex shrink-0 justify-between pt-4">
                 <Button variant="outline" onClick={() => setStep('vision')}>← Back</Button>
                 <Button onClick={handleSubmitQuestionnaire} disabled={submitting}
