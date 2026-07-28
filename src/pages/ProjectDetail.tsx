@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
 import { useState, useRef } from 'react';
-import { ArrowLeft, Calendar, FolderKanban, FileText, FileSignature, Receipt, Files, Building2, Clock, StickyNote, Star, StarOff, Upload, Image as ImageIcon, Loader2, X, LayoutDashboard } from 'lucide-react';
+import { ArrowLeft, Calendar, FolderKanban, FileText, FileSignature, Receipt, Files, Building2, Clock, StickyNote, Star, StarOff, Upload, Image as ImageIcon, Loader2, X, ListTodo, AlertTriangle, CheckCircle2, Timer } from 'lucide-react';
 
 import { format } from 'date-fns';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -15,7 +15,6 @@ import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { ProjectTimesheets } from '@/components/timesheets/ProjectTimesheets';
 import { ProjectNotes } from '@/components/notes/ProjectNotes';
-import { ProjectOverview } from '@/components/projects/ProjectOverview';
 import { toast } from 'sonner';
 
 const formatCurrency = (amount: number): string =>
@@ -42,7 +41,6 @@ export default function ProjectDetail() {
   const queryClient = useQueryClient();
   const featureImageRef = useRef<HTMLInputElement>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview');
   const { canViewFinancials } = useWorkspaceUser();
 
   const { data: project, isLoading } = useQuery({
@@ -126,6 +124,31 @@ export default function ProjectDetail() {
     enabled: projectInvoices.length > 0,
   });
   const invoiceAmountById = new Map(invoiceAmounts.map((a) => [a.invoice_id, a.total_amount]));
+
+  // Same query (key + shape) the Timesheets tab uses, so switching to that
+  // tab reuses this cached data instead of re-fetching or, worse, clashing
+  // with a differently-shaped query under the same key.
+  const { data: tasks = [] } = useQuery({
+    queryKey: ['timesheets', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('timesheets')
+        .select('*')
+        .eq('project_id', id!)
+        .order('date', { ascending: false })
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id,
+  });
+  const OPEN_TASK_STATUSES = ['new', 'in-progress', 'pending'];
+  const openTaskCount = tasks.filter((t) => OPEN_TASK_STATUSES.includes(t.status)).length;
+  const overdueTaskCount = tasks.filter(
+    (t) => t.due_date && OPEN_TASK_STATUSES.includes(t.status) && new Date(t.due_date) < new Date(new Date().toDateString())
+  ).length;
+  const completedTaskCount = tasks.length - openTaskCount - tasks.filter((t) => t.status === 'wont-do').length;
+  const totalLoggedHours = tasks.reduce((sum, t) => sum + (Number(t.duration) || 0), 0);
 
   // Unified "Documents" list — proposals, contracts, and invoices for this
   // project, sorted together by recency rather than split across separate
@@ -363,17 +386,46 @@ export default function ProjectDetail() {
               </div>
             )}
           </div>
+
+          {tasks.length > 0 && (
+            <>
+              <Separator className="my-4" />
+              <div className="flex flex-wrap gap-x-10 gap-y-4">
+                <div className="flex items-center gap-2 text-sm">
+                  <ListTodo className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">Tasks:</span>
+                  <span className="text-foreground">{tasks.length}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">Open:</span>
+                  <span className="text-foreground">{openTaskCount}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <AlertTriangle className={`h-4 w-4 ${overdueTaskCount > 0 ? 'text-destructive' : 'text-muted-foreground'}`} />
+                  <span className="text-muted-foreground">Overdue:</span>
+                  <span className={overdueTaskCount > 0 ? 'text-destructive font-medium' : 'text-foreground'}>{overdueTaskCount}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">Completed:</span>
+                  <span className="text-foreground">{completedTaskCount}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Timer className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">Logged:</span>
+                  <span className="text-foreground">{totalLoggedHours.toFixed(1)}h</span>
+                </div>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview" className="flex items-center gap-2">
-            <LayoutDashboard className="h-4 w-4" />
-            Overview
-          </TabsTrigger>
+      <Tabs defaultValue="timesheets" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="timesheets" className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
             Timesheets
@@ -387,14 +439,6 @@ export default function ProjectDetail() {
             Documents ({documents.length})
           </TabsTrigger>
         </TabsList>
-
-        <TabsContent value="overview" className="mt-4">
-          <ProjectOverview
-            projectId={id!}
-            onViewTasks={() => setActiveTab('timesheets')}
-            onViewNotes={() => setActiveTab('notes')}
-          />
-        </TabsContent>
 
         <TabsContent value="timesheets" className="mt-4">
           <ProjectTimesheets projectId={id!} />
