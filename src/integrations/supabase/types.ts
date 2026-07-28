@@ -511,6 +511,39 @@ export type Database = {
           },
         ]
       }
+      invoice_items: {
+        Row: {
+          cost: number
+          created_at: string
+          description: string | null
+          id: string
+          title: string
+          unit: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cost?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          title: string
+          unit?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cost?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          title?: string
+          unit?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       invoice_payments: {
         Row: {
           amount: number

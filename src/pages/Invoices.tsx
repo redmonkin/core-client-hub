@@ -39,6 +39,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { InvoiceLineItems } from '@/components/invoices/InvoiceLineItems';
 import { RecurringInvoices } from '@/components/invoices/RecurringInvoices';
+import { InvoiceItemsCatalog } from '@/components/invoices/InvoiceItemsCatalog';
 import {
   buildInvoiceLineItemsHtml, getInvoiceTotalFromJson, formatInvoiceCurrency, numberToIndianWords,
   createEmptyInvoiceLineItem, escapeInvoiceHtml,
@@ -711,6 +712,7 @@ export default function Invoices() {
         <TabsList>
           <TabsTrigger value="invoices">Invoices</TabsTrigger>
           <TabsTrigger value="recurring">Recurring</TabsTrigger>
+          <TabsTrigger value="items">Items</TabsTrigger>
         </TabsList>
 
         <TabsContent value="invoices" className="space-y-6">
@@ -872,11 +874,15 @@ export default function Invoices() {
         <TabsContent value="recurring">
           <RecurringInvoices clients={clients} projects={projects} />
         </TabsContent>
+
+        <TabsContent value="items">
+          <InvoiceItemsCatalog />
+        </TabsContent>
       </Tabs>
 
       {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl xl:max-w-5xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingId ? 'Edit Invoice' : 'New Invoice'}</DialogTitle>
           </DialogHeader>
