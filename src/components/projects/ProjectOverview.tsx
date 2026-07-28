@@ -20,7 +20,12 @@ const OPEN_STATUSES: TaskStatus[] = ['new', 'in-progress', 'pending'];
 
 export function ProjectOverview({ projectId, onViewNotes, onViewTasks }: ProjectOverviewProps) {
   const { data: tasks = [], isLoading: tasksLoading } = useQuery({
-    queryKey: ['timesheets', projectId],
+    // Deliberately not ['timesheets', projectId] -- ProjectTimesheets uses
+    // that exact key with a `select('*')`, and sharing it here (with a
+    // narrower column selection) let this query's cached rows leak into
+    // that component's cache, which then crashed rendering fields that
+    // weren't fetched.
+    queryKey: ['project-overview-tasks', projectId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('timesheets')
@@ -32,7 +37,9 @@ export function ProjectOverview({ projectId, onViewNotes, onViewTasks }: Project
   });
 
   const { data: notes = [], isLoading: notesLoading } = useQuery({
-    queryKey: ['project-notes', projectId],
+    // Same reasoning as the tasks query above -- ProjectNotes owns the
+    // ['project-notes', projectId] key with a full `select('*')`.
+    queryKey: ['project-overview-notes', projectId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('project_notes')
