@@ -511,6 +511,62 @@ export type Database = {
           },
         ]
       }
+      invoice_payments: {
+        Row: {
+          amount: number
+          bank_charges: number
+          created_at: string
+          id: string
+          invoice_id: string
+          notes: string | null
+          payment_date: string
+          payment_mode: string | null
+          recorded_by: string
+          reference_number: string | null
+          tax_deducted: boolean
+          tax_deducted_amount: number
+          thank_you_sent: boolean
+        }
+        Insert: {
+          amount: number
+          bank_charges?: number
+          created_at?: string
+          id?: string
+          invoice_id: string
+          notes?: string | null
+          payment_date?: string
+          payment_mode?: string | null
+          recorded_by?: string
+          reference_number?: string | null
+          tax_deducted?: boolean
+          tax_deducted_amount?: number
+          thank_you_sent?: boolean
+        }
+        Update: {
+          amount?: number
+          bank_charges?: number
+          created_at?: string
+          id?: string
+          invoice_id?: string
+          notes?: string | null
+          payment_date?: string
+          payment_mode?: string | null
+          recorded_by?: string
+          reference_number?: string | null
+          tax_deducted?: boolean
+          tax_deducted_amount?: number
+          thank_you_sent?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_settings: {
         Row: {
           account_number: string | null
@@ -1492,7 +1548,18 @@ export type Database = {
         Returns: boolean
       }
       record_invoice_payment: {
-        Args: { _amount: number; _invoice_id: string }
+        Args: {
+          _amount: number
+          _bank_charges?: number
+          _invoice_id: string
+          _notes?: string
+          _payment_date?: string
+          _payment_mode?: string
+          _reference_number?: string
+          _tax_amount?: number
+          _tax_deducted?: boolean
+          _thank_you_sent?: boolean
+        }
         Returns: undefined
       }
     }

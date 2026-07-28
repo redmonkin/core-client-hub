@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import {
   Plus, Search, MoreHorizontal, Loader2, Pencil, Trash2, Send, LinkIcon,
-  CheckCircle2, Download, FileText, Wallet, Ban, Eye,
+  CheckCircle2, Download, FileText, Wallet, Ban, Eye, Copy, RefreshCw,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -43,7 +44,7 @@ import {
   createEmptyInvoiceLineItem, escapeInvoiceHtml,
 } from '@/lib/invoice-utils';
 import { exportToPdf } from '@/lib/pdf-export';
-import { getOrCreateInvoicePortalAccess } from '@/lib/invoice-portal-access';
+import { getOrCreateInvoicePortalAccess, regenerateInvoicePortalAccess, type PortalAccessResult } from '@/lib/invoice-portal-access';
 import { toast } from 'sonner';
 
 const formatCurrency = formatInvoiceCurrency;
@@ -56,6 +57,15 @@ const PAYMENT_TERMS = [
   { value: 'custom', label: 'Custom', days: null },
 ] as const;
 const PAYMENT_TERMS_LABELS: Record<string, string> = Object.fromEntries(PAYMENT_TERMS.map((t) => [t.value, t.label]));
+
+const PAYMENT_MODES = [
+  { value: 'cash', label: 'Cash' },
+  { value: 'bank_transfer', label: 'Bank Transfer' },
+  { value: 'card', label: 'Card' },
+  { value: 'upi', label: 'UPI' },
+  { value: 'cheque', label: 'Cheque' },
+  { value: 'other', label: 'Other' },
+] as const;
 
 interface Invoice {
   id: string;
@@ -123,7 +133,20 @@ export default function Invoices() {
   const [isSending, setIsSending] = useState(false);
   const [payingInvoice, setPayingInvoice] = useState<Invoice | null>(null);
   const [paymentAmountInput, setPaymentAmountInput] = useState('');
+  const [bankChargesInput, setBankChargesInput] = useState('0');
+  const [paymentDateInput, setPaymentDateInput] = useState(todayIso());
+  const [paymentModeInput, setPaymentModeInput] = useState('cash');
+  const [taxDeductedInput, setTaxDeductedInput] = useState(false);
+  const [taxAmountInput, setTaxAmountInput] = useState('0');
+  const [referenceNumberInput, setReferenceNumberInput] = useState('');
+  const [paymentNotesInput, setPaymentNotesInput] = useState('');
+  const [sendThankYou, setSendThankYou] = useState(true);
+  const [thankYouMessage, setThankYouMessage] = useState('');
+  const [isRecordingPayment, setIsRecordingPayment] = useState(false);
   const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
+  const [linkInvoice, setLinkInvoice] = useState<Invoice | null>(null);
+  const [portalAccess, setPortalAccess] = useState<PortalAccessResult | null>(null);
+  const [isLoadingLink, setIsLoadingLink] = useState(false);
 
   const { data: invoices = [], isLoading } = useQuery({
     queryKey: ['invoices', workspaceUserId],
@@ -151,7 +174,7 @@ export default function Invoices() {
   const { data: clients = [] } = useQuery({
     queryKey: ['clients-list', workspaceUserId],
     queryFn: async () => {
-      const { data, error } = await supabase.from('clients').select('id, client_name, company_name, billing_address').order('client_name');
+      const { data, error } = await supabase.from('clients').select('id, client_name, company_name, billing_address, email').order('client_name');
       if (error) throw error;
       return data;
     },
@@ -348,52 +371,126 @@ export default function Invoices() {
     onError: (error: Error) => toast.error('Failed to delete: ' + error.message),
   });
 
+  type RecordPaymentInput = {
+    id: string;
+    amount: number;
+    bankCharges: number;
+    paymentDate: string;
+    paymentMode: string;
+    taxDeducted: boolean;
+    taxAmount: number;
+    referenceNumber: string;
+    notes: string;
+    thankYouSent: boolean;
+  };
+
   const recordPaymentMutation = useMutation({
-    mutationFn: async ({ id, amount }: { id: string; amount: number }) => {
-      const { error } = await supabase.rpc('record_invoice_payment', { _invoice_id: id, _amount: amount });
+    mutationFn: async (input: RecordPaymentInput) => {
+      const { error } = await supabase.rpc('record_invoice_payment', {
+        _invoice_id: input.id,
+        _amount: input.amount,
+        _bank_charges: input.bankCharges,
+        _payment_date: input.paymentDate,
+        _payment_mode: input.paymentMode || null,
+        _tax_deducted: input.taxDeducted,
+        _tax_amount: input.taxDeducted ? input.taxAmount : 0,
+        _reference_number: input.referenceNumber || null,
+        _notes: input.notes || null,
+        _thank_you_sent: input.thankYouSent,
+      });
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['invoice-amounts'] });
-      toast.success('Payment recorded');
-      setPayingInvoice(null);
-      setPaymentAmountInput('');
     },
-    onError: (error: Error) => toast.error('Failed to record payment: ' + error.message),
   });
 
   const openPaymentDialog = (invoice: Invoice) => {
-    const amount = amountsByInvoice.get(invoice.id);
-    const balanceDue = amount ? amount.total_amount - amount.amount_paid : 0;
-    setPaymentAmountInput(balanceDue > 0 ? balanceDue.toFixed(2) : '');
-    setPayingInvoice(invoice);
-  };
-
-  const confirmRecordPayment = () => {
-    if (!payingInvoice) return;
-    const amount = parseFloat(paymentAmountInput);
-    if (!amount || amount <= 0) {
-      toast.error('Enter a payment amount greater than zero');
-      return;
-    }
-    const existing = amountsByInvoice.get(payingInvoice.id);
-    const balanceDue = existing ? existing.total_amount - existing.amount_paid : null;
-    if (balanceDue != null && amount > balanceDue) {
-      toast.error(`Payment cannot exceed the balance due (${formatCurrency(balanceDue)})`);
-      return;
-    }
-    recordPaymentMutation.mutate({ id: payingInvoice.id, amount });
-  };
-
-  const markFullyPaid = (invoice: Invoice) => {
     const amount = amountsByInvoice.get(invoice.id);
     const balanceDue = amount ? amount.total_amount - amount.amount_paid : 0;
     if (balanceDue <= 0) {
       toast.error('No outstanding balance to record');
       return;
     }
-    recordPaymentMutation.mutate({ id: invoice.id, amount: balanceDue });
+    setPaymentAmountInput(balanceDue.toFixed(2));
+    setBankChargesInput('0');
+    setPaymentDateInput(todayIso());
+    setPaymentModeInput('cash');
+    setTaxDeductedInput(false);
+    setTaxAmountInput('0');
+    setReferenceNumberInput('');
+    setPaymentNotesInput('');
+    setSendThankYou(true);
+    setThankYouMessage(`Thank you for your payment on invoice ${invoice.invoice_number}! We've received it and truly appreciate your business.`);
+    setPayingInvoice(invoice);
+  };
+
+  const confirmRecordPayment = async () => {
+    if (!payingInvoice) return;
+    const amount = parseFloat(paymentAmountInput);
+    if (!amount || amount <= 0) {
+      toast.error('Enter a payment amount greater than zero');
+      return;
+    }
+    const taxAmount = taxDeductedInput ? parseFloat(taxAmountInput) || 0 : 0;
+    if (taxDeductedInput && taxAmount <= 0) {
+      toast.error('Enter the tax amount that was deducted');
+      return;
+    }
+    const settledAmount = amount + taxAmount;
+    const existing = amountsByInvoice.get(payingInvoice.id);
+    const balanceDue = existing ? existing.total_amount - existing.amount_paid : null;
+    if (balanceDue != null && settledAmount > balanceDue) {
+      toast.error(`Amount received + tax deducted (${formatCurrency(settledAmount)}) cannot exceed the balance due (${formatCurrency(balanceDue)})`);
+      return;
+    }
+    const client = getClient(payingInvoice.client_id);
+    const willSendThankYou = sendThankYou && !!client?.email;
+
+    setIsRecordingPayment(true);
+    try {
+      await recordPaymentMutation.mutateAsync({
+        id: payingInvoice.id,
+        amount,
+        bankCharges: parseFloat(bankChargesInput) || 0,
+        paymentDate: paymentDateInput || todayIso(),
+        paymentMode: paymentModeInput,
+        taxDeducted: taxDeductedInput,
+        taxAmount,
+        referenceNumber: referenceNumberInput,
+        notes: paymentNotesInput,
+        thankYouSent: willSendThankYou,
+      });
+
+      if (willSendThankYou) {
+        const { error } = await supabase.functions.invoke('send-notification-email', {
+          body: {
+            type: 'invoice_paid',
+            recipientEmail: '',
+            recipientName: '',
+            ccEmails: user?.email ? [user.email] : [],
+            data: {
+              invoiceId: payingInvoice.id,
+              invoiceNumber: payingInvoice.invoice_number,
+              totalAmount: formatCurrency(settledAmount),
+              thankYouMessage,
+              senderName: user?.user_metadata?.full_name || null,
+              senderCompany: branding?.company_name || null,
+            },
+          },
+        });
+        if (error) throw error;
+        toast.success(`Payment recorded — thank-you email sent to ${client!.client_name}`);
+      } else {
+        toast.success('Payment recorded');
+      }
+      setPayingInvoice(null);
+    } catch (error: unknown) {
+      toast.error('Failed to record payment: ' + (error instanceof Error ? error.message : String(error)));
+    } finally {
+      setIsRecordingPayment(false);
+    }
   };
 
   const voidMutation = useMutation({
@@ -456,13 +553,41 @@ export default function Invoices() {
     }
   };
 
-  const handleCopyLink = async (invoice: Invoice) => {
+  const openLinkDialog = async (invoice: Invoice) => {
+    setLinkInvoice(invoice);
+    setPortalAccess(null);
+    setIsLoadingLink(true);
     try {
       const portal = await getOrCreateInvoicePortalAccess(invoice.id, window.location.origin);
-      await navigator.clipboard.writeText(portal.link);
-      toast.success('Share link copied to clipboard');
+      setPortalAccess(portal);
     } catch {
       toast.error('Failed to generate share link');
+      setLinkInvoice(null);
+    } finally {
+      setIsLoadingLink(false);
+    }
+  };
+
+  const regenerateLink = async () => {
+    if (!linkInvoice) return;
+    setIsLoadingLink(true);
+    try {
+      const portal = await regenerateInvoicePortalAccess(linkInvoice.id, window.location.origin);
+      setPortalAccess(portal);
+      toast.success('New link and password generated — the old link no longer works');
+    } catch {
+      toast.error('Failed to regenerate share link');
+    } finally {
+      setIsLoadingLink(false);
+    }
+  };
+
+  const copyToClipboard = async (value: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      toast.success(`${label} copied to clipboard`);
+    } catch {
+      toast.error(`Failed to copy ${label.toLowerCase()}`);
     }
   };
 
@@ -538,8 +663,12 @@ export default function Invoices() {
     return html;
   };
 
-  const handleDownloadPdf = (invoice: Invoice) => {
-    exportToPdf(buildInvoicePdfHtml(invoice), `${invoice.invoice_number}.pdf`);
+  const handleDownloadPdf = async (invoice: Invoice) => {
+    try {
+      await exportToPdf(buildInvoicePdfHtml(invoice), `${invoice.invoice_number}.pdf`);
+    } catch (error: unknown) {
+      toast.error('Failed to generate PDF: ' + (error instanceof Error ? error.message : String(error)));
+    }
   };
 
   const handlePreview = (invoice: Invoice) => setPreviewInvoice(invoice);
@@ -695,7 +824,7 @@ export default function Invoices() {
                                   {isInvoiceOverdue(invoice) ? 'Send Reminder' : 'Send to Client'}
                                 </DropdownMenuItem>
                               )}
-                              <DropdownMenuItem onClick={() => handleCopyLink(invoice)}>
+                              <DropdownMenuItem onClick={() => openLinkDialog(invoice)}>
                                 <LinkIcon className="mr-2 h-4 w-4" />
                                 Copy Share Link
                               </DropdownMenuItem>
@@ -705,7 +834,7 @@ export default function Invoices() {
                                     <Wallet className="mr-2 h-4 w-4" />
                                     Record Payment...
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => markFullyPaid(invoice)}>
+                                  <DropdownMenuItem onClick={() => openPaymentDialog(invoice)}>
                                     <CheckCircle2 className="mr-2 h-4 w-4" />
                                     Mark as Paid
                                   </DropdownMenuItem>
@@ -909,36 +1038,127 @@ export default function Invoices() {
       </AlertDialog>
 
       {/* Record Payment Dialog */}
-      <Dialog open={!!payingInvoice} onOpenChange={(open) => !open && setPayingInvoice(null)}>
-        <DialogContent className="max-w-sm">
+      <Dialog open={!!payingInvoice} onOpenChange={(open) => !open && !isRecordingPayment && setPayingInvoice(null)}>
+        <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Record Payment</DialogTitle>
           </DialogHeader>
           {payingInvoice && (() => {
             const amount = amountsByInvoice.get(payingInvoice.id);
             const balanceDue = amount ? amount.total_amount - amount.amount_paid : 0;
+            const client = getClient(payingInvoice.client_id);
             return (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
                   Invoice {payingInvoice.invoice_number} — balance due {formatCurrency(balanceDue)}
                 </p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Amount Received</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      value={paymentAmountInput}
+                      onChange={(e) => setPaymentAmountInput(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Bank Charges</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      value={bankChargesInput}
+                      onChange={(e) => setBankChargesInput(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Date</Label>
+                    <Input
+                      type="date"
+                      value={paymentDateInput}
+                      onChange={(e) => setPaymentDateInput(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Payment Mode</Label>
+                    <Select value={paymentModeInput} onValueChange={setPaymentModeInput}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {PAYMENT_MODES.map((m) => (
+                          <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
                 <div className="space-y-2">
-                  <Label>Amount Received</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="tax-deducted">Tax deducted?</Label>
+                    <Switch id="tax-deducted" checked={taxDeductedInput} onCheckedChange={setTaxDeductedInput} />
+                  </div>
+                  {taxDeductedInput && (
+                    <>
+                      <Input
+                        type="number"
+                        min={0}
+                        step={0.01}
+                        placeholder="Tax amount deducted"
+                        value={taxAmountInput}
+                        onChange={(e) => setTaxAmountInput(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Settles {formatCurrency((parseFloat(paymentAmountInput) || 0) + (parseFloat(taxAmountInput) || 0))} against this invoice
+                        ({formatCurrency(parseFloat(paymentAmountInput) || 0)} received + {formatCurrency(parseFloat(taxAmountInput) || 0)} tax withheld).
+                      </p>
+                    </>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label>Reference #</Label>
                   <Input
-                    type="number"
-                    min={0}
-                    step={0.01}
-                    value={paymentAmountInput}
-                    onChange={(e) => setPaymentAmountInput(e.target.value)}
+                    placeholder="Transaction / cheque number"
+                    value={referenceNumberInput}
+                    onChange={(e) => setReferenceNumberInput(e.target.value)}
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label>Notes</Label>
+                  <Textarea
+                    value={paymentNotesInput}
+                    onChange={(e) => setPaymentNotesInput(e.target.value)}
+                    rows={2}
+                  />
+                </div>
+                <div className="space-y-3 rounded-md border p-3">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="send-thank-you">Send a "Thank You" note</Label>
+                    <Switch id="send-thank-you" checked={sendThankYou} onCheckedChange={setSendThankYou} disabled={!client?.email} />
+                  </div>
+                  {sendThankYou && client?.email && (
+                    <>
+                      <p className="text-xs text-muted-foreground">Send to: {client.client_name} ({client.email})</p>
+                      <Textarea
+                        value={thankYouMessage}
+                        onChange={(e) => setThankYouMessage(e.target.value)}
+                        rows={3}
+                      />
+                    </>
+                  )}
+                  {!client?.email && (
+                    <p className="text-xs text-muted-foreground">This client has no email on file, so no note can be sent.</p>
+                  )}
                 </div>
               </div>
             );
           })()}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPayingInvoice(null)}>Cancel</Button>
-            <Button onClick={confirmRecordPayment} disabled={recordPaymentMutation.isPending}>
-              {recordPaymentMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button variant="outline" onClick={() => setPayingInvoice(null)} disabled={isRecordingPayment}>Cancel</Button>
+            <Button onClick={confirmRecordPayment} disabled={isRecordingPayment}>
+              {isRecordingPayment && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Record Payment
             </Button>
           </DialogFooter>
@@ -947,7 +1167,7 @@ export default function Invoices() {
 
       {/* Preview Dialog */}
       <Dialog open={!!previewInvoice} onOpenChange={(open) => !open && setPreviewInvoice(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-4xl h-[85vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Preview — {previewInvoice?.invoice_number}</DialogTitle>
           </DialogHeader>
@@ -955,7 +1175,7 @@ export default function Invoices() {
             <iframe
               title="Invoice preview"
               srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0;">${buildInvoicePdfHtml(previewInvoice)}</body></html>`}
-              className="w-full flex-1 border rounded-md bg-white"
+              className="w-full flex-1 min-h-0 border rounded-md bg-white"
             />
           )}
           <DialogFooter>
@@ -967,6 +1187,57 @@ export default function Invoices() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Share Link Dialog */}
+      <Dialog open={!!linkInvoice} onOpenChange={(open) => { if (!open) { setLinkInvoice(null); setPortalAccess(null); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Share Invoice {linkInvoice?.invoice_number}</DialogTitle>
+          </DialogHeader>
+          {isLoadingLink ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : portalAccess ? (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Portal Link</Label>
+                <div className="flex gap-2">
+                  <Input readOnly value={portalAccess.link} className="font-mono text-xs" />
+                  <Button type="button" variant="outline" size="icon" onClick={() => copyToClipboard(portalAccess.link, 'Link')}>
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Access Password</Label>
+                {portalAccess.password ? (
+                  <div className="flex gap-2">
+                    <Input readOnly value={portalAccess.password} className="font-mono" />
+                    <Button type="button" variant="outline" size="icon" onClick={() => copyToClipboard(portalAccess.password!, 'Password')}>
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      This link already exists — its password was only shown once, when the link was first created (e.g. via "Send to Client"). Regenerate to get a new link and password.
+                    </p>
+                    <Button type="button" variant="outline" size="sm" onClick={regenerateLink}>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Regenerate Link &amp; Password
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : null}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setLinkInvoice(null); setPortalAccess(null); }}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }

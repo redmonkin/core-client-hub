@@ -25,7 +25,8 @@ interface NotificationEmailRequest {
     | "contract_sent"
     | "team_invite"
     | "invoice_sent"
-    | "invoice_overdue";
+    | "invoice_overdue"
+    | "invoice_paid";
   recipientEmail: string;
   recipientName: string;
   data: Record<string, any>;
@@ -120,6 +121,77 @@ function buildInvoiceEmail(
                       ` : ""}
 
                       <p style="margin: 24px 0 0; font-size: 14px; color: #374151;">Thank you for your business.</p>
+                      <p style="margin: 4px 0 0; font-size: 14px; color: #374151;">Regards,<br>${escapeHtml(fromName)}</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 20px 32px; border-top: 1px solid #e5e7eb; background: #f9fafb;">
+                      <p style="margin: 0; font-size: 13px; color: #9ca3af; text-align: center;">Sent by ${escapeHtml(fromName)}</p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+      </html>
+    `,
+  };
+}
+
+function buildInvoicePaidEmail(
+  recipientName: string,
+  data: Record<string, any>
+): { subject: string; html: string } {
+  const fromName = data.senderCompany || data.senderName || "Your Team";
+  const subject = `Payment Received — Invoice ${data.invoiceNumber || ""}`;
+  const thankYouMessage: string | null = typeof data.thankYouMessage === "string" && data.thankYouMessage.trim()
+    ? data.thankYouMessage.trim()
+    : null;
+
+  return {
+    subject,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #1f2937; margin: 0; padding: 0; background-color: #f3f4f6;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f3f4f6; padding: 32px 16px;">
+            <tr>
+              <td align="center">
+                <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 520px; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+                  <tr>
+                    <td style="background-color: #16a34a; padding: 32px; text-align: center;">
+                      <h1 style="color: #ffffff; margin: 0 0 6px; font-size: 22px; font-weight: 700;">Payment Received</h1>
+                      <p style="color: #dcfce7; margin: 0; font-size: 14px;">from ${escapeHtml(fromName)}</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 32px;">
+                      <p style="margin: 0 0 16px; font-size: 15px; color: #374151;">Hi ${escapeHtml(recipientName || "")},</p>
+                      <p style="margin: 0 0 24px; font-size: 15px; color: #374151;">${thankYouMessage ? escapeHtml(thankYouMessage).replace(/\n/g, "<br>") : `Thank you! We've received your payment for invoice <strong>${escapeHtml(data.invoiceNumber || "")}</strong> in full.`}</p>
+
+                      <table width="100%" cellpadding="0" cellspacing="0" style="background: #f9fafb; border-radius: 10px; border: 1px solid #e5e7eb; margin-bottom: 24px;">
+                        <tr>
+                          <td style="padding: 20px 24px;">
+                            ${data.totalAmount ? `
+                            <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 16px;">
+                              <tr><td style="font-size: 12px; text-transform: uppercase; color: #6b7280; font-weight: 600; padding-bottom: 4px;">Amount Paid</td></tr>
+                              <tr><td style="font-size: 26px; font-weight: 700; color: #111827;">${escapeHtml(String(data.totalAmount))}</td></tr>
+                            </table>` : ""}
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                              <tr>
+                                <td style="vertical-align: top;">
+                                  <div style="font-size: 11px; text-transform: uppercase; color: #6b7280; font-weight: 600; padding-bottom: 4px;">Invoice No.</div>
+                                  <div style="font-size: 14px; color: #111827; font-weight: 600;">${escapeHtml(data.invoiceNumber || "")}</div>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <p style="margin: 24px 0 0; font-size: 14px; color: #374151;">We appreciate your business.</p>
                       <p style="margin: 4px 0 0; font-size: 14px; color: #374151;">Regards,<br>${escapeHtml(fromName)}</p>
                     </td>
                   </tr>
@@ -544,7 +616,7 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
       recipientEmail = normalizedEmail;
-    } else if (type === "invoice_sent" || type === "invoice_overdue") {
+    } else if (type === "invoice_sent" || type === "invoice_overdue" || type === "invoice_paid") {
       const invoiceId = data?.invoiceId;
       if (!invoiceId) {
         return new Response(
@@ -604,6 +676,8 @@ const handler = async (req: Request): Promise<Response> => {
       emailContent = buildTeamInviteEmail(recipientName, data);
     } else if (type === "invoice_sent" || type === "invoice_overdue") {
       emailContent = buildInvoiceEmail(recipientName, { ...data, isOverdue: type === "invoice_overdue" });
+    } else if (type === "invoice_paid") {
+      emailContent = buildInvoicePaidEmail(recipientName, data);
     } else {
       emailContent = buildProposalStatusEmail(type, recipientName, data);
     }
