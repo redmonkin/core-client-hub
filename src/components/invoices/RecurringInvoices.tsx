@@ -64,6 +64,30 @@ interface ScheduleFormState {
 
 const todayIso = () => new Date().toISOString().split('T')[0];
 
+// The first run should land on the next occurrence of `dayOfMonth` on or
+// after `startDate` -- not `startDate` itself, which is almost never the
+// same day of the month the schedule is meant to fire on. Mirrors the month
+// arithmetic in generate-recurring-invoices/index.ts's advanceRunDate() so
+// the very first run is anchored the same way every later one is.
+function computeFirstRunDate(startDate: string, frequency: string, dayOfMonth: number): string {
+  const start = new Date(`${startDate}T00:00:00Z`);
+  const year = start.getUTCFullYear();
+  const month = start.getUTCMonth();
+  const lastDayThisMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  const candidate = new Date(Date.UTC(year, month, Math.min(dayOfMonth, lastDayThisMonth)));
+  if (candidate >= start) {
+    return candidate.toISOString().split('T')[0];
+  }
+
+  const monthsToAdd = frequency === 'yearly' ? 12 : frequency === 'quarterly' ? 3 : 1;
+  const targetMonthIndex = year * 12 + month + monthsToAdd;
+  const targetYear = Math.floor(targetMonthIndex / 12);
+  const targetMonth = targetMonthIndex % 12;
+  const lastDayTargetMonth = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
+  const day = Math.min(dayOfMonth, lastDayTargetMonth);
+  return new Date(Date.UTC(targetYear, targetMonth, day)).toISOString().split('T')[0];
+}
+
 const emptyForm: ScheduleFormState = {
   client_id: '',
   project_id: '',
@@ -141,7 +165,7 @@ export function RecurringInvoices({ clients, projects }: RecurringInvoicesProps)
         frequency: f.frequency,
         day_of_month: parseInt(f.day_of_month, 10),
         start_date: f.start_date,
-        next_run_date: f.start_date,
+        next_run_date: computeFirstRunDate(f.start_date, f.frequency, parseInt(f.day_of_month, 10)),
         end_date: f.end_date || null,
         payment_terms: f.payment_terms,
         cost_breakdown: f.cost_breakdown || null,
@@ -161,21 +185,29 @@ export function RecurringInvoices({ clients, projects }: RecurringInvoicesProps)
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, f }: { id: string; f: ScheduleFormState }) => {
-      const { error } = await supabase
-        .from('recurring_invoices')
-        .update({
-          client_id: f.client_id,
-          project_id: f.project_id || null,
-          frequency: f.frequency,
-          day_of_month: parseInt(f.day_of_month, 10),
-          start_date: f.start_date,
-          end_date: f.end_date || null,
-          payment_terms: f.payment_terms,
-          cost_breakdown: f.cost_breakdown || null,
-          notes: f.notes || null,
-          auto_send: f.auto_send,
-        })
-        .eq('id', id);
+      const payload: Record<string, unknown> = {
+        client_id: f.client_id,
+        project_id: f.project_id || null,
+        frequency: f.frequency,
+        day_of_month: parseInt(f.day_of_month, 10),
+        start_date: f.start_date,
+        end_date: f.end_date || null,
+        payment_terms: f.payment_terms,
+        cost_breakdown: f.cost_breakdown || null,
+        notes: f.notes || null,
+        auto_send: f.auto_send,
+      };
+
+      // Only safe to recompute the anchor date before the schedule has ever
+      // actually fired -- once it has, next_run_date reflects real progress
+      // that advanceRunDate() in the cron function owns from here on, and
+      // recomputing it from start_date here would re-anchor to the past.
+      const existing = schedules.find((s) => s.id === id);
+      if (existing && !existing.last_generated_invoice_id) {
+        payload.next_run_date = computeFirstRunDate(f.start_date, f.frequency, parseInt(f.day_of_month, 10));
+      }
+
+      const { error } = await supabase.from('recurring_invoices').update(payload).eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
