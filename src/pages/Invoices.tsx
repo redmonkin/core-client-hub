@@ -782,16 +782,28 @@ export default function Invoices() {
       <Tabs defaultValue="overview">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="invoices">Invoices</TabsTrigger>
           <TabsTrigger value="transactions">Transactions</TabsTrigger>
-          <TabsTrigger value="expenses">Expenses</TabsTrigger>
           <TabsTrigger value="tax">Tax Deductions</TabsTrigger>
+          <TabsTrigger value="expenses">Expenses</TabsTrigger>
+          <TabsTrigger value="invoices">Invoices</TabsTrigger>
           <TabsTrigger value="recurring">Recurring</TabsTrigger>
           <TabsTrigger value="items">Items</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
           <AccountsOverview />
+        </TabsContent>
+
+        <TabsContent value="transactions">
+          <TransactionsLedger />
+        </TabsContent>
+
+        <TabsContent value="tax">
+          <TaxDeductions />
+        </TabsContent>
+
+        <TabsContent value="expenses">
+          <Expenses />
         </TabsContent>
 
         <TabsContent value="invoices" className="space-y-6">
@@ -948,18 +960,6 @@ export default function Invoices() {
           </CardContent>
         </Card>
       )}
-        </TabsContent>
-
-        <TabsContent value="transactions">
-          <TransactionsLedger />
-        </TabsContent>
-
-        <TabsContent value="expenses">
-          <Expenses />
-        </TabsContent>
-
-        <TabsContent value="tax">
-          <TaxDeductions />
         </TabsContent>
 
         <TabsContent value="recurring">
