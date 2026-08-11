@@ -48,12 +48,12 @@ export function TransactionsLedger() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('invoice_payments')
-        .select('id, amount, tax_deducted_amount, payment_date, payment_mode, invoices(invoice_number, client_id, clients(client_name, company_name))')
+        .select('id, amount, payment_date, payment_mode, invoices(invoice_number, client_id, clients(client_name, company_name))')
         .gte('payment_date', startIso)
         .lte('payment_date', endIso);
       if (error) throw error;
       return data as {
-        id: string; amount: number; tax_deducted_amount: number; payment_date: string; payment_mode: string | null;
+        id: string; amount: number; payment_date: string; payment_mode: string | null;
         invoices: { invoice_number: string; client_id: string; clients: { client_name: string | null; company_name: string | null } | null } | null;
       }[];
     },
@@ -83,13 +83,15 @@ export function TransactionsLedger() {
   const fromPayments: TransactionRow[] = paymentRows.map((p) => {
     const client = p.invoices?.clients;
     const clientName = client?.client_name || client?.company_name || 'Unknown Client';
-    const settled = p.amount + (p.tax_deducted_amount || 0);
     return {
       id: `payment-${p.id}`,
       date: p.payment_date,
       type: 'payment',
+      // Cash actually received into the bank -- tax withheld by the client
+      // never hit the account, so it's excluded here (it's tracked
+      // separately on the Tax Deductions tab).
       description: `Payment received — Invoice ${p.invoices?.invoice_number || '—'} (${clientName})`,
-      amount: settled,
+      amount: p.amount,
     };
   });
   const fromExpenses: TransactionRow[] = expenseRows.map((e) => ({
