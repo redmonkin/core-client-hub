@@ -9,53 +9,79 @@ import { NoAccessState } from '@/components/shared/NoAccessState';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
 import { formatInvoiceCurrency } from '@/lib/invoice-utils';
 import { CATEGORY_LABELS } from '@/components/invoices/Expenses';
 
-type RangeKey = '7d' | 'month' | 'year' | 'fy';
+type RangeKey = 'this_month' | 'last_3_months' | 'this_fy' | 'last_fy' | 'custom';
+type Bucket = 'day' | 'week' | 'month';
 
 const RANGE_OPTIONS: { value: RangeKey; label: string }[] = [
-  { value: '7d', label: 'Last 7 Days' },
-  { value: 'month', label: 'Last Month' },
-  { value: 'year', label: 'Last Year' },
-  { value: 'fy', label: 'Financial Year' },
+  { value: 'this_month', label: 'This Month' },
+  { value: 'last_3_months', label: 'Last 3 Months' },
+  { value: 'this_fy', label: 'This Financial Year' },
+  { value: 'last_fy', label: 'Last Financial Year' },
+  { value: 'custom', label: 'Custom Range' },
 ];
 
 const toIso = (d: Date) => d.toISOString().split('T')[0];
 
-function getRange(range: RangeKey): { start: Date; end: Date; bucket: 'day' | 'month' } {
+// India financial year: April 1 - March 31. Returns the calendar year the
+// financial year containing `d` started in.
+const fyStartYear = (d: Date) => (d.getMonth() >= 3 ? d.getFullYear() : d.getFullYear() - 1);
+
+function getPresetRange(range: Exclude<RangeKey, 'custom'>): { start: Date; end: Date } {
   const end = new Date();
-  const start = new Date();
   switch (range) {
-    case '7d':
-      start.setDate(start.getDate() - 6);
-      return { start, end, bucket: 'day' };
-    case 'month':
-      start.setDate(start.getDate() - 29);
-      return { start, end, bucket: 'day' };
-    case 'year':
-      start.setDate(start.getDate() - 364);
-      return { start, end, bucket: 'month' };
-    case 'fy': {
-      // India financial year: April 1 - March 31.
-      const fyStartYear = end.getMonth() >= 3 ? end.getFullYear() : end.getFullYear() - 1;
-      return { start: new Date(fyStartYear, 3, 1), end, bucket: 'month' };
+    case 'this_month':
+      return { start: new Date(end.getFullYear(), end.getMonth(), 1), end };
+    case 'last_3_months':
+      return { start: new Date(end.getFullYear(), end.getMonth() - 2, 1), end };
+    case 'this_fy': {
+      const y = fyStartYear(end);
+      return { start: new Date(y, 3, 1), end };
+    }
+    case 'last_fy': {
+      const y = fyStartYear(end) - 1;
+      return { start: new Date(y, 3, 1), end: new Date(y + 1, 2, 31) };
     }
   }
 }
 
-function enumerateBuckets(start: Date, end: Date, bucket: 'day' | 'month'): string[] {
+function getBucketSize(start: Date, end: Date): Bucket {
+  const days = Math.round((end.getTime() - start.getTime()) / 86400000);
+  if (days <= 31) return 'day';
+  if (days <= 120) return 'week';
+  return 'month';
+}
+
+function startOfWeekMonday(d: Date): Date {
+  const date = new Date(d);
+  const day = date.getDay();
+  const diff = (day === 0 ? -6 : 1) - day;
+  date.setDate(date.getDate() + diff);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function enumerateBuckets(start: Date, end: Date, bucket: Bucket): string[] {
   const keys: string[] = [];
-  const cur = new Date(start);
   if (bucket === 'day') {
+    const cur = new Date(start);
     while (cur <= end) {
       keys.push(toIso(cur));
       cur.setDate(cur.getDate() + 1);
     }
+  } else if (bucket === 'week') {
+    const cur = startOfWeekMonday(start);
+    while (cur <= end) {
+      keys.push(toIso(cur));
+      cur.setDate(cur.getDate() + 7);
+    }
   } else {
-    cur.setDate(1);
+    const cur = new Date(start.getFullYear(), start.getMonth(), 1);
     while (cur <= end) {
       keys.push(toIso(cur).slice(0, 7));
       cur.setMonth(cur.getMonth() + 1);
@@ -72,15 +98,34 @@ const chartConfig: ChartConfig = {
   expenses: { label: 'Expenses', color: '#dc2626' },
 };
 
+const todayIso = () => toIso(new Date());
+const defaultCustomStart = () => {
+  const d = new Date();
+  d.setDate(d.getDate() - 29);
+  return toIso(d);
+};
+
 export function AccountsOverview() {
-  const [range, setRange] = useState<RangeKey>('month');
+  const [range, setRange] = useState<RangeKey>('this_month');
+  const [customStart, setCustomStart] = useState(defaultCustomStart);
+  const [customEnd, setCustomEnd] = useState(todayIso);
   const { workspaceUserId, canViewFinancials } = useWorkspaceUser();
-  const { start, end, bucket } = getRange(range);
+
+  const preset = range === 'custom' ? null : getPresetRange(range);
+  const customRangeValid = customStart && customEnd && customStart <= customEnd;
+  const { start, end } = preset ?? (customRangeValid
+    ? { start: new Date(customStart), end: new Date(customEnd) }
+    : { start: new Date(defaultCustomStart()), end: new Date(todayIso()) });
+  const bucket = getBucketSize(start, end);
   const startIso = toIso(start);
   const endIso = toIso(end);
 
-  const bucketKey = (dateStr: string) => (bucket === 'day' ? dateStr : dateStr.slice(0, 7));
-  const bucketLabel = (key: string) => (bucket === 'day' ? format(new Date(key), 'MMM d') : format(new Date(`${key}-01`), 'MMM yyyy'));
+  const bucketKey = (dateStr: string) => {
+    if (bucket === 'day') return dateStr;
+    if (bucket === 'month') return dateStr.slice(0, 7);
+    return toIso(startOfWeekMonday(new Date(dateStr)));
+  };
+  const bucketLabel = (key: string) => (bucket === 'month' ? format(new Date(`${key}-01`), 'MMM yyyy') : format(new Date(key), 'MMM d'));
 
   const { data: invoiceRows = [], isLoading: loadingInvoices } = useQuery({
     queryKey: ['overview-invoices', workspaceUserId, startIso, endIso],
@@ -178,19 +223,44 @@ export function AccountsOverview() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
           {format(start, 'MMM d, yyyy')} – {format(end, 'MMM d, yyyy')}
         </p>
-        <Select value={range} onValueChange={(v) => setRange(v as RangeKey)}>
-          <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {RANGE_OPTIONS.map((o) => (
-              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex flex-wrap items-center gap-2">
+          {range === 'custom' && (
+            <>
+              <Input
+                type="date"
+                value={customStart}
+                max={customEnd || undefined}
+                onChange={(e) => setCustomStart(e.target.value)}
+                className="w-40"
+              />
+              <span className="text-sm text-muted-foreground">to</span>
+              <Input
+                type="date"
+                value={customEnd}
+                min={customStart || undefined}
+                onChange={(e) => setCustomEnd(e.target.value)}
+                className="w-40"
+              />
+            </>
+          )}
+          <Select value={range} onValueChange={(v) => setRange(v as RangeKey)}>
+            <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {RANGE_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
+
+      {range === 'custom' && !customRangeValid && (
+        <p className="text-sm text-destructive">Start date must be on or before the end date.</p>
+      )}
 
       {isLoading ? (
         <div className="flex items-center justify-center py-16">
