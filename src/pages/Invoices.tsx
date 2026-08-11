@@ -66,6 +66,7 @@ const PAYMENT_TERMS_LABELS: Record<string, string> = Object.fromEntries(PAYMENT_
 const PAYMENT_MODES = [
   { value: 'cash', label: 'Cash' },
   { value: 'bank_transfer', label: 'Bank Transfer' },
+  { value: 'bank_remittance', label: 'Bank Remittance' },
   { value: 'card', label: 'Card' },
   { value: 'upi', label: 'UPI' },
   { value: 'cheque', label: 'Cheque' },
