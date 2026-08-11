@@ -54,11 +54,8 @@ export function InvoiceLineItems({ value, onChange }: InvoiceLineItemsProps) {
     persist({ ...data, items: data.items.map((i) => (i.id === itemId ? { ...i, [field]: clamped } : i)) });
   };
 
-  const toggleItemDiscountType = (itemId: string) => {
-    persist({
-      ...data,
-      items: data.items.map((i) => (i.id === itemId ? { ...i, discountType: i.discountType === 'percent' ? 'flat' : 'percent' } : i)),
-    });
+  const setItemDiscountType = (itemId: string, discountType: DiscountType) => {
+    persist({ ...data, items: data.items.map((i) => (i.id === itemId ? { ...i, discountType } : i)) });
   };
 
   const addItem = () => {
@@ -93,7 +90,7 @@ export function InvoiceLineItems({ value, onChange }: InvoiceLineItemsProps) {
               <TableHead className="w-20 text-right">Qty</TableHead>
               <TableHead className="w-24">Unit</TableHead>
               <TableHead className="w-28 text-right">Rate</TableHead>
-              <TableHead className="w-24 text-right">Discount</TableHead>
+              <TableHead className="w-32 text-right">Discount</TableHead>
               <TableHead className="w-32 text-right">Amount</TableHead>
               <TableHead className="w-10" />
             </TableRow>
@@ -167,14 +164,15 @@ export function InvoiceLineItems({ value, onChange }: InvoiceLineItemsProps) {
                       step={item.discountType === 'percent' ? 1 : 0.01}
                       className="border-0 p-0 h-auto shadow-none focus-visible:ring-0 text-right w-14"
                     />
-                    <button
-                      type="button"
-                      onClick={() => toggleItemDiscountType(item.id)}
-                      title="Toggle between % and flat amount"
-                      className="w-4 shrink-0 text-xs text-muted-foreground hover:text-foreground"
-                    >
-                      {item.discountType === 'percent' ? '%' : '₹'}
-                    </button>
+                    <Select value={item.discountType} onValueChange={(v) => setItemDiscountType(item.id, v as DiscountType)}>
+                      <SelectTrigger className="h-8 w-16 border-0 shadow-none focus:ring-0 px-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="percent">%</SelectItem>
+                        <SelectItem value="flat">₹ flat</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </TableCell>
                 <TableCell className="text-right font-medium">
@@ -261,14 +259,16 @@ export function InvoiceLineItems({ value, onChange }: InvoiceLineItemsProps) {
                 step={data.additionalDiscountType === 'percent' ? 1 : 0.01}
                 className="w-20 text-right"
               />
-              <button
-                type="button"
-                onClick={() => persist({ ...data, additionalDiscountType: data.additionalDiscountType === 'percent' ? 'flat' : 'percent' })}
-                title="Toggle between % and flat amount"
-                className="w-5 shrink-0 text-sm text-muted-foreground hover:text-foreground"
+              <Select
+                value={data.additionalDiscountType}
+                onValueChange={(v) => persist({ ...data, additionalDiscountType: v as DiscountType })}
               >
-                {data.additionalDiscountType === 'percent' ? '%' : '₹'}
-              </button>
+                <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="percent">%</SelectItem>
+                  <SelectItem value="flat">₹ flat</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <div className="flex items-center gap-3">
