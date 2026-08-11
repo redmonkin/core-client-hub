@@ -181,17 +181,19 @@ export default function Invoices() {
   const { data: payments = [] } = useQuery({
     queryKey: ['invoice-payments-summary', workspaceUserId],
     queryFn: async () => {
-      const { data, error } = await supabase.from('invoice_payments').select('invoice_id, amount, tax_deducted_amount');
+      const { data, error } = await supabase.from('invoice_payments').select('invoice_id, amount, tax_deducted_amount, payment_date');
       if (error) throw error;
-      return data as { invoice_id: string; amount: number; tax_deducted_amount: number }[];
+      return data as { invoice_id: string; amount: number; tax_deducted_amount: number; payment_date: string }[];
     },
     enabled: !!workspaceUserId,
   });
-  const paymentSummaryByInvoice = new Map<string, { paid: number; taxDeducted: number }>();
+  const paymentSummaryByInvoice = new Map<string, { paid: number; taxDeducted: number; lastPaymentDate: string; count: number }>();
   for (const p of payments) {
-    const existing = paymentSummaryByInvoice.get(p.invoice_id) || { paid: 0, taxDeducted: 0 };
+    const existing = paymentSummaryByInvoice.get(p.invoice_id) || { paid: 0, taxDeducted: 0, lastPaymentDate: p.payment_date, count: 0 };
     existing.paid += p.amount;
     existing.taxDeducted += p.tax_deducted_amount || 0;
+    existing.count += 1;
+    if (p.payment_date > existing.lastPaymentDate) existing.lastPaymentDate = p.payment_date;
     paymentSummaryByInvoice.set(p.invoice_id, existing);
   }
 
@@ -696,6 +698,7 @@ export default function Invoices() {
         <div style="display:flex; justify-content:flex-end; margin-top:16px;">
           <table style="font-size:13px; min-width:260px; background:#f9fafb; border-radius:6px; padding:4px;">
             <tr><td colspan="2" style="padding:6px 12px 2px; font-weight:700;">Payment Received</td></tr>
+            ${paymentSummary ? `<tr><td style="padding:4px 12px; color:#6b7280;">${paymentSummary.count > 1 ? 'Last Payment Date' : 'Payment Date'}</td><td style="padding:4px 12px; text-align:right; font-weight:600;">${format(new Date(paymentSummary.lastPaymentDate), 'dd/MM/yyyy')}</td></tr>` : ''}
             <tr><td style="padding:4px 12px; color:#6b7280;">Paid</td><td style="padding:4px 12px; text-align:right; font-weight:600;">${fmt(amount.amount_paid - (paymentSummary?.taxDeducted || 0))}</td></tr>
             ${paymentSummary && paymentSummary.taxDeducted > 0 ? `<tr><td style="padding:4px 12px; color:#6b7280;">Tax Deducted (TDS)</td><td style="padding:4px 12px; text-align:right; font-weight:600;">${fmt(paymentSummary.taxDeducted)}</td></tr>` : ''}
             <tr><td style="padding:6px 12px; font-weight:700; border-top:1px solid #e5e7eb;">Balance Due</td><td style="padding:6px 12px; text-align:right; font-weight:700; border-top:1px solid #e5e7eb;">${fmt(balanceDue ?? 0)}</td></tr>
