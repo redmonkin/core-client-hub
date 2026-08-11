@@ -3,6 +3,8 @@
 // bill, not a set of selectable pricing plans, so there's no "plans" concept
 // here at all.
 
+export type DiscountType = 'percent' | 'flat';
+
 export interface InvoiceLineItem {
   id: string;
   name: string;
@@ -11,11 +13,13 @@ export interface InvoiceLineItem {
   unit: string;
   unitPrice: number;
   discount: number;
+  discountType: DiscountType;
 }
 
 export interface InvoiceLineItemsData {
   items: InvoiceLineItem[];
   additionalDiscount: number;
+  additionalDiscountType: DiscountType;
   taxRate: number;
   notes: string;
 }
@@ -30,6 +34,7 @@ export const createEmptyInvoiceLineItem = (): InvoiceLineItem => ({
   unit: 'hr',
   unitPrice: 0,
   discount: 0,
+  discountType: 'percent',
 });
 
 // Invoices start with no line items -- the user adds the first one explicitly
@@ -38,6 +43,7 @@ export const createEmptyInvoiceLineItem = (): InvoiceLineItem => ({
 export const buildDefaultInvoiceLineItems = (): InvoiceLineItemsData => ({
   items: [],
   additionalDiscount: 0,
+  additionalDiscountType: 'percent',
   taxRate: 0,
   notes: '',
 });
@@ -56,8 +62,10 @@ export function parseInvoiceLineItems(value: string | null | undefined): Invoice
           unit: i.unit || 'hr',
           unitPrice: i.unitPrice ?? 0,
           discount: i.discount ?? 0,
+          discountType: i.discountType === 'flat' ? 'flat' : 'percent',
         })),
         additionalDiscount: parsed.additionalDiscount ?? 0,
+        additionalDiscountType: parsed.additionalDiscountType === 'flat' ? 'flat' : 'percent',
         taxRate: parsed.taxRate ?? 0,
         notes: parsed.notes ?? '',
       };
@@ -70,12 +78,15 @@ export function parseInvoiceLineItems(value: string | null | undefined): Invoice
 
 export function calculateInvoiceLineTotal(item: InvoiceLineItem): number {
   const subtotal = item.quantity * item.unitPrice;
-  return subtotal - subtotal * (item.discount / 100);
+  const discountAmount = item.discountType === 'flat' ? Math.min(item.discount, subtotal) : subtotal * (item.discount / 100);
+  return subtotal - discountAmount;
 }
 
 export function getInvoiceTotals(data: InvoiceLineItemsData) {
   const subtotal = data.items.reduce((acc, item) => acc + calculateInvoiceLineTotal(item), 0);
-  const additionalDiscountAmount = subtotal * (data.additionalDiscount / 100);
+  const additionalDiscountAmount = data.additionalDiscountType === 'flat'
+    ? Math.min(data.additionalDiscount, subtotal)
+    : subtotal * (data.additionalDiscount / 100);
   const afterDiscount = subtotal - additionalDiscountAmount;
   const taxAmount = afterDiscount * (data.taxRate / 100);
   const total = afterDiscount + taxAmount;
@@ -185,7 +196,7 @@ export function buildInvoiceLineItemsHtml(costBreakdownJson: string | null | und
     <div style="display:flex;justify-content:flex-end;margin-top:12px;">
       <table style="font-size:13px;min-width:260px;">
         <tr><td style="padding:4px 12px;color:#6b7280;">Sub Total</td><td style="padding:4px 12px;text-align:right;">${fmt(totals.subtotal)}</td></tr>
-        ${data.additionalDiscount > 0 ? `<tr><td style="padding:4px 12px;color:#6b7280;">Discount (${data.additionalDiscount}%)</td><td style="padding:4px 12px;text-align:right;color:#c0392b;">-${fmt(totals.additionalDiscountAmount)}</td></tr>` : ''}
+        ${data.additionalDiscount > 0 ? `<tr><td style="padding:4px 12px;color:#6b7280;">Discount${data.additionalDiscountType === 'flat' ? '' : ` (${data.additionalDiscount}%)`}</td><td style="padding:4px 12px;text-align:right;color:#c0392b;">-${fmt(totals.additionalDiscountAmount)}</td></tr>` : ''}
         ${data.taxRate > 0 ? `<tr><td style="padding:4px 12px;color:#6b7280;">Tax (${data.taxRate}%)</td><td style="padding:4px 12px;text-align:right;">+${fmt(totals.taxAmount)}</td></tr>` : ''}
         <tr><td style="padding:8px 12px;font-weight:700;border-top:1px solid #e5e7eb;">Total</td><td style="padding:8px 12px;text-align:right;font-weight:700;border-top:1px solid #e5e7eb;">${fmt(totals.total)}</td></tr>
       </table>

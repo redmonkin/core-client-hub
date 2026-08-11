@@ -11,6 +11,7 @@ import { useWorkspaceUser } from '@/hooks/useWorkspaceUser';
 import { useInvoiceItems, InvoiceItem } from '@/components/invoices/InvoiceItemsCatalog';
 import {
   InvoiceLineItem,
+  DiscountType,
   INVOICE_UNITS,
   parseInvoiceLineItems,
   calculateInvoiceLineTotal,
@@ -41,15 +42,23 @@ export function InvoiceLineItems({ value, onChange }: InvoiceLineItemsProps) {
     onChange?.(JSON.stringify(next));
   };
 
-  const clampField = (field: keyof InvoiceLineItem, value: number): number => {
-    if (field === 'discount') return Math.min(100, Math.max(0, value));
+  const clampField = (field: keyof InvoiceLineItem, value: number, discountType: DiscountType): number => {
+    if (field === 'discount') return discountType === 'percent' ? Math.min(100, Math.max(0, value)) : Math.max(0, value);
     if (field === 'quantity' || field === 'unitPrice') return Math.max(0, value);
     return value;
   };
 
   const updateItem = (itemId: string, field: keyof InvoiceLineItem, fieldValue: string | number) => {
-    const clamped = typeof fieldValue === 'number' ? clampField(field, fieldValue) : fieldValue;
+    const item = data.items.find((i) => i.id === itemId);
+    const clamped = typeof fieldValue === 'number' ? clampField(field, fieldValue, item?.discountType ?? 'percent') : fieldValue;
     persist({ ...data, items: data.items.map((i) => (i.id === itemId ? { ...i, [field]: clamped } : i)) });
+  };
+
+  const toggleItemDiscountType = (itemId: string) => {
+    persist({
+      ...data,
+      items: data.items.map((i) => (i.id === itemId ? { ...i, discountType: i.discountType === 'percent' ? 'flat' : 'percent' } : i)),
+    });
   };
 
   const addItem = () => {
@@ -84,7 +93,7 @@ export function InvoiceLineItems({ value, onChange }: InvoiceLineItemsProps) {
               <TableHead className="w-20 text-right">Qty</TableHead>
               <TableHead className="w-24">Unit</TableHead>
               <TableHead className="w-28 text-right">Rate</TableHead>
-              <TableHead className="w-20 text-right">Disc %</TableHead>
+              <TableHead className="w-24 text-right">Discount</TableHead>
               <TableHead className="w-32 text-right">Amount</TableHead>
               <TableHead className="w-10" />
             </TableRow>
@@ -148,15 +157,25 @@ export function InvoiceLineItems({ value, onChange }: InvoiceLineItemsProps) {
                   />
                 </TableCell>
                 <TableCell>
-                  <Input
-                    type="number"
-                    value={item.discount}
-                    onChange={(e) => updateItem(item.id, 'discount', parseFloat(e.target.value) || 0)}
-                    min={0}
-                    max={100}
-                    step={1}
-                    className="border-0 p-0 h-auto shadow-none focus-visible:ring-0 text-right"
-                  />
+                  <div className="flex items-center justify-end gap-1">
+                    <Input
+                      type="number"
+                      value={item.discount}
+                      onChange={(e) => updateItem(item.id, 'discount', parseFloat(e.target.value) || 0)}
+                      min={0}
+                      max={item.discountType === 'percent' ? 100 : undefined}
+                      step={item.discountType === 'percent' ? 1 : 0.01}
+                      className="border-0 p-0 h-auto shadow-none focus-visible:ring-0 text-right w-14"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => toggleItemDiscountType(item.id)}
+                      title="Toggle between % and flat amount"
+                      className="w-4 shrink-0 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      {item.discountType === 'percent' ? '%' : '₹'}
+                    </button>
+                  </div>
                 </TableCell>
                 <TableCell className="text-right font-medium">
                   {formatInvoiceCurrency(calculateInvoiceLineTotal(item))}
@@ -232,13 +251,24 @@ export function InvoiceLineItems({ value, onChange }: InvoiceLineItemsProps) {
               <Input
                 type="number"
                 value={data.additionalDiscount}
-                onChange={(e) => persist({ ...data, additionalDiscount: Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)) })}
+                onChange={(e) => {
+                  const raw = parseFloat(e.target.value) || 0;
+                  const clamped = data.additionalDiscountType === 'percent' ? Math.min(100, Math.max(0, raw)) : Math.max(0, raw);
+                  persist({ ...data, additionalDiscount: clamped });
+                }}
                 min={0}
-                max={100}
-                step={1}
+                max={data.additionalDiscountType === 'percent' ? 100 : undefined}
+                step={data.additionalDiscountType === 'percent' ? 1 : 0.01}
                 className="w-20 text-right"
               />
-              <span className="text-sm text-muted-foreground">%</span>
+              <button
+                type="button"
+                onClick={() => persist({ ...data, additionalDiscountType: data.additionalDiscountType === 'percent' ? 'flat' : 'percent' })}
+                title="Toggle between % and flat amount"
+                className="w-5 shrink-0 text-sm text-muted-foreground hover:text-foreground"
+              >
+                {data.additionalDiscountType === 'percent' ? '%' : '₹'}
+              </button>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -265,7 +295,7 @@ export function InvoiceLineItems({ value, onChange }: InvoiceLineItemsProps) {
           </div>
           {data.additionalDiscount > 0 && (
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Discount ({data.additionalDiscount}%)</span>
+              <span className="text-muted-foreground">Discount{data.additionalDiscountType === 'flat' ? '' : ` (${data.additionalDiscount}%)`}</span>
               <span className="text-destructive">-{formatInvoiceCurrency(totals.additionalDiscountAmount)}</span>
             </div>
           )}

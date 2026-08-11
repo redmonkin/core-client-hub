@@ -319,6 +319,7 @@ export default function Invoices() {
       cost_breakdown: JSON.stringify({
         items: [{ ...createEmptyInvoiceLineItem(), name: `${contract.contract_type} contract`, quantity: 1, unit: 'fixed', unitPrice: contract.value || 0 }],
         additionalDiscount: 0,
+        additionalDiscountType: 'percent',
         taxRate: 0,
         notes: '',
       }),

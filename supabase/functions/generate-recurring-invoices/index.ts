@@ -19,14 +19,17 @@ const isSafeHttpUrl = (url: unknown): url is string =>
 // -- Line-item total calculation, mirrored from src/lib/invoice-utils.ts --
 // (pure arithmetic, no DOM/React deps, so duplicating rather than sharing a
 // module across the Vite client bundle and this Deno function is simplest).
+type DiscountType = 'percent' | 'flat';
 interface InvoiceLineItem {
   quantity: number;
   unitPrice: number;
   discount: number;
+  discountType?: DiscountType;
 }
 interface InvoiceLineItemsData {
   items: InvoiceLineItem[];
   additionalDiscount: number;
+  additionalDiscountType?: DiscountType;
   taxRate: number;
 }
 function parseLineItems(value: string | null | undefined): InvoiceLineItemsData {
@@ -36,6 +39,7 @@ function parseLineItems(value: string | null | undefined): InvoiceLineItemsData 
     return {
       items: Array.isArray(parsed.items) ? parsed.items : [],
       additionalDiscount: parsed.additionalDiscount ?? 0,
+      additionalDiscountType: parsed.additionalDiscountType === 'flat' ? 'flat' : 'percent',
       taxRate: parsed.taxRate ?? 0,
     };
   } catch {
@@ -46,9 +50,11 @@ function getTotalFromCostBreakdown(costBreakdown: string | null): number {
   const data = parseLineItems(costBreakdown);
   const subtotal = data.items.reduce((acc, item) => {
     const lineSubtotal = item.quantity * item.unitPrice;
-    return acc + (lineSubtotal - lineSubtotal * (item.discount / 100));
+    const discountAmount = item.discountType === 'flat' ? Math.min(item.discount, lineSubtotal) : lineSubtotal * (item.discount / 100);
+    return acc + (lineSubtotal - discountAmount);
   }, 0);
-  const afterDiscount = subtotal - subtotal * (data.additionalDiscount / 100);
+  const additionalDiscountAmount = data.additionalDiscountType === 'flat' ? Math.min(data.additionalDiscount, subtotal) : subtotal * (data.additionalDiscount / 100);
+  const afterDiscount = subtotal - additionalDiscountAmount;
   return afterDiscount + afterDiscount * (data.taxRate / 100);
 }
 
