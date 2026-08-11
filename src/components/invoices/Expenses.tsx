@@ -25,8 +25,11 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
+import { SortableTableHead, toggleSort, compareValues, type SortState } from '@/components/shared/SortableTableHead';
 import { formatInvoiceCurrency } from '@/lib/invoice-utils';
 import { toast } from 'sonner';
+
+type ExpenseSortKey = 'expense_date' | 'category' | 'vendor' | 'description' | 'amount';
 
 export const EXPENSE_CATEGORIES = [
   'software', 'travel', 'office', 'marketing', 'contractor', 'taxes', 'other',
@@ -100,6 +103,7 @@ export function Expenses() {
     });
   }, [expenses]);
 
+  const [sort, setSort] = useState<SortState<ExpenseSortKey>>({ key: 'expense_date', direction: 'desc' });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ExpenseFormState>(emptyForm());
@@ -193,6 +197,20 @@ export function Expenses() {
 
   const totalExpenses = expenses.reduce((acc, e) => acc + e.amount, 0);
 
+  const expenseSortValue = (e: Expense, key: ExpenseSortKey): string | number => {
+    switch (key) {
+      case 'expense_date': return e.expense_date;
+      case 'category': return CATEGORY_LABELS[e.category] || e.category;
+      case 'vendor': return e.vendor || '';
+      case 'description': return e.description || '';
+      case 'amount': return e.amount;
+    }
+  };
+  const sortedExpenses = [...expenses].sort((a, b) => {
+    const cmp = compareValues(expenseSortValue(a, sort.key), expenseSortValue(b, sort.key));
+    return sort.direction === 'asc' ? cmp : -cmp;
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -223,17 +241,17 @@ export function Expenses() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-28">Date</TableHead>
-                  <TableHead className="w-32">Category</TableHead>
-                  <TableHead className="min-w-[160px]">Vendor</TableHead>
-                  <TableHead className="min-w-[200px]">Description</TableHead>
-                  <TableHead className="w-32 text-right">Amount</TableHead>
+                  <SortableTableHead label="Date" sortKey="expense_date" sort={sort} onSort={(key) => setSort((prev) => toggleSort(prev, key))} className="w-28" />
+                  <SortableTableHead label="Category" sortKey="category" sort={sort} onSort={(key) => setSort((prev) => toggleSort(prev, key))} className="w-32" />
+                  <SortableTableHead label="Vendor" sortKey="vendor" sort={sort} onSort={(key) => setSort((prev) => toggleSort(prev, key))} className="min-w-[160px]" />
+                  <SortableTableHead label="Description" sortKey="description" sort={sort} onSort={(key) => setSort((prev) => toggleSort(prev, key))} className="min-w-[200px]" />
+                  <SortableTableHead label="Amount" sortKey="amount" sort={sort} onSort={(key) => setSort((prev) => toggleSort(prev, key))} className="w-32 text-right" align="right" />
                   <TableHead className="w-16" />
                   <TableHead className="w-20" />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {expenses.map((expense) => (
+                {sortedExpenses.map((expense) => (
                   <TableRow key={expense.id}>
                     <TableCell className="text-muted-foreground">{format(new Date(expense.expense_date), 'MMM d, yyyy')}</TableCell>
                     <TableCell>{CATEGORY_LABELS[expense.category] || expense.category}</TableCell>

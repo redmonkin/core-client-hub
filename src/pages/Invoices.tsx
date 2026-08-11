@@ -14,6 +14,7 @@ import { RequirePermission } from '@/components/shared/RequirePermission';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { NoAccessState } from '@/components/shared/NoAccessState';
+import { SortableTableHead, toggleSort, compareValues, type SortState } from '@/components/shared/SortableTableHead';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -88,7 +89,10 @@ interface Invoice {
   payment_terms: string | null;
   paid_at: string | null;
   notes: string | null;
+  created_at: string;
 }
+
+type InvoiceSortKey = 'invoice_number' | 'client' | 'status' | 'due_date' | 'created_at' | 'amount';
 
 interface InvoiceFormState {
   invoice_number: string;
@@ -132,6 +136,7 @@ export default function Invoices() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [invoiceSort, setInvoiceSort] = useState<SortState<InvoiceSortKey>>({ key: 'created_at', direction: 'desc' });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<InvoiceFormState>({ ...emptyForm });
@@ -745,12 +750,28 @@ export default function Invoices() {
 
   const handlePreview = (invoice: Invoice) => setPreviewInvoice(invoice);
 
-  const filteredInvoices = invoices.filter((inv) => {
-    const clientName = getClientName(inv.client_id).toLowerCase();
-    const matchesSearch = clientName.includes(searchQuery.toLowerCase()) || inv.invoice_number.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || inv.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const invoiceSortValue = (inv: Invoice, key: InvoiceSortKey): string | number => {
+    switch (key) {
+      case 'invoice_number': return inv.invoice_number;
+      case 'client': return getClientName(inv.client_id);
+      case 'status': return inv.status;
+      case 'due_date': return inv.due_date || '';
+      case 'created_at': return inv.created_at;
+      case 'amount': return amountsByInvoice.get(inv.id)?.total_amount ?? -1;
+    }
+  };
+
+  const filteredInvoices = invoices
+    .filter((inv) => {
+      const clientName = getClientName(inv.client_id).toLowerCase();
+      const matchesSearch = clientName.includes(searchQuery.toLowerCase()) || inv.invoice_number.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || inv.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => {
+      const cmp = compareValues(invoiceSortValue(a, invoiceSort.key), invoiceSortValue(b, invoiceSort.key));
+      return invoiceSort.direction === 'asc' ? cmp : -cmp;
+    });
 
   const clientProjects = projects.filter((p) => p.client_id === form.client_id);
   const clientContracts = contracts.filter((c) => c.client_id === form.client_id || !form.client_id);
@@ -854,11 +875,12 @@ export default function Invoices() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Invoice</TableHead>
-                  <TableHead>Client</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Due</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
+                  <SortableTableHead label="Invoice" sortKey="invoice_number" sort={invoiceSort} onSort={(key) => setInvoiceSort((prev) => toggleSort(prev, key))} />
+                  <SortableTableHead label="Client" sortKey="client" sort={invoiceSort} onSort={(key) => setInvoiceSort((prev) => toggleSort(prev, key))} />
+                  <SortableTableHead label="Status" sortKey="status" sort={invoiceSort} onSort={(key) => setInvoiceSort((prev) => toggleSort(prev, key))} />
+                  <SortableTableHead label="Due" sortKey="due_date" sort={invoiceSort} onSort={(key) => setInvoiceSort((prev) => toggleSort(prev, key))} />
+                  <SortableTableHead label="Created" sortKey="created_at" sort={invoiceSort} onSort={(key) => setInvoiceSort((prev) => toggleSort(prev, key))} />
+                  <SortableTableHead label="Amount" sortKey="amount" sort={invoiceSort} onSort={(key) => setInvoiceSort((prev) => toggleSort(prev, key))} className="text-right" align="right" />
                   <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
@@ -880,6 +902,9 @@ export default function Invoices() {
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {invoice.due_date ? format(new Date(invoice.due_date), 'MMM d, yyyy') : '—'}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {format(new Date(invoice.created_at), 'MMM d, yyyy')}
                       </TableCell>
                       <TableCell className="text-right font-semibold">
                         {canViewFinancials

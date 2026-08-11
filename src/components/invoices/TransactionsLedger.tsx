@@ -9,12 +9,14 @@ import { EmptyState } from '@/components/shared/EmptyState';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table';
+import { SortableTableHead, toggleSort, compareValues, type SortState } from '@/components/shared/SortableTableHead';
 import { formatInvoiceCurrency } from '@/lib/invoice-utils';
 import { CATEGORY_LABELS } from '@/components/invoices/Expenses';
 import { type RangeKey, RANGE_OPTIONS, toIso, resolveRange, defaultCustomStart, todayIso } from '@/lib/date-ranges';
 
 type TypeFilter = 'all' | 'payment' | 'expense';
+type LedgerSortKey = 'date' | 'description' | 'amount' | 'balance';
 
 const TYPE_OPTIONS: { value: TypeFilter; label: string }[] = [
   { value: 'all', label: 'All Transactions' },
@@ -37,6 +39,7 @@ export function TransactionsLedger() {
   const [customEnd, setCustomEnd] = useState(todayIso);
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [search, setSearch] = useState('');
+  const [sort, setSort] = useState<SortState<LedgerSortKey>>({ key: 'date', direction: 'desc' });
 
   const { start, end } = resolveRange(range, customStart, customEnd);
   const customRangeValid = customStart && customEnd && customStart <= customEnd;
@@ -114,10 +117,22 @@ export function TransactionsLedger() {
   const totalReceived = transactions.filter((t) => t.type === 'payment').reduce((acc, t) => acc + t.amount, 0);
   const totalExpenses = -transactions.filter((t) => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
 
+  const ledgerSortValue = (t: (typeof withBalance)[number], key: LedgerSortKey): string | number => {
+    switch (key) {
+      case 'date': return t.date;
+      case 'description': return t.description;
+      case 'amount': return t.amount;
+      case 'balance': return t.balance;
+    }
+  };
+
   const filtered = withBalance
     .filter((t) => typeFilter === 'all' || t.type === typeFilter)
     .filter((t) => !search.trim() || t.description.toLowerCase().includes(search.trim().toLowerCase()))
-    .reverse(); // most recent first, balance still reflects chronological position
+    .sort((a, b) => {
+      const cmp = compareValues(ledgerSortValue(a, sort.key), ledgerSortValue(b, sort.key));
+      return sort.direction === 'asc' ? cmp : -cmp;
+    });
 
   return (
     <div className="space-y-6">
@@ -202,10 +217,10 @@ export function TransactionsLedger() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-28">Date</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead className="w-36 text-right">Amount</TableHead>
-                      <TableHead className="w-36 text-right">Balance</TableHead>
+                      <SortableTableHead label="Date" sortKey="date" sort={sort} onSort={(key) => setSort((prev) => toggleSort(prev, key))} className="w-28" />
+                      <SortableTableHead label="Description" sortKey="description" sort={sort} onSort={(key) => setSort((prev) => toggleSort(prev, key))} />
+                      <SortableTableHead label="Amount" sortKey="amount" sort={sort} onSort={(key) => setSort((prev) => toggleSort(prev, key))} className="w-36 text-right" align="right" />
+                      <SortableTableHead label="Balance" sortKey="balance" sort={sort} onSort={(key) => setSort((prev) => toggleSort(prev, key))} className="w-36 text-right" align="right" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>

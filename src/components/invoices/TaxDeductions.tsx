@@ -9,9 +9,12 @@ import { EmptyState } from '@/components/shared/EmptyState';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table';
+import { SortableTableHead, toggleSort, compareValues, type SortState } from '@/components/shared/SortableTableHead';
 import { formatInvoiceCurrency } from '@/lib/invoice-utils';
 import { type RangeKey, RANGE_OPTIONS, toIso, resolveRange, defaultCustomStart, todayIso } from '@/lib/date-ranges';
+
+type TaxSortKey = 'payment_date' | 'invoice_number' | 'client_name' | 'amount' | 'tax_deducted_amount' | 'reference_number';
 
 interface TaxDeductionRow {
   id: string;
@@ -28,6 +31,7 @@ export function TaxDeductions() {
   const [range, setRange] = useState<RangeKey>('this_fy');
   const [customStart, setCustomStart] = useState(defaultCustomStart);
   const [customEnd, setCustomEnd] = useState(todayIso);
+  const [sort, setSort] = useState<SortState<TaxSortKey>>({ key: 'payment_date', direction: 'desc' });
 
   const { start, end } = resolveRange(range, customStart, customEnd);
   const customRangeValid = customStart && customEnd && customStart <= customEnd;
@@ -67,6 +71,21 @@ export function TaxDeductions() {
 
   const totalTaxDeducted = rows.reduce((acc, r) => acc + r.tax_deducted_amount, 0);
   const totalGrossSettled = rows.reduce((acc, r) => acc + r.amount + r.tax_deducted_amount, 0);
+
+  const taxSortValue = (r: TaxDeductionRow, key: TaxSortKey): string | number => {
+    switch (key) {
+      case 'payment_date': return r.payment_date;
+      case 'invoice_number': return r.invoice_number;
+      case 'client_name': return r.client_name;
+      case 'amount': return r.amount;
+      case 'tax_deducted_amount': return r.tax_deducted_amount;
+      case 'reference_number': return r.reference_number || '';
+    }
+  };
+  const sortedRows = [...rows].sort((a, b) => {
+    const cmp = compareValues(taxSortValue(a, sort.key), taxSortValue(b, sort.key));
+    return sort.direction === 'asc' ? cmp : -cmp;
+  });
 
   return (
     <div className="space-y-6">
@@ -133,16 +152,16 @@ export function TaxDeductions() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-28">Date</TableHead>
-                    <TableHead>Invoice</TableHead>
-                    <TableHead>Client</TableHead>
-                    <TableHead className="w-32 text-right">Amount Received</TableHead>
-                    <TableHead className="w-32 text-right">Tax Deducted</TableHead>
-                    <TableHead className="min-w-[120px]">Reference #</TableHead>
+                    <SortableTableHead label="Date" sortKey="payment_date" sort={sort} onSort={(key) => setSort((prev) => toggleSort(prev, key))} className="w-28" />
+                    <SortableTableHead label="Invoice" sortKey="invoice_number" sort={sort} onSort={(key) => setSort((prev) => toggleSort(prev, key))} />
+                    <SortableTableHead label="Client" sortKey="client_name" sort={sort} onSort={(key) => setSort((prev) => toggleSort(prev, key))} />
+                    <SortableTableHead label="Amount Received" sortKey="amount" sort={sort} onSort={(key) => setSort((prev) => toggleSort(prev, key))} className="w-32 text-right" align="right" />
+                    <SortableTableHead label="Tax Deducted" sortKey="tax_deducted_amount" sort={sort} onSort={(key) => setSort((prev) => toggleSort(prev, key))} className="w-32 text-right" align="right" />
+                    <SortableTableHead label="Reference #" sortKey="reference_number" sort={sort} onSort={(key) => setSort((prev) => toggleSort(prev, key))} className="min-w-[120px]" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rows.map((r) => (
+                  {sortedRows.map((r) => (
                     <TableRow key={r.id}>
                       <TableCell className="text-muted-foreground">{format(new Date(r.payment_date), 'MMM d, yyyy')}</TableCell>
                       <TableCell className="font-medium">{r.invoice_number}</TableCell>
