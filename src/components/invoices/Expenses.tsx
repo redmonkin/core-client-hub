@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { Plus, Pencil, Trash2, Loader2, Receipt } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Plus, Pencil, Trash2, Loader2, Receipt, Paperclip, FileIcon, X } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { useWorkspaceUser } from '@/hooks/useWorkspaceUser';
 import { RequirePermission } from '@/components/shared/RequirePermission';
 import { EmptyState } from '@/components/shared/EmptyState';
@@ -31,7 +32,7 @@ export const EXPENSE_CATEGORIES = [
   'software', 'travel', 'office', 'marketing', 'contractor', 'taxes', 'other',
 ] as const;
 
-const CATEGORY_LABELS: Record<string, string> = {
+export const CATEGORY_LABELS: Record<string, string> = {
   software: 'Software', travel: 'Travel', office: 'Office', marketing: 'Marketing',
   contractor: 'Contractor', taxes: 'Taxes', other: 'Other',
 };
@@ -45,6 +46,8 @@ interface Expense {
   description: string | null;
   amount: number;
   notes: string | null;
+  receipt_url: string | null;
+  receipt_name: string | null;
 }
 
 interface ExpenseFormState {
@@ -68,8 +71,10 @@ const emptyForm = (): ExpenseFormState => ({
 });
 
 export function Expenses() {
+  const { user } = useAuth();
   const { workspaceUserId } = useWorkspaceUser();
   const queryClient = useQueryClient();
+  const receiptInputRef = useRef<HTMLInputElement>(null);
 
   const { data: expenses = [], isLoading } = useQuery({
     queryKey: ['expenses', workspaceUserId],
@@ -81,16 +86,36 @@ export function Expenses() {
     enabled: !!workspaceUserId,
   });
 
+  // Bucket is private -- resolve short-lived signed URLs for whichever
+  // receipts are currently in view.
+  const [signedReceiptUrls, setSignedReceiptUrls] = useState<Record<string, string>>({});
+  useEffect(() => {
+    const paths = expenses.map((e) => e.receipt_url).filter((p): p is string => !!p);
+    if (paths.length === 0) return;
+    supabase.storage.from('expense-receipts').createSignedUrls(paths, 3600).then(({ data }) => {
+      if (!data) return;
+      const map: Record<string, string> = {};
+      data.forEach((item) => { if (item.signedUrl) map[item.path!] = item.signedUrl; });
+      setSignedReceiptUrls(map);
+    });
+  }, [expenses]);
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ExpenseFormState>(emptyForm());
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [existingReceipt, setExistingReceipt] = useState<{ url: string; name: string } | null>(null);
+  const [removeExistingReceipt, setRemoveExistingReceipt] = useState(false);
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['expenses', workspaceUserId] });
 
   const openCreateDialog = () => {
     setEditingId(null);
     setForm(emptyForm());
+    setReceiptFile(null);
+    setExistingReceipt(null);
+    setRemoveExistingReceipt(false);
     setIsDialogOpen(true);
   };
 
@@ -104,6 +129,9 @@ export function Expenses() {
       amount: String(expense.amount),
       notes: expense.notes || '',
     });
+    setReceiptFile(null);
+    setExistingReceipt(expense.receipt_url ? { url: expense.receipt_url, name: expense.receipt_name || 'receipt' } : null);
+    setRemoveExistingReceipt(false);
     setIsDialogOpen(true);
   };
 
@@ -111,6 +139,20 @@ export function Expenses() {
     mutationFn: async () => {
       const amount = parseFloat(form.amount);
       if (!amount || amount <= 0) throw new Error('Enter an amount greater than zero');
+
+      let receiptUrl: string | null | undefined = removeExistingReceipt ? null : undefined;
+      let receiptName: string | null | undefined = removeExistingReceipt ? null : undefined;
+
+      if (receiptFile) {
+        const ext = receiptFile.name.split('.').pop();
+        // Path must start with the current user's own id to satisfy RLS folder check
+        const path = `${user!.id}/${crypto.randomUUID()}.${ext}`;
+        const { error: uploadError } = await supabase.storage.from('expense-receipts').upload(path, receiptFile);
+        if (uploadError) throw uploadError;
+        receiptUrl = path;
+        receiptName = receiptFile.name;
+      }
+
       const row = {
         expense_date: form.expense_date || todayIso(),
         category: form.category,
@@ -118,6 +160,7 @@ export function Expenses() {
         description: form.description.trim() || null,
         amount,
         notes: form.notes.trim() || null,
+        ...(receiptUrl !== undefined ? { receipt_url: receiptUrl, receipt_name: receiptName } : {}),
       };
       if (editingId) {
         const { error } = await supabase.from('expenses').update(row).eq('id', editingId);
@@ -185,6 +228,7 @@ export function Expenses() {
                   <TableHead className="min-w-[160px]">Vendor</TableHead>
                   <TableHead className="min-w-[200px]">Description</TableHead>
                   <TableHead className="w-32 text-right">Amount</TableHead>
+                  <TableHead className="w-16" />
                   <TableHead className="w-20" />
                 </TableRow>
               </TableHeader>
@@ -196,6 +240,19 @@ export function Expenses() {
                     <TableCell>{expense.vendor || '—'}</TableCell>
                     <TableCell className="max-w-[280px] truncate text-muted-foreground">{expense.description || '—'}</TableCell>
                     <TableCell className="text-right font-medium">{formatInvoiceCurrency(expense.amount)}</TableCell>
+                    <TableCell>
+                      {expense.receipt_url && signedReceiptUrls[expense.receipt_url] && (
+                        <a
+                          href={signedReceiptUrls[expense.receipt_url]}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary"
+                          title={expense.receipt_name || 'Receipt'}
+                        >
+                          <Paperclip className="h-4 w-4" />
+                        </a>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-1">
                         <RequirePermission module="invoices" action="update">
@@ -285,6 +342,44 @@ export function Expenses() {
                 onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
                 className="min-h-[70px]"
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Receipt</Label>
+              <input
+                ref={receiptInputRef}
+                type="file"
+                accept="image/*,application/pdf"
+                className="hidden"
+                onChange={(e) => {
+                  setReceiptFile(e.target.files?.[0] || null);
+                  setRemoveExistingReceipt(false);
+                  e.target.value = '';
+                }}
+              />
+              {!receiptFile && !(existingReceipt && !removeExistingReceipt) && (
+                <Button variant="outline" size="sm" type="button" onClick={() => receiptInputRef.current?.click()}>
+                  <Paperclip className="mr-2 h-4 w-4" />
+                  Attach Receipt
+                </Button>
+              )}
+              {receiptFile && (
+                <div className="flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1.5 text-xs text-foreground w-fit">
+                  <FileIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="max-w-[200px] truncate">{receiptFile.name}</span>
+                  <button onClick={() => setReceiptFile(null)} className="ml-1 text-muted-foreground hover:text-foreground">
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              )}
+              {!receiptFile && existingReceipt && !removeExistingReceipt && (
+                <div className="flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1.5 text-xs text-foreground w-fit">
+                  <FileIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="max-w-[200px] truncate">{existingReceipt.name}</span>
+                  <button onClick={() => setRemoveExistingReceipt(true)} className="ml-1 text-muted-foreground hover:text-foreground">
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
           <DialogFooter>
