@@ -9,6 +9,7 @@
 CREATE OR REPLACE FUNCTION public.prevent_paid_invoice_edit()
 RETURNS trigger
 LANGUAGE plpgsql
+SET search_path = public
 AS $$
 BEGIN
   IF OLD.status = 'paid' THEN
