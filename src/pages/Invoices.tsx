@@ -41,6 +41,7 @@ import { InvoiceLineItems } from '@/components/invoices/InvoiceLineItems';
 import { RecurringInvoices } from '@/components/invoices/RecurringInvoices';
 import { InvoiceItemsCatalog } from '@/components/invoices/InvoiceItemsCatalog';
 import { Expenses } from '@/components/invoices/Expenses';
+import { AccountsOverview } from '@/components/invoices/AccountsOverview';
 import {
   buildInvoiceLineItemsHtml, getInvoiceTotalFromJson, formatInvoiceCurrency, numberToIndianWords,
   createEmptyInvoiceLineItem, escapeInvoiceHtml,
@@ -769,11 +770,16 @@ export default function Invoices() {
 
       <Tabs defaultValue="invoices">
         <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="invoices">Invoices</TabsTrigger>
           <TabsTrigger value="expenses">Expenses</TabsTrigger>
           <TabsTrigger value="recurring">Recurring</TabsTrigger>
           <TabsTrigger value="items">Items</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="overview">
+          <AccountsOverview />
+        </TabsContent>
 
         <TabsContent value="invoices" className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
