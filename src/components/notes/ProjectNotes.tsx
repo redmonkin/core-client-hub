@@ -24,13 +24,40 @@ interface ProjectNotesProps {
   projectId: string;
 }
 
+interface NoteAttachment {
+  id: string;
+  file_url: string;
+  file_name: string;
+  file_type: string | null;
+}
+
+interface ProjectNote {
+  id: string;
+  content: string;
+  created_at: string;
+  file_url: string | null;
+  file_name: string | null;
+  file_type: string | null;
+  attachments: NoteAttachment[];
+}
+
+// Every attachment shown for a note: its own rows, plus (for notes created
+// before attachments moved to their own table) the legacy single file_url.
+const attachmentsForNote = (note: ProjectNote): NoteAttachment[] => {
+  if (note.attachments && note.attachments.length > 0) return note.attachments;
+  if (note.file_url) {
+    return [{ id: note.id, file_url: note.file_url, file_name: note.file_name || 'attachment', file_type: note.file_type }];
+  }
+  return [];
+};
+
 export function ProjectNotes({ projectId }: ProjectNotesProps) {
   const { user } = useAuth();
   const { workspaceUserId } = useWorkspaceUser();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [content, setContent] = useState('');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
@@ -39,54 +66,61 @@ export function ProjectNotes({ projectId }: ProjectNotesProps) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('project_notes')
-        .select('*')
+        .select('*, attachments:project_note_attachments(*)')
         .eq('project_id', projectId)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data;
+      return data as ProjectNote[];
     },
   });
 
+  const addSelectedFiles = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setSelectedFiles((prev) => [...prev, ...Array.from(files)]);
+  };
+
+  const removeSelectedFile = (index: number) => {
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async () => {
-    if (!content.trim() && !selectedFile) {
+    if (!content.trim() && selectedFiles.length === 0) {
       toast.error('Please add a note or attach a file');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      let fileUrl: string | null = null;
-      let fileName: string | null = null;
-      let fileType: string | null = null;
-
-      if (selectedFile) {
-        const ext = selectedFile.name.split('.').pop();
-        // Path must start with the workspace owner's user id to satisfy RLS folder check
-        const path = `${workspaceUserId}/${projectId}/${crypto.randomUUID()}.${ext}`;
-        const { error: uploadError } = await supabase.storage
-          .from('project-attachments')
-          .upload(path, selectedFile);
-        if (uploadError) throw uploadError;
-
-        // Store the storage path, not a public URL
-        fileUrl = path;
-        fileName = selectedFile.name;
-        fileType = selectedFile.type;
-      }
-
-      const { error } = await supabase.from('project_notes').insert({
-        project_id: projectId,
-        user_id: workspaceUserId,
-        content: content.trim() || (fileName ? `Attached: ${fileName}` : ''),
-        file_url: fileUrl,
-        file_name: fileName,
-        file_type: fileType,
-      });
+      const { data: note, error } = await supabase
+        .from('project_notes')
+        .insert({
+          project_id: projectId,
+          user_id: workspaceUserId,
+          content: content.trim() || (selectedFiles.length > 0 ? `Attached: ${selectedFiles.map((f) => f.name).join(', ')}` : ''),
+        })
+        .select('id')
+        .single();
       if (error) throw error;
+
+      if (selectedFiles.length > 0) {
+        const uploads = await Promise.all(selectedFiles.map(async (file) => {
+          const ext = file.name.split('.').pop();
+          // Path must start with the workspace owner's user id to satisfy RLS folder check
+          const path = `${workspaceUserId}/${projectId}/${crypto.randomUUID()}.${ext}`;
+          const { error: uploadError } = await supabase.storage
+            .from('project-attachments')
+            .upload(path, file);
+          if (uploadError) throw uploadError;
+          return { note_id: note.id, file_url: path, file_name: file.name, file_type: file.type };
+        }));
+
+        const { error: attachError } = await supabase.from('project_note_attachments').insert(uploads);
+        if (attachError) throw attachError;
+      }
 
       queryClient.invalidateQueries({ queryKey: ['project-notes', projectId] });
       setContent('');
-      setSelectedFile(null);
+      setSelectedFiles([]);
       toast.success('Note added');
     } catch (error: any) {
       toast.error('Failed to add note: ' + error.message);
@@ -122,8 +156,9 @@ export function ProjectNotes({ projectId }: ProjectNotesProps) {
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   useEffect(() => {
     const paths = notes
-      .filter(n => n.file_url && !n.file_url.startsWith('http'))
-      .map(n => n.file_url!);
+      .flatMap(attachmentsForNote)
+      .filter(a => a.file_url && !a.file_url.startsWith('http'))
+      .map(a => a.file_url);
     if (paths.length === 0) return;
     supabase.storage
       .from('project-attachments')
@@ -163,13 +198,17 @@ export function ProjectNotes({ projectId }: ProjectNotesProps) {
             onChange={e => setContent(e.target.value)}
             className="min-h-[80px] resize-none"
           />
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <input
                 ref={fileInputRef}
                 type="file"
+                multiple
                 className="hidden"
-                onChange={e => setSelectedFile(e.target.files?.[0] || null)}
+                onChange={e => {
+                  addSelectedFiles(e.target.files);
+                  e.target.value = '';
+                }}
               />
               <Button
                 variant="outline"
@@ -178,20 +217,20 @@ export function ProjectNotes({ projectId }: ProjectNotesProps) {
                 onClick={() => fileInputRef.current?.click()}
               >
                 <Paperclip className="mr-2 h-4 w-4" />
-                Attach File
+                Attach Files
               </Button>
-              {selectedFile && (
-                <div className="flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1 text-xs text-foreground">
+              {selectedFiles.map((file, index) => (
+                <div key={`${file.name}-${index}`} className="flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1 text-xs text-foreground">
                   <FileIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="max-w-[150px] truncate">{selectedFile.name}</span>
+                  <span className="max-w-[150px] truncate">{file.name}</span>
                   <button
-                    onClick={() => setSelectedFile(null)}
+                    onClick={() => removeSelectedFile(index)}
                     className="ml-1 text-muted-foreground hover:text-foreground"
                   >
                     <X className="h-3 w-3" />
                   </button>
                 </div>
-              )}
+              ))}
             </div>
             <Button size="sm" onClick={handleSubmit} disabled={isSubmitting}>
               {isSubmitting ? (
@@ -215,29 +254,34 @@ export function ProjectNotes({ projectId }: ProjectNotesProps) {
                   <div className="flex-1 min-w-0 space-y-2">
                     <p className="text-sm text-foreground whitespace-pre-wrap">{note.content}</p>
 
-                    {/* File Attachment */}
-                    {note.file_url && getFileUrl(note.file_url) && (
-                      <div className="mt-2">
-                        {isImage(note.file_type) ? (
-                          <a href={getFileUrl(note.file_url)} target="_blank" rel="noopener noreferrer" className="block">
-                            <img
-                              src={getFileUrl(note.file_url)}
-                              alt={note.file_name || 'Attachment'}
-                              className="max-h-48 rounded-lg border border-border object-cover hover:opacity-90 transition-opacity"
-                            />
-                          </a>
-                        ) : (
-                          <a
-                            href={getFileUrl(note.file_url)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
-                          >
-                            {getFileIcon(note.file_type)}
-                            <span className="max-w-[200px] truncate">{note.file_name}</span>
-                            <Download className="h-3.5 w-3.5 text-muted-foreground" />
-                          </a>
-                        )}
+                    {/* File Attachments */}
+                    {attachmentsForNote(note).length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {attachmentsForNote(note).map((attachment) => {
+                          const url = getFileUrl(attachment.file_url);
+                          if (!url) return null;
+                          return isImage(attachment.file_type) ? (
+                            <a key={attachment.id} href={url} target="_blank" rel="noopener noreferrer" className="block">
+                              <img
+                                src={url}
+                                alt={attachment.file_name}
+                                className="h-32 max-w-[220px] rounded-lg border border-border object-cover hover:opacity-90 transition-opacity"
+                              />
+                            </a>
+                          ) : (
+                            <a
+                              key={attachment.id}
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+                            >
+                              {getFileIcon(attachment.file_type)}
+                              <span className="max-w-[200px] truncate">{attachment.file_name}</span>
+                              <Download className="h-3.5 w-3.5 text-muted-foreground" />
+                            </a>
+                          );
+                        })}
                       </div>
                     )}
 
