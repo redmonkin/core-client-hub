@@ -648,7 +648,7 @@ export default function ContractDetail() {
                 Share Link
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to={`/invoices?contractId=${contract.id}`}>
+                <Link to={`/accounts?contractId=${contract.id}`}>
                   <Receipt className="mr-2 h-4 w-4" />
                   Generate Invoice
                 </Link>
@@ -805,7 +805,7 @@ export default function ContractDetail() {
                 Invoices
               </CardTitle>
               <Button asChild size="sm" variant="outline">
-                <Link to={`/invoices?contractId=${contract.id}`}>
+                <Link to={`/accounts?contractId=${contract.id}`}>
                   <Receipt className="mr-2 h-4 w-4" />
                   Generate Next Invoice
                 </Link>
@@ -818,7 +818,7 @@ export default function ContractDetail() {
                     {contractInvoices.map((inv) => (
                       <Link
                         key={inv.id}
-                        to="/invoices"
+                        to="/accounts"
                         className="flex items-center justify-between rounded-md border p-2.5 text-sm hover:bg-muted/50 transition-colors"
                       >
                         <span className="font-medium">{inv.invoice_number}</span>

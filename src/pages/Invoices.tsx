@@ -40,6 +40,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { InvoiceLineItems } from '@/components/invoices/InvoiceLineItems';
 import { RecurringInvoices } from '@/components/invoices/RecurringInvoices';
 import { InvoiceItemsCatalog } from '@/components/invoices/InvoiceItemsCatalog';
+import { Expenses } from '@/components/invoices/Expenses';
 import {
   buildInvoiceLineItemsHtml, getInvoiceTotalFromJson, formatInvoiceCurrency, numberToIndianWords,
   createEmptyInvoiceLineItem, escapeInvoiceHtml,
@@ -753,7 +754,7 @@ export default function Invoices() {
   if (!can('invoices', 'read')) {
     return (
       <div className="space-y-6 p-4 sm:p-8">
-        <PageHeader title="Invoices" description="Bill clients for approved contracts or ad-hoc work" />
+        <PageHeader title="Accounts" description="Bill clients, track payments, and log business expenses" />
         <NoAccessState moduleLabel="invoices" />
       </div>
     );
@@ -762,13 +763,14 @@ export default function Invoices() {
   return (
     <div className="space-y-6 p-4 sm:p-8">
       <PageHeader
-        title="Invoices"
-        description="Bill clients for approved contracts or ad-hoc work"
+        title="Accounts"
+        description="Bill clients, track payments, and log business expenses"
       />
 
       <Tabs defaultValue="invoices">
         <TabsList>
           <TabsTrigger value="invoices">Invoices</TabsTrigger>
+          <TabsTrigger value="expenses">Expenses</TabsTrigger>
           <TabsTrigger value="recurring">Recurring</TabsTrigger>
           <TabsTrigger value="items">Items</TabsTrigger>
         </TabsList>
@@ -927,6 +929,10 @@ export default function Invoices() {
           </CardContent>
         </Card>
       )}
+        </TabsContent>
+
+        <TabsContent value="expenses">
+          <Expenses />
         </TabsContent>
 
         <TabsContent value="recurring">
