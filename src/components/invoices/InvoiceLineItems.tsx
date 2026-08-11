@@ -68,7 +68,6 @@ export function InvoiceLineItems({ value, onChange }: InvoiceLineItemsProps) {
   };
 
   const removeItem = (itemId: string) => {
-    if (data.items.length <= 1) return;
     persist({ ...data, items: data.items.filter((i) => i.id !== itemId) });
   };
 
@@ -90,6 +89,13 @@ export function InvoiceLineItems({ value, onChange }: InvoiceLineItemsProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
+            {data.items.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-6">
+                  No line items yet — add one below.
+                </TableCell>
+              </TableRow>
+            )}
             {data.items.map((item) => (
               <TableRow key={item.id}>
                 <TableCell>
@@ -152,7 +158,6 @@ export function InvoiceLineItems({ value, onChange }: InvoiceLineItemsProps) {
                     variant="ghost"
                     size="sm"
                     onClick={() => removeItem(item.id)}
-                    disabled={data.items.length <= 1}
                     className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
                   >
                     <Trash2 className="h-4 w-4" />

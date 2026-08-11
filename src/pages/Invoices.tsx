@@ -86,6 +86,7 @@ interface Invoice {
 }
 
 interface InvoiceFormState {
+  invoice_number: string;
   client_id: string;
   project_id: string;
   contract_id: string;
@@ -99,6 +100,7 @@ interface InvoiceFormState {
 const todayIso = () => new Date().toISOString().split('T')[0];
 
 const emptyForm: InvoiceFormState = {
+  invoice_number: '',
   client_id: '',
   project_id: '',
   contract_id: '',
@@ -172,6 +174,25 @@ export default function Invoices() {
   });
   const amountsByInvoice = new Map(amounts.map((a) => [a.invoice_id, a]));
 
+  // Same RLS-driven "financial access" gate as invoice_amounts -- used to
+  // build the paid/tax-deducted/balance summary block on the invoice PDF.
+  const { data: payments = [] } = useQuery({
+    queryKey: ['invoice-payments-summary', workspaceUserId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('invoice_payments').select('invoice_id, amount, tax_deducted_amount');
+      if (error) throw error;
+      return data as { invoice_id: string; amount: number; tax_deducted_amount: number }[];
+    },
+    enabled: !!workspaceUserId,
+  });
+  const paymentSummaryByInvoice = new Map<string, { paid: number; taxDeducted: number }>();
+  for (const p of payments) {
+    const existing = paymentSummaryByInvoice.get(p.invoice_id) || { paid: 0, taxDeducted: 0 };
+    existing.paid += p.amount;
+    existing.taxDeducted += p.tax_deducted_amount || 0;
+    paymentSummaryByInvoice.set(p.invoice_id, existing);
+  }
+
   const { data: clients = [] } = useQuery({
     queryKey: ['clients-list', workspaceUserId],
     queryFn: async () => {
@@ -229,15 +250,27 @@ export default function Invoices() {
     return c?.client_name || c?.company_name || 'Unknown Client';
   };
 
+  // Purely a client-side suggestion of what create_invoice will generate if
+  // the invoice number field is left untouched -- it doesn't reserve or
+  // increment anything, so it can drift from the real next number if another
+  // invoice is created concurrently, but the user can always edit the field.
+  const nextInvoiceNumberPreview = () => {
+    const prefix = invoiceSettings?.invoice_prefix ?? 'INV-';
+    const next = invoiceSettings?.next_invoice_number ?? 1;
+    const padding = invoiceSettings?.number_padding ?? 4;
+    return `${prefix}${String(next).padStart(padding, '0')}`;
+  };
+
   const openCreateDialog = () => {
     setEditingId(null);
-    setForm({ ...emptyForm, issued_date: todayIso(), due_date: addDays(todayIso(), 15) });
+    setForm({ ...emptyForm, invoice_number: nextInvoiceNumberPreview(), issued_date: todayIso(), due_date: addDays(todayIso(), 15) });
     setIsDialogOpen(true);
   };
 
   const openEditDialog = (invoice: Invoice) => {
     setEditingId(invoice.id);
     setForm({
+      invoice_number: invoice.invoice_number,
       client_id: invoice.client_id,
       project_id: invoice.project_id || '',
       contract_id: invoice.contract_id || '',
@@ -291,7 +324,7 @@ export default function Invoices() {
     const contractId = searchParams.get('contractId');
     if (contractId && contracts.length > 0) {
       setEditingId(null);
-      setForm({ ...emptyForm });
+      setForm({ ...emptyForm, invoice_number: nextInvoiceNumberPreview() });
       applyContractPrefill(contractId);
       setIsDialogOpen(true);
       setSearchParams({}, { replace: true });
@@ -302,10 +335,12 @@ export default function Invoices() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!form.client_id) throw new Error('Client is required');
+      if (!form.invoice_number.trim()) throw new Error('Invoice number is required');
       const numericTotal = getInvoiceTotalFromJson(form.cost_breakdown || '{}');
 
       if (editingId) {
         const { error } = await supabase.from('invoices').update({
+          invoice_number: form.invoice_number.trim(),
           client_id: form.client_id,
           project_id: form.project_id || null,
           contract_id: form.contract_id || null,
@@ -340,10 +375,14 @@ export default function Invoices() {
         _notes: form.notes || null,
         _cost_breakdown: form.cost_breakdown || null,
         _total_amount: canViewFinancials ? numericTotal : null,
+        _invoice_number: form.invoice_number.trim(),
       });
       if (error) {
         if (error.message?.includes('permission denied')) {
           throw new Error('You do not have permission to create invoices');
+        }
+        if (error.message?.includes('duplicate key') || error.message?.includes('already exists')) {
+          throw new Error(`Invoice number "${form.invoice_number.trim()}" is already in use`);
         }
         throw error;
       }
@@ -356,7 +395,14 @@ export default function Invoices() {
       setIsDialogOpen(false);
       toast.success(editingId ? 'Invoice updated' : 'Invoice created');
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (error: Error) => {
+      const message = error.message?.includes('duplicate key') || error.message?.includes('already exists')
+        ? `Invoice number "${form.invoice_number.trim()}" is already in use`
+        : error.message?.includes('frozen')
+          ? 'This invoice is paid and its content is frozen'
+          : error.message;
+      toast.error(message);
+    },
   });
 
   const deleteMutation = useMutation({
@@ -597,6 +643,8 @@ export default function Invoices() {
     const amount = amountsByInvoice.get(invoice.id);
     const { tableHtml } = buildInvoiceLineItemsHtml(invoice.cost_breakdown, invoice.currency);
     const balanceDue = amount ? amount.total_amount - amount.amount_paid : null;
+    const paymentSummary = paymentSummaryByInvoice.get(invoice.id);
+    const fmt = (n: number) => formatCurrency(n, invoice.currency);
 
     const bankRows = [
       invoiceSettings?.bank_account_name ? `<div>${escapeInvoiceHtml(invoiceSettings.bank_account_name)}</div>` : '',
@@ -641,6 +689,16 @@ export default function Invoices() {
         <div style="margin-top:24px;">${tableHtml}</div>
 
         ${amount ? `<p style="text-align:right; margin-top:8px; color:#6b7280; font-size:12px;">Total In Words: <strong style="color:#1f2937;">Indian Rupee ${escapeInvoiceHtml(numberToIndianWords(amount.total_amount))} Only</strong></p>` : ''}
+
+        ${amount && amount.amount_paid > 0 ? `
+        <div style="display:flex; justify-content:flex-end; margin-top:16px;">
+          <table style="font-size:13px; min-width:260px; background:#f9fafb; border-radius:6px; padding:4px;">
+            <tr><td colspan="2" style="padding:6px 12px 2px; font-weight:700;">Payment Received</td></tr>
+            <tr><td style="padding:4px 12px; color:#6b7280;">Paid</td><td style="padding:4px 12px; text-align:right; font-weight:600;">${fmt(amount.amount_paid - (paymentSummary?.taxDeducted || 0))}</td></tr>
+            ${paymentSummary && paymentSummary.taxDeducted > 0 ? `<tr><td style="padding:4px 12px; color:#6b7280;">Tax Deducted (TDS)</td><td style="padding:4px 12px; text-align:right; font-weight:600;">${fmt(paymentSummary.taxDeducted)}</td></tr>` : ''}
+            <tr><td style="padding:6px 12px; font-weight:700; border-top:1px solid #e5e7eb;">Balance Due</td><td style="padding:6px 12px; text-align:right; font-weight:700; border-top:1px solid #e5e7eb;">${fmt(balanceDue ?? 0)}</td></tr>
+          </table>
+        </div>` : ''}
 
         <p style="margin-top:32px; color:#374151;">Thank you for your business! Please make the payment by the due date noted above. ${escapeInvoiceHtml(invoiceSettings?.payment_instructions || '')}</p>
 
@@ -814,7 +872,7 @@ export default function Invoices() {
                               Download PDF
                             </DropdownMenuItem>
                             <RequirePermission module="invoices" action="update">
-                              {invoice.status !== 'void' && (
+                              {invoice.status !== 'void' && invoice.status !== 'paid' && (
                                 <DropdownMenuItem onClick={() => openEditDialog(invoice)}>
                                   <Pencil className="mr-2 h-4 w-4" />
                                   Edit
@@ -887,7 +945,15 @@ export default function Invoices() {
             <DialogTitle>{editingId ? 'Edit Invoice' : 'New Invoice'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label>Invoice Number *</Label>
+                <Input
+                  value={form.invoice_number}
+                  onChange={(e) => setForm((prev) => ({ ...prev, invoice_number: e.target.value }))}
+                  placeholder="e.g. INV-0001"
+                />
+              </div>
               <div className="space-y-2">
                 <Label>Client *</Label>
                 <Select value={form.client_id} onValueChange={(value) => setForm((prev) => ({ ...prev, client_id: value, project_id: '', contract_id: '' }))}>
@@ -969,7 +1035,7 @@ export default function Invoices() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !form.client_id}>
+            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !form.client_id || !form.invoice_number.trim()}>
               {saveMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {editingId ? 'Save Changes' : 'Create Invoice'}
             </Button>
