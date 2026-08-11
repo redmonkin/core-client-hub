@@ -14,41 +14,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
 import { formatInvoiceCurrency } from '@/lib/invoice-utils';
 import { CATEGORY_LABELS } from '@/components/invoices/Expenses';
+import { type RangeKey, RANGE_OPTIONS, toIso, resolveRange, defaultCustomStart, todayIso } from '@/lib/date-ranges';
 
-type RangeKey = 'this_month' | 'last_3_months' | 'this_fy' | 'last_fy' | 'custom';
 type Bucket = 'day' | 'week' | 'month';
 
-const RANGE_OPTIONS: { value: RangeKey; label: string }[] = [
-  { value: 'this_month', label: 'This Month' },
-  { value: 'last_3_months', label: 'Last 3 Months' },
-  { value: 'this_fy', label: 'This Financial Year' },
-  { value: 'last_fy', label: 'Last Financial Year' },
-  { value: 'custom', label: 'Custom Range' },
-];
-
-const toIso = (d: Date) => d.toISOString().split('T')[0];
-
-// India financial year: April 1 - March 31. Returns the calendar year the
-// financial year containing `d` started in.
-const fyStartYear = (d: Date) => (d.getMonth() >= 3 ? d.getFullYear() : d.getFullYear() - 1);
-
-function getPresetRange(range: Exclude<RangeKey, 'custom'>): { start: Date; end: Date } {
-  const end = new Date();
-  switch (range) {
-    case 'this_month':
-      return { start: new Date(end.getFullYear(), end.getMonth(), 1), end };
-    case 'last_3_months':
-      return { start: new Date(end.getFullYear(), end.getMonth() - 2, 1), end };
-    case 'this_fy': {
-      const y = fyStartYear(end);
-      return { start: new Date(y, 3, 1), end };
-    }
-    case 'last_fy': {
-      const y = fyStartYear(end) - 1;
-      return { start: new Date(y, 3, 1), end: new Date(y + 1, 2, 31) };
-    }
-  }
-}
+// This tab's chart is time-bucketed, so an open-ended "All Time" range would
+// produce an unbounded number of bars -- only offer the bounded presets.
+const OVERVIEW_RANGE_OPTIONS = RANGE_OPTIONS.filter((o) => o.value !== 'all_time');
 
 function getBucketSize(start: Date, end: Date): Bucket {
   const days = Math.round((end.getTime() - start.getTime()) / 86400000);
@@ -98,24 +70,14 @@ const chartConfig: ChartConfig = {
   expenses: { label: 'Expenses', color: '#dc2626' },
 };
 
-const todayIso = () => toIso(new Date());
-const defaultCustomStart = () => {
-  const d = new Date();
-  d.setDate(d.getDate() - 29);
-  return toIso(d);
-};
-
 export function AccountsOverview() {
   const [range, setRange] = useState<RangeKey>('this_month');
   const [customStart, setCustomStart] = useState(defaultCustomStart);
   const [customEnd, setCustomEnd] = useState(todayIso);
   const { workspaceUserId, canViewFinancials } = useWorkspaceUser();
 
-  const preset = range === 'custom' ? null : getPresetRange(range);
+  const { start, end } = resolveRange(range, customStart, customEnd);
   const customRangeValid = customStart && customEnd && customStart <= customEnd;
-  const { start, end } = preset ?? (customRangeValid
-    ? { start: new Date(customStart), end: new Date(customEnd) }
-    : { start: new Date(defaultCustomStart()), end: new Date(todayIso()) });
   const bucket = getBucketSize(start, end);
   const startIso = toIso(start);
   const endIso = toIso(end);
@@ -250,7 +212,7 @@ export function AccountsOverview() {
           <Select value={range} onValueChange={(v) => setRange(v as RangeKey)}>
             <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {RANGE_OPTIONS.map((o) => (
+              {OVERVIEW_RANGE_OPTIONS.map((o) => (
                 <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
               ))}
             </SelectContent>

@@ -42,6 +42,8 @@ import { RecurringInvoices } from '@/components/invoices/RecurringInvoices';
 import { InvoiceItemsCatalog } from '@/components/invoices/InvoiceItemsCatalog';
 import { Expenses } from '@/components/invoices/Expenses';
 import { AccountsOverview } from '@/components/invoices/AccountsOverview';
+import { TransactionsLedger } from '@/components/invoices/TransactionsLedger';
+import { TaxDeductions } from '@/components/invoices/TaxDeductions';
 import {
   buildInvoiceLineItemsHtml, getInvoiceTotalFromJson, formatInvoiceCurrency, numberToIndianWords,
   createEmptyInvoiceLineItem, escapeInvoiceHtml,
@@ -775,7 +777,9 @@ export default function Invoices() {
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="invoices">Invoices</TabsTrigger>
+          <TabsTrigger value="transactions">Transactions</TabsTrigger>
           <TabsTrigger value="expenses">Expenses</TabsTrigger>
+          <TabsTrigger value="tax">Tax Deductions</TabsTrigger>
           <TabsTrigger value="recurring">Recurring</TabsTrigger>
           <TabsTrigger value="items">Items</TabsTrigger>
         </TabsList>
@@ -940,8 +944,16 @@ export default function Invoices() {
       )}
         </TabsContent>
 
+        <TabsContent value="transactions">
+          <TransactionsLedger />
+        </TabsContent>
+
         <TabsContent value="expenses">
           <Expenses />
+        </TabsContent>
+
+        <TabsContent value="tax">
+          <TaxDeductions />
         </TabsContent>
 
         <TabsContent value="recurring">
