@@ -201,7 +201,7 @@ const App = () => (
             }
           />
           <Route
-            path="/invoices"
+            path="/accounts"
             element={
               <ProtectedRoute>
                 <AppLayout>
@@ -210,6 +210,7 @@ const App = () => (
               </ProtectedRoute>
             }
           />
+          <Route path="/invoices" element={<Navigate to="/accounts" replace />} />
           <Route
             path="/templates"
             element={

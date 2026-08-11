@@ -59,7 +59,8 @@ export function InvoiceLineItems({ value, onChange }: InvoiceLineItemsProps) {
   const addFromCatalog = (catalogItem: InvoiceItem) => {
     const newItem: InvoiceLineItem = {
       ...createEmptyInvoiceLineItem(),
-      description: catalogItem.description ? `${catalogItem.title} — ${catalogItem.description}` : catalogItem.title,
+      name: catalogItem.title,
+      description: catalogItem.description || '',
       unit: catalogItem.unit,
       unitPrice: catalogItem.cost,
     };
@@ -68,7 +69,6 @@ export function InvoiceLineItems({ value, onChange }: InvoiceLineItemsProps) {
   };
 
   const removeItem = (itemId: string) => {
-    if (data.items.length <= 1) return;
     persist({ ...data, items: data.items.filter((i) => i.id !== itemId) });
   };
 
@@ -80,7 +80,7 @@ export function InvoiceLineItems({ value, onChange }: InvoiceLineItemsProps) {
         <Table className="min-w-[720px]">
           <TableHeader>
             <TableRow className="bg-muted/50">
-              <TableHead className="min-w-[200px]">Description</TableHead>
+              <TableHead className="min-w-[240px]">Item &amp; Description</TableHead>
               <TableHead className="w-20 text-right">Qty</TableHead>
               <TableHead className="w-24">Unit</TableHead>
               <TableHead className="w-28 text-right">Rate</TableHead>
@@ -90,15 +90,30 @@ export function InvoiceLineItems({ value, onChange }: InvoiceLineItemsProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
+            {data.items.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-6">
+                  No line items yet — add one below.
+                </TableCell>
+              </TableRow>
+            )}
             {data.items.map((item) => (
               <TableRow key={item.id}>
                 <TableCell>
-                  <Input
-                    value={item.description}
-                    onChange={(e) => updateItem(item.id, 'description', e.target.value)}
-                    placeholder="e.g. Senior Web Consultant"
-                    className="border-0 p-0 h-auto shadow-none focus-visible:ring-0"
-                  />
+                  <div className="space-y-1">
+                    <Input
+                      value={item.name}
+                      onChange={(e) => updateItem(item.id, 'name', e.target.value)}
+                      placeholder="e.g. Senior Web Consultant"
+                      className="border-0 p-0 h-auto shadow-none focus-visible:ring-0 font-medium"
+                    />
+                    <Input
+                      value={item.description}
+                      onChange={(e) => updateItem(item.id, 'description', e.target.value)}
+                      placeholder="Description (optional)"
+                      className="border-0 p-0 h-auto shadow-none focus-visible:ring-0 text-xs text-muted-foreground"
+                    />
+                  </div>
                 </TableCell>
                 <TableCell>
                   <Input
@@ -152,7 +167,6 @@ export function InvoiceLineItems({ value, onChange }: InvoiceLineItemsProps) {
                     variant="ghost"
                     size="sm"
                     onClick={() => removeItem(item.id)}
-                    disabled={data.items.length <= 1}
                     className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
                   >
                     <Trash2 className="h-4 w-4" />

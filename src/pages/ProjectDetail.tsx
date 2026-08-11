@@ -204,7 +204,7 @@ export default function ProjectDetail() {
           inv.due_date ? `Due ${format(new Date(inv.due_date), 'MMM d, yyyy')}` : null,
         ].filter(Boolean).join(' · '),
         status: inv.status,
-        href: '/invoices',
+        href: '/accounts',
         sortDate: inv.created_at,
       };
     }),

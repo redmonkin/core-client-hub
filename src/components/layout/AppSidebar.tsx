@@ -50,7 +50,7 @@ const menuItems: { title: string; url: string; icon: typeof LayoutDashboard; mod
   { title: 'Tasks', url: '/tasks', icon: ListTodo, module: 'timesheets' },
   { title: 'Proposals', url: '/proposals', icon: FileText, module: 'proposals' },
   { title: 'Contracts', url: '/contracts', icon: FileSignature, module: 'contracts' },
-  { title: 'Invoices', url: '/invoices', icon: Receipt, module: 'invoices' },
+  { title: 'Accounts', url: '/accounts', icon: Receipt, module: 'invoices' },
   { title: 'Templates', url: '/templates', icon: FileCode, module: 'templates' },
 ];
 
