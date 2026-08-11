@@ -5,6 +5,7 @@
 
 export interface InvoiceLineItem {
   id: string;
+  name: string;
   description: string;
   quantity: number;
   unit: string;
@@ -23,6 +24,7 @@ export const INVOICE_UNITS = ['hr', 'day', 'week', 'month', 'fixed', 'pcs'] as c
 
 export const createEmptyInvoiceLineItem = (): InvoiceLineItem => ({
   id: crypto.randomUUID(),
+  name: '',
   description: '',
   quantity: 1,
   unit: 'hr',
@@ -48,6 +50,7 @@ export function parseInvoiceLineItems(value: string | null | undefined): Invoice
       return {
         items: parsed.items.map((i: Partial<InvoiceLineItem>) => ({
           id: i.id || crypto.randomUUID(),
+          name: i.name || '',
           description: i.description || '',
           quantity: i.quantity ?? 1,
           unit: i.unit || 'hr',
@@ -156,7 +159,10 @@ export function buildInvoiceLineItemsHtml(costBreakdownJson: string | null | und
   const rows = data.items.map((item, idx) => `
     <tr>
       <td style="padding:10px 12px;border-bottom:1px solid #f1f1f1;color:#6b7280;">${idx + 1}</td>
-      <td style="padding:10px 12px;border-bottom:1px solid #f1f1f1;">${escapeInvoiceHtml(item.description || '')}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid #f1f1f1;">
+        ${item.name ? `<div style="font-weight:600;">${escapeInvoiceHtml(item.name)}</div>` : ''}
+        ${item.description ? `<div style="${item.name ? 'font-size:11px;color:#6b7280;margin-top:2px;' : ''}">${escapeInvoiceHtml(item.description)}</div>` : ''}
+      </td>
       <td style="padding:10px 12px;border-bottom:1px solid #f1f1f1;text-align:right;white-space:nowrap;">${item.quantity.toFixed(2)}<div style="font-size:11px;color:#9ca3af;">${UNIT_LABELS[item.unit] || item.unit}</div></td>
       <td style="padding:10px 12px;border-bottom:1px solid #f1f1f1;text-align:right;">${fmt(item.unitPrice)}</td>
       <td style="padding:10px 12px;border-bottom:1px solid #f1f1f1;text-align:right;">${fmt(calculateInvoiceLineTotal(item))}</td>
@@ -168,7 +174,7 @@ export function buildInvoiceLineItemsHtml(costBreakdownJson: string | null | und
       <thead>
         <tr style="background:#c0392b;color:#fff;">
           <th style="padding:10px 12px;text-align:left;font-weight:600;">#</th>
-          <th style="padding:10px 12px;text-align:left;font-weight:600;">Description</th>
+          <th style="padding:10px 12px;text-align:left;font-weight:600;">Item &amp; Description</th>
           <th style="padding:10px 12px;text-align:right;font-weight:600;">Qty</th>
           <th style="padding:10px 12px;text-align:right;font-weight:600;">Rate</th>
           <th style="padding:10px 12px;text-align:right;font-weight:600;">Amount</th>

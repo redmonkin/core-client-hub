@@ -311,7 +311,7 @@ export default function Invoices() {
       client_id: contract.client_id,
       project_id: contract.project_id || prev.project_id,
       cost_breakdown: JSON.stringify({
-        items: [{ ...createEmptyInvoiceLineItem(), description: `${contract.contract_type} contract`, quantity: 1, unit: 'fixed', unitPrice: contract.value || 0 }],
+        items: [{ ...createEmptyInvoiceLineItem(), name: `${contract.contract_type} contract`, quantity: 1, unit: 'fixed', unitPrice: contract.value || 0 }],
         additionalDiscount: 0,
         taxRate: 0,
         notes: '',

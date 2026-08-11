@@ -59,7 +59,8 @@ export function InvoiceLineItems({ value, onChange }: InvoiceLineItemsProps) {
   const addFromCatalog = (catalogItem: InvoiceItem) => {
     const newItem: InvoiceLineItem = {
       ...createEmptyInvoiceLineItem(),
-      description: catalogItem.description ? `${catalogItem.title} — ${catalogItem.description}` : catalogItem.title,
+      name: catalogItem.title,
+      description: catalogItem.description || '',
       unit: catalogItem.unit,
       unitPrice: catalogItem.cost,
     };
@@ -79,7 +80,7 @@ export function InvoiceLineItems({ value, onChange }: InvoiceLineItemsProps) {
         <Table className="min-w-[720px]">
           <TableHeader>
             <TableRow className="bg-muted/50">
-              <TableHead className="min-w-[200px]">Description</TableHead>
+              <TableHead className="min-w-[240px]">Item &amp; Description</TableHead>
               <TableHead className="w-20 text-right">Qty</TableHead>
               <TableHead className="w-24">Unit</TableHead>
               <TableHead className="w-28 text-right">Rate</TableHead>
@@ -99,12 +100,20 @@ export function InvoiceLineItems({ value, onChange }: InvoiceLineItemsProps) {
             {data.items.map((item) => (
               <TableRow key={item.id}>
                 <TableCell>
-                  <Input
-                    value={item.description}
-                    onChange={(e) => updateItem(item.id, 'description', e.target.value)}
-                    placeholder="e.g. Senior Web Consultant"
-                    className="border-0 p-0 h-auto shadow-none focus-visible:ring-0"
-                  />
+                  <div className="space-y-1">
+                    <Input
+                      value={item.name}
+                      onChange={(e) => updateItem(item.id, 'name', e.target.value)}
+                      placeholder="e.g. Senior Web Consultant"
+                      className="border-0 p-0 h-auto shadow-none focus-visible:ring-0 font-medium"
+                    />
+                    <Input
+                      value={item.description}
+                      onChange={(e) => updateItem(item.id, 'description', e.target.value)}
+                      placeholder="Description (optional)"
+                      className="border-0 p-0 h-auto shadow-none focus-visible:ring-0 text-xs text-muted-foreground"
+                    />
+                  </div>
                 </TableCell>
                 <TableCell>
                   <Input
