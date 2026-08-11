@@ -768,7 +768,7 @@ export default function Invoices() {
         description="Bill clients, track payments, and log business expenses"
       />
 
-      <Tabs defaultValue="invoices">
+      <Tabs defaultValue="overview">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="invoices">Invoices</TabsTrigger>
