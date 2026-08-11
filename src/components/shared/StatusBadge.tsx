@@ -12,13 +12,13 @@ interface StatusBadgeProps {
   className?: string;
 }
 
-const statusConfig: Record<StatusType, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+const statusConfig: Record<StatusType, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' | 'success' }> = {
   active: { label: 'Active', variant: 'default' },
   archived: { label: 'Archived', variant: 'secondary' },
   proposal: { label: 'Proposal', variant: 'outline' },
   planned: { label: 'Planned', variant: 'outline' },
   'on-hold': { label: 'On Hold', variant: 'secondary' },
-  completed: { label: 'Completed', variant: 'default' },
+  completed: { label: 'Completed', variant: 'success' },
   cancelled: { label: 'Cancelled', variant: 'destructive' },
   maintenance: { label: 'Maintenance', variant: 'secondary' },
   'new-request': { label: 'New Request', variant: 'outline' },
@@ -31,7 +31,7 @@ const statusConfig: Record<StatusType, { label: string; variant: 'default' | 'se
   'pending-renewal': { label: 'Pending Renewal', variant: 'secondary' },
   'pending-review': { label: 'Pending Review', variant: 'outline' },
   ended: { label: 'Ended', variant: 'secondary' },
-  paid: { label: 'Paid', variant: 'default' },
+  paid: { label: 'Paid', variant: 'success' },
   partial: { label: 'Partially Paid', variant: 'secondary' },
   void: { label: 'Void', variant: 'outline' },
   overdue: { label: 'Overdue', variant: 'destructive' },
