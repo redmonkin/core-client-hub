@@ -13,7 +13,19 @@ export const RANGE_OPTIONS: { value: RangeKey; label: string }[] = [
   { value: 'custom', label: 'Custom Range' },
 ];
 
-export const toIso = (d: Date) => d.toISOString().split('T')[0];
+// Formats using the Date's local calendar fields, not toISOString()'s UTC
+// conversion -- every Date here (new Date(y, m, 1), new Date(), etc.) is
+// constructed in local time, and for any timezone ahead of UTC (e.g. IST,
+// UTC+5:30), converting local midnight to UTC rolls it back to the previous
+// day. That silently shifted every range boundary back by a day, which at a
+// month boundary (like the April 1 financial-year start) turned into a
+// whole month off -- the Overview chart showed Mar-Feb instead of Apr-Mar.
+export const toIso = (d: Date) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 // India financial year: April 1 - March 31. Returns the calendar year the
 // financial year containing `d` started in.
