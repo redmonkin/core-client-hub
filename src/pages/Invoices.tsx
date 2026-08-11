@@ -398,6 +398,10 @@ export default function Invoices() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['invoice-amounts'] });
+      // create_invoice() advances invoice_settings.next_invoice_number
+      // server-side -- refetch it so the next "New Invoice" dialog prefills
+      // with the updated number instead of the one just used.
+      if (!editingId) queryClient.invalidateQueries({ queryKey: ['invoice-settings'] });
       setIsDialogOpen(false);
       toast.success(editingId ? 'Invoice updated' : 'Invoice created');
     },
