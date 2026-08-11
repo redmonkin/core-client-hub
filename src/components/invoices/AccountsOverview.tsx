@@ -109,11 +109,11 @@ export function AccountsOverview() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('invoice_payments')
-        .select('amount, tax_deducted_amount, payment_date')
+        .select('amount, payment_date')
         .gte('payment_date', startIso)
         .lte('payment_date', endIso);
       if (error) throw error;
-      return data as { amount: number; tax_deducted_amount: number; payment_date: string }[];
+      return data as { amount: number; payment_date: string }[];
     },
     enabled: !!workspaceUserId && canViewFinancials,
   });
@@ -152,10 +152,13 @@ export function AccountsOverview() {
     invoicedByBucket.set(key, (invoicedByBucket.get(key) || 0) + amt);
   });
 
+  // Cash actually received into the bank -- tax withheld by the client never
+  // hit the account, so it's excluded here (tracked separately on the Tax
+  // Deductions tab), same convention as the Transactions ledger.
   const collectedByBucket = new Map<string, number>();
   paymentRows.forEach((p) => {
     const key = bucketKey(p.payment_date);
-    collectedByBucket.set(key, (collectedByBucket.get(key) || 0) + p.amount + (p.tax_deducted_amount || 0));
+    collectedByBucket.set(key, (collectedByBucket.get(key) || 0) + p.amount);
   });
 
   const expensesByBucket = new Map<string, number>();
@@ -175,7 +178,7 @@ export function AccountsOverview() {
   }));
 
   const totalInvoiced = invoiceRows.reduce((acc, inv) => acc + invoiceAmount(inv), 0);
-  const totalCollected = paymentRows.reduce((acc, p) => acc + p.amount + (p.tax_deducted_amount || 0), 0);
+  const totalCollected = paymentRows.reduce((acc, p) => acc + p.amount, 0);
   const totalExpenses = expenseRows.reduce((acc, e) => acc + e.amount, 0);
   const netCashFlow = totalCollected - totalExpenses;
 
