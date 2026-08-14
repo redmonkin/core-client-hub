@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import {
   Plus, Search, MoreHorizontal, Loader2, Pencil, Trash2, Send, LinkIcon,
-  CheckCircle2, Download, FileText, Wallet, Ban, Eye, Copy, RefreshCw,
+  CheckCircle2, Download, FileText, Wallet, Ban, Eye, Copy, RefreshCw, Users,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -145,6 +146,7 @@ export default function Invoices() {
   const [isSending, setIsSending] = useState(false);
   const [emailSubject, setEmailSubject] = useState('');
   const [emailIntro, setEmailIntro] = useState('');
+  const [selectedCcEmails, setSelectedCcEmails] = useState<string[]>([]);
   const [payingInvoice, setPayingInvoice] = useState<Invoice | null>(null);
   const [paymentAmountInput, setPaymentAmountInput] = useState('');
   const [bankChargesInput, setBankChargesInput] = useState('0');
@@ -234,6 +236,20 @@ export default function Invoices() {
       return data;
     },
     enabled: !!workspaceUserId,
+  });
+
+  const { data: selectedClientContacts = [] } = useQuery({
+    queryKey: ['client-contacts', sendingInvoice?.client_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('client_contacts')
+        .select('*')
+        .eq('client_id', sendingInvoice!.client_id)
+        .order('is_primary', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!sendingInvoice?.client_id,
   });
 
   const { data: branding } = useQuery({
@@ -576,6 +592,7 @@ export default function Invoices() {
     const clientName = client?.client_name || 'there';
     const overdue = isInvoiceOverdue(invoice);
     setSendingInvoice(invoice);
+    setSelectedCcEmails([]);
     setEmailSubject(
       overdue
         ? `Payment Reminder: Invoice ${invoice.invoice_number}`
@@ -603,7 +620,7 @@ export default function Invoices() {
           type: isInvoiceOverdue(sendingInvoice) ? 'invoice_overdue' : 'invoice_sent',
           recipientEmail: '',
           recipientName: '',
-          ccEmails: user?.email ? [user.email] : [],
+          ccEmails: [...(selectedCcEmails.length > 0 ? selectedCcEmails : []), ...(user?.email ? [user.email] : [])].filter((v, i, a) => a.indexOf(v) === i),
           data: {
             invoiceId: sendingInvoice.id,
             invoiceNumber: sendingInvoice.invoice_number,
@@ -627,7 +644,8 @@ export default function Invoices() {
       }
 
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      toast.success(`Invoice sent to ${client.client_name}`);
+      const ccNote = selectedCcEmails.length > 0 ? ` (CC: ${selectedCcEmails.join(', ')})` : '';
+      toast.success(`Invoice sent to ${client.client_name}${ccNote}`);
       setSendingInvoice(null);
     } catch (error: unknown) {
       toast.error('Failed to send invoice: ' + (error instanceof Error ? error.message : String(error)));
@@ -1181,6 +1199,37 @@ export default function Invoices() {
                   Invoice details (amount, dates, secure link) are appended automatically.
                 </p>
               </div>
+
+              {/* CC Contacts */}
+              {(() => {
+                const clientEmail = getClient(sendingInvoice.client_id)?.email;
+                const ccContacts = selectedClientContacts.filter((c) => c.email && c.email !== clientEmail);
+                if (ccContacts.length === 0) return null;
+                return (
+                  <div className="rounded-md border p-3 space-y-2">
+                    <p className="text-sm font-medium flex items-center gap-1.5">
+                      <Users className="h-3.5 w-3.5" />
+                      CC Additional Contacts
+                    </p>
+                    {ccContacts.map((contact) => (
+                      <label key={contact.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                        <Checkbox
+                          checked={selectedCcEmails.includes(contact.email!)}
+                          onCheckedChange={(checked) => {
+                            setSelectedCcEmails((prev) =>
+                              checked
+                                ? [...prev, contact.email!]
+                                : prev.filter((e) => e !== contact.email!)
+                            );
+                          }}
+                        />
+                        <span className="truncate">{contact.name}</span>
+                        <span className="text-muted-foreground truncate">({contact.email})</span>
+                      </label>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
           )}
 
