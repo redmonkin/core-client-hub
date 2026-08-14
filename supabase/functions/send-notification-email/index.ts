@@ -102,6 +102,11 @@ function buildInvoiceEmail(
                               <tr><td style="font-size: 12px; text-transform: uppercase; color: #6b7280; font-weight: 600; padding-bottom: 4px;">Amount Due</td></tr>
                               <tr><td style="font-size: 26px; font-weight: 700; color: #111827;">${escapeHtml(String(data.totalAmount))}</td></tr>
                             </table>` : ""}
+                            ${data.projectName ? `
+                            <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 14px;">
+                              <tr><td style="font-size: 11px; text-transform: uppercase; color: #6b7280; font-weight: 600; padding-bottom: 4px;">Project</td></tr>
+                              <tr><td style="font-size: 14px; color: #111827; font-weight: 600;">${escapeHtml(data.projectName)}</td></tr>
+                            </table>` : ""}
                             <table width="100%" cellpadding="0" cellspacing="0">
                               <tr>
                                 <td style="width: 33%; vertical-align: top;">

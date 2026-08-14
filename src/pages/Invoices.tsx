@@ -607,6 +607,7 @@ export default function Invoices() {
           data: {
             invoiceId: sendingInvoice.id,
             invoiceNumber: sendingInvoice.invoice_number,
+            projectName: getProjectName(sendingInvoice.project_id) || null,
             totalAmount: balanceDue != null ? formatCurrency(balanceDue) : (amount ? formatCurrency(amount.total_amount) : null),
             issuedDate: sendingInvoice.issued_date,
             dueDate: sendingInvoice.due_date,
