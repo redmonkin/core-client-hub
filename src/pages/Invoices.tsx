@@ -28,7 +28,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -143,6 +143,8 @@ export default function Invoices() {
   const [voidingId, setVoidingId] = useState<string | null>(null);
   const [sendingInvoice, setSendingInvoice] = useState<Invoice | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailIntro, setEmailIntro] = useState('');
   const [payingInvoice, setPayingInvoice] = useState<Invoice | null>(null);
   const [paymentAmountInput, setPaymentAmountInput] = useState('');
   const [bankChargesInput, setBankChargesInput] = useState('0');
@@ -569,7 +571,22 @@ export default function Invoices() {
     onError: (error: Error) => toast.error('Failed to void invoice: ' + error.message),
   });
 
-  const handleSend = (invoice: Invoice) => setSendingInvoice(invoice);
+  const handleSend = (invoice: Invoice) => {
+    const client = getClient(invoice.client_id);
+    const clientName = client?.client_name || 'there';
+    const overdue = isInvoiceOverdue(invoice);
+    setSendingInvoice(invoice);
+    setEmailSubject(
+      overdue
+        ? `Payment Reminder: Invoice ${invoice.invoice_number}`
+        : `Invoice ${invoice.invoice_number}`
+    );
+    setEmailIntro(
+      overdue
+        ? `Hi ${clientName},\n\nThis is a friendly reminder that invoice ${invoice.invoice_number} is now overdue. Please arrange payment at your earliest convenience.`
+        : `Hi ${clientName},\n\nThe following invoice has been raised for the services rendered. Please review the details below.`
+    );
+  };
 
   const confirmSend = async () => {
     if (!sendingInvoice) return;
@@ -597,6 +614,8 @@ export default function Invoices() {
             portalPassword: portal.password,
             senderName: user?.user_metadata?.full_name || null,
             senderCompany: branding?.company_name || null,
+            customSubject: emailSubject?.trim() || null,
+            customIntro: emailIntro?.trim() || null,
           },
         },
       });
@@ -1119,24 +1138,71 @@ export default function Invoices() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Send Confirmation */}
-      <AlertDialog open={!!sendingInvoice} onOpenChange={() => setSendingInvoice(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Send Invoice to Client</AlertDialogTitle>
-            <AlertDialogDescription>
-              This emails a secure link to view and download the invoice.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isSending}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmSend} disabled={isSending}>
-              {isSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-              Send
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Send Email Dialog */}
+      <Dialog open={!!sendingInvoice} onOpenChange={(open) => !open && setSendingInvoice(null)}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Send Invoice to Client</DialogTitle>
+            <DialogDescription>
+              {sendingInvoice && (
+                <>
+                  This emails a secure link to view and download invoice{' '}
+                  <strong className="text-foreground">{sendingInvoice.invoice_number}</strong> to{' '}
+                  <strong className="text-foreground">{getClient(sendingInvoice.client_id)?.email}</strong>.
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          {sendingInvoice && (
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="invoice-email-subject">Subject</Label>
+                <Input
+                  id="invoice-email-subject"
+                  value={emailSubject}
+                  onChange={(e) => setEmailSubject(e.target.value)}
+                  placeholder="Email subject"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="invoice-email-intro">Message</Label>
+                <Textarea
+                  id="invoice-email-intro"
+                  value={emailIntro}
+                  onChange={(e) => setEmailIntro(e.target.value)}
+                  rows={5}
+                  placeholder="Write a personal note to your client..."
+                  className="resize-none"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Invoice details (amount, dates, secure link) are appended automatically.
+                </p>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSendingInvoice(null)} disabled={isSending}>
+              Cancel
+            </Button>
+            <Button onClick={confirmSend} disabled={isSending || !emailSubject.trim()}>
+              {isSending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Send className="mr-2 h-4 w-4" />
+                  Send
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Void Confirmation */}
       <AlertDialog open={!!voidingId} onOpenChange={() => setVoidingId(null)}>

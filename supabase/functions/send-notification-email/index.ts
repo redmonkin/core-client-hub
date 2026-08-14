@@ -39,9 +39,14 @@ function buildInvoiceEmail(
 ): { subject: string; html: string } {
   const isOverdue = data.isOverdue === true;
   const fromName = data.senderCompany || data.senderName || "Your Team";
-  const subject = isOverdue
-    ? `Payment Reminder: Invoice ${data.invoiceNumber} from ${fromName}`
-    : `Invoice ${data.invoiceNumber} from ${fromName}`;
+
+  const customSubject: string | null = typeof data.customSubject === "string" && data.customSubject.trim()
+    ? data.customSubject.trim()
+    : null;
+  const subject = customSubject
+    || (isOverdue
+      ? `Payment Reminder: Invoice ${data.invoiceNumber} from ${fromName}`
+      : `Invoice ${data.invoiceNumber} from ${fromName}`);
 
   const formatDate = (d: string | null | undefined) =>
     d ? new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : null;
@@ -50,9 +55,23 @@ function buildInvoiceEmail(
   const formattedDueDate = formatDate(data.dueDate);
 
   const bannerColor = isOverdue ? "#b45309" : "#0284C5";
-  const greetingMessage = isOverdue
-    ? `This is a friendly reminder that invoice <strong>${escapeHtml(data.invoiceNumber || "")}</strong> for <strong>${escapeHtml(String(data.totalAmount || ""))}</strong> is now overdue. Please arrange payment at your earliest convenience.`
-    : `The following invoice has been raised for the services rendered. Please review the details below.`;
+
+  // Custom intro paragraphs (user-editable). Falls back to default greeting + line.
+  const customIntro: string | null = typeof data.customIntro === "string" && data.customIntro.trim()
+    ? data.customIntro.trim()
+    : null;
+
+  const introHtml = customIntro
+    ? customIntro
+        .split(/\n\s*\n/)
+        .map((para) => `<p style="margin: 0 0 16px; font-size: 15px; color: #374151;">${escapeHtml(para).replace(/\n/g, "<br>")}</p>`)
+        .join("")
+    : `
+        <p style="margin: 0 0 16px; font-size: 15px; color: #374151;">Hi ${escapeHtml(recipientName || "")},</p>
+        <p style="margin: 0 0 24px; font-size: 15px; color: #374151;">${isOverdue
+          ? `This is a friendly reminder that invoice <strong>${escapeHtml(data.invoiceNumber || "")}</strong> for <strong>${escapeHtml(String(data.totalAmount || ""))}</strong> is now overdue. Please arrange payment at your earliest convenience.`
+          : `The following invoice has been raised for the services rendered. Please review the details below.`}</p>
+      `;
 
   return {
     subject,
@@ -73,8 +92,7 @@ function buildInvoiceEmail(
                   </tr>
                   <tr>
                     <td style="padding: 32px;">
-                      <p style="margin: 0 0 16px; font-size: 15px; color: #374151;">Hi ${escapeHtml(recipientName || "")},</p>
-                      <p style="margin: 0 0 24px; font-size: 15px; color: #374151;">${greetingMessage}</p>
+                      ${introHtml}
 
                       <table width="100%" cellpadding="0" cellspacing="0" style="background: #f9fafb; border-radius: 10px; border: 1px solid #e5e7eb; margin-bottom: 24px;">
                         <tr>
