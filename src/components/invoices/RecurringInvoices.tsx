@@ -272,7 +272,7 @@ export function RecurringInvoices({ clients, projects }: RecurringInvoicesProps)
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
           Automatically generate (and optionally send) an invoice on a fixed schedule — e.g. a monthly retainer.
         </p>
@@ -396,7 +396,7 @@ export function RecurringInvoices({ clients, projects }: RecurringInvoicesProps)
             <DialogTitle>{editingId ? 'Edit Recurring Invoice' : 'New Recurring Invoice'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Client *</Label>
                 <Select
@@ -429,7 +429,7 @@ export function RecurringInvoices({ clients, projects }: RecurringInvoicesProps)
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="space-y-2">
                 <Label>Frequency</Label>
                 <Select value={form.frequency} onValueChange={(v) => setForm((prev) => ({ ...prev, frequency: v }))}>
@@ -464,7 +464,7 @@ export function RecurringInvoices({ clients, projects }: RecurringInvoicesProps)
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Start Date</Label>
                 <Input
