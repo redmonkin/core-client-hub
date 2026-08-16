@@ -97,7 +97,7 @@ export function AccountsOverview() {
         .select('id, issued_date, status, invoice_amounts(total_amount)')
         .gte('issued_date', startIso)
         .lte('issued_date', endIso)
-        .neq('status', 'void');
+        .not('status', 'in', '(void,draft)');
       if (error) throw error;
       return data as { id: string; issued_date: string; status: string; invoice_amounts: { total_amount: number } | { total_amount: number }[] | null }[];
     },
