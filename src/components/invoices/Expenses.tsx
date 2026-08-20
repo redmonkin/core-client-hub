@@ -3,7 +3,6 @@ import { Plus, Pencil, Trash2, Loader2, Receipt, Paperclip, FileIcon, X } from '
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
 import { useWorkspaceUser } from '@/hooks/useWorkspaceUser';
 import { RequirePermission } from '@/components/shared/RequirePermission';
 import { EmptyState } from '@/components/shared/EmptyState';
@@ -74,7 +73,6 @@ const emptyForm = (): ExpenseFormState => ({
 });
 
 export function Expenses() {
-  const { user } = useAuth();
   const { workspaceUserId } = useWorkspaceUser();
   const queryClient = useQueryClient();
   const receiptInputRef = useRef<HTMLInputElement>(null);
@@ -149,8 +147,8 @@ export function Expenses() {
 
       if (receiptFile) {
         const ext = receiptFile.name.split('.').pop();
-        // Path must start with the current user's own id to satisfy RLS folder check
-        const path = `${user!.id}/${crypto.randomUUID()}.${ext}`;
+        // Path must start with the workspace owner's id to satisfy RLS folder check
+        const path = `${workspaceUserId}/${crypto.randomUUID()}.${ext}`;
         const { error: uploadError } = await supabase.storage.from('expense-receipts').upload(path, receiptFile);
         if (uploadError) throw uploadError;
         receiptUrl = path;
