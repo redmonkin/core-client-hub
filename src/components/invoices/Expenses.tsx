@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2, Loader2, Receipt, Paperclip, FileIcon, X } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
@@ -75,7 +75,6 @@ const emptyForm = (): ExpenseFormState => ({
 export function Expenses() {
   const { workspaceUserId } = useWorkspaceUser();
   const queryClient = useQueryClient();
-  const receiptInputRef = useRef<HTMLInputElement>(null);
 
   const { data: expenses = [], isLoading } = useQuery({
     queryKey: ['expenses', workspaceUserId],
@@ -361,21 +360,22 @@ export function Expenses() {
             </div>
             <div className="space-y-2">
               <Label>Receipt</Label>
-              <input
-                ref={receiptInputRef}
-                type="file"
-                accept="image/*,application/pdf"
-                className="hidden"
-                onChange={(e) => {
-                  setReceiptFile(e.target.files?.[0] || null);
-                  setRemoveExistingReceipt(false);
-                  e.target.value = '';
-                }}
-              />
               {!receiptFile && !(existingReceipt && !removeExistingReceipt) && (
-                <Button variant="outline" size="sm" type="button" onClick={() => receiptInputRef.current?.click()}>
-                  <Paperclip className="mr-2 h-4 w-4" />
-                  Attach Receipt
+                <Button variant="outline" size="sm" type="button" asChild>
+                  <label className="cursor-pointer">
+                    <Paperclip className="mr-2 h-4 w-4" />
+                    Attach Receipt
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      className="hidden"
+                      onChange={(e) => {
+                        setReceiptFile(e.target.files?.[0] || null);
+                        setRemoveExistingReceipt(false);
+                        e.target.value = '';
+                      }}
+                    />
+                  </label>
                 </Button>
               )}
               {receiptFile && (

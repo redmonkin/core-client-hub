@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Trash2, Loader2, Paperclip, FileIcon, Download, StickyNote, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -55,7 +55,6 @@ export function ProjectNotes({ projectId }: ProjectNotesProps) {
   const { user } = useAuth();
   const { workspaceUserId } = useWorkspaceUser();
   const queryClient = useQueryClient();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [content, setContent] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -200,24 +199,20 @@ export function ProjectNotes({ projectId }: ProjectNotesProps) {
           />
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                className="hidden"
-                onChange={e => {
-                  addSelectedFiles(e.target.files);
-                  e.target.value = '';
-                }}
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Paperclip className="mr-2 h-4 w-4" />
-                Attach Files
+              <Button variant="outline" size="sm" type="button" asChild>
+                <label className="cursor-pointer">
+                  <Paperclip className="mr-2 h-4 w-4" />
+                  Attach Files
+                  <input
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={e => {
+                      addSelectedFiles(e.target.files);
+                      e.target.value = '';
+                    }}
+                  />
+                </label>
               </Button>
               {selectedFiles.map((file, index) => (
                 <div key={`${file.name}-${index}`} className="flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1 text-xs text-foreground">
