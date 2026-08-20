@@ -206,7 +206,7 @@ export function ProjectNotes({ projectId }: ProjectNotesProps) {
                   <input
                     type="file"
                     multiple
-                    className="hidden"
+                    className="sr-only"
                     onChange={e => {
                       addSelectedFiles(e.target.files);
                       e.target.value = '';

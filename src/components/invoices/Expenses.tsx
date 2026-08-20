@@ -368,7 +368,7 @@ export function Expenses() {
                     <input
                       type="file"
                       accept="image/*,application/pdf"
-                      className="hidden"
+                      className="sr-only"
                       onChange={(e) => {
                         setReceiptFile(e.target.files?.[0] || null);
                         setRemoveExistingReceipt(false);
