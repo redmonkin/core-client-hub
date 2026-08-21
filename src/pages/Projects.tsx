@@ -19,14 +19,6 @@ import { ViewToggle } from '@/components/ui/view-toggle';
 import { useViewMode } from '@/hooks/useViewMode';
 import { Label } from '@/components/ui/label';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -407,58 +399,40 @@ export default function Projects() {
 
       {filteredProjects.length > 0 ? (
         viewMode === 'list' ? (
-        <div className="overflow-hidden rounded-xl border border-border bg-card">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/30 hover:bg-muted/30">
-                <TableHead className="font-semibold">Project</TableHead>
-                <TableHead className="font-semibold">Client</TableHead>
-                <TableHead className="font-semibold">Type</TableHead>
-                <TableHead className="font-semibold">Timeline</TableHead>
-                <TableHead className="font-semibold">Status</TableHead>
-                <TableHead className="w-12"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredProjects.map(project => (
-                <TableRow key={project.id} className="group">
-                  <TableCell>
-                    <Link 
+        <div className="rounded-xl border border-border overflow-hidden min-w-0">
+          {/* Grid Header */}
+          <div className="hidden lg:grid lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,1.2fr)_110px_48px] items-center gap-4 border-b border-border bg-muted/40 px-6 py-3">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Project</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Client</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Type</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Timeline</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</span>
+            <span />
+          </div>
+
+          {/* Grid Rows */}
+          <div className="divide-y divide-border">
+            {filteredProjects.map(project => (
+              <div
+                key={project.id}
+                className="group grid grid-cols-1 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,1.2fr)_110px_48px] items-start lg:items-center gap-3 lg:gap-4 px-4 sm:px-6 py-4 transition-colors hover:bg-muted/30"
+              >
+                {/* Project */}
+                <div className="min-w-0 flex items-start justify-between gap-2 lg:block">
+                  <div className="min-w-0 flex-1">
+                    <Link
                       to={`/projects/${project.id}`}
-                      className="font-medium text-foreground hover:text-primary transition-colors"
+                      className="truncate block font-medium text-foreground hover:text-primary transition-colors"
                     >
                       {project.project_name}
                     </Link>
-                  </TableCell>
-                  <TableCell>
-                    <Link 
-                      to={`/clients/${project.client_id}`}
-                      className="text-muted-foreground hover:text-primary transition-colors"
-                    >
-                      {getClientName(project.client_id)}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="font-medium">
-                      {projectTypeLabels[project.project_type]}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                      <Calendar className="h-3.5 w-3.5" />
-                      <span>
-                        {project.start_date ? format(new Date(project.start_date), 'MMM dd') : 'No start'}
-                        {project.end_date && ` - ${format(new Date(project.end_date), 'MMM dd, yyyy')}`}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
+                  </div>
+                  {/* Mobile-only inline status + actions */}
+                  <div className="flex items-center gap-1 shrink-0 lg:hidden">
                     <StatusBadge status={project.status as 'proposal' | 'active' | 'planned' | 'on-hold' | 'completed' | 'cancelled' | 'maintenance' | 'new-request'} />
-                  </TableCell>
-                  <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -470,7 +444,7 @@ export default function Projects() {
                           <Pencil className="mr-2 h-4 w-4" />
                           Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           onClick={() => handleDelete(project)}
                           className="text-destructive focus:text-destructive"
                         >
@@ -479,11 +453,74 @@ export default function Projects() {
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                  </div>
+                </div>
+
+                {/* Client */}
+                <div className="min-w-0 flex items-baseline gap-2 lg:block">
+                  <span className="text-xs uppercase tracking-wider text-muted-foreground lg:hidden shrink-0">Client</span>
+                  <Link
+                    to={`/clients/${project.client_id}`}
+                    className="truncate block text-sm text-muted-foreground hover:text-primary transition-colors min-w-0"
+                  >
+                    {getClientName(project.client_id)}
+                  </Link>
+                </div>
+
+                {/* Type */}
+                <div className="min-w-0 flex items-baseline gap-2 lg:block">
+                  <span className="text-xs uppercase tracking-wider text-muted-foreground lg:hidden shrink-0">Type</span>
+                  <Badge variant="outline" className="font-medium">
+                    {projectTypeLabels[project.project_type]}
+                  </Badge>
+                </div>
+
+                {/* Timeline */}
+                <div className="min-w-0 flex items-baseline gap-2 lg:block">
+                  <span className="text-xs uppercase tracking-wider text-muted-foreground lg:hidden shrink-0">Timeline</span>
+                  <div className="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
+                    <Calendar className="h-3.5 w-3.5 shrink-0 hidden lg:block" />
+                    <span className="truncate">
+                      {project.start_date ? format(new Date(project.start_date), 'MMM dd') : 'No start'}
+                      {project.end_date && ` - ${format(new Date(project.end_date), 'MMM dd, yyyy')}`}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Status (desktop) */}
+                <div className="hidden lg:block">
+                  <StatusBadge status={project.status as 'proposal' | 'active' | 'planned' | 'on-hold' | 'completed' | 'cancelled' | 'maintenance' | 'new-request'} />
+                </div>
+
+                {/* Actions (desktop) */}
+                <div className="hidden lg:flex justify-end">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="bg-popover">
+                      <DropdownMenuItem asChild>
+                        <Link to={`/projects/${project.id}`}>View Details</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleEdit(project)}>
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleDelete(project)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">

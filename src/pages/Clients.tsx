@@ -9,14 +9,6 @@ import { RequirePermission } from '@/components/shared/RequirePermission';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { ViewToggle } from '@/components/ui/view-toggle';
 import { useViewMode } from '@/hooks/useViewMode';
 import {
@@ -507,49 +499,41 @@ export default function Clients() {
           ))}
         </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-border bg-card">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/30 hover:bg-muted/30">
-                  <TableHead className="font-semibold">Name</TableHead>
-                  <TableHead className="font-semibold">Company</TableHead>
-                  <TableHead className="font-semibold">Email</TableHead>
-                  <TableHead className="font-semibold">Phone</TableHead>
-                  <TableHead className="font-semibold">Projects</TableHead>
-                  <TableHead className="font-semibold">Status</TableHead>
-                  <TableHead className="w-12"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredClients.map(client => (
-                  <TableRow key={client.id} className="group">
-                    <TableCell>
+          <div className="rounded-xl border border-border overflow-hidden min-w-0">
+            {/* Grid Header */}
+            <div className="hidden lg:grid lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,0.9fr)_90px_110px_48px] items-center gap-4 border-b border-border bg-muted/40 px-6 py-3">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Name</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Company</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Email</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Phone</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Projects</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</span>
+              <span />
+            </div>
+
+            {/* Grid Rows */}
+            <div className="divide-y divide-border">
+              {filteredClients.map(client => (
+                <div
+                  key={client.id}
+                  className="group grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,0.9fr)_90px_110px_48px] items-start lg:items-center gap-3 lg:gap-4 px-4 sm:px-6 py-4 transition-colors hover:bg-muted/30"
+                >
+                  {/* Name */}
+                  <div className="min-w-0 flex items-start justify-between gap-2 lg:block">
+                    <div className="min-w-0 flex-1">
                       <Link
                         to={`/clients/${client.id}`}
-                        className="font-medium text-foreground hover:text-primary transition-colors"
+                        className="truncate block font-medium text-foreground hover:text-primary transition-colors"
                       >
                         {client.client_name}
                       </Link>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {client.company_name || '—'}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {client.email || '—'}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {client.phone || '—'}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {getProjectCount(client.id)}
-                    </TableCell>
-                    <TableCell>
+                    </div>
+                    {/* Mobile-only inline status + actions */}
+                    <div className="flex items-center gap-1 shrink-0 lg:hidden">
                       <StatusBadge status={client.status as 'active' | 'archived'} />
-                    </TableCell>
-                    <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -570,11 +554,73 @@ export default function Clients() {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                    </div>
+                  </div>
+
+                  {/* Company */}
+                  <div className="min-w-0 flex items-baseline gap-2 lg:block">
+                    <span className="text-xs uppercase tracking-wider text-muted-foreground lg:hidden shrink-0">Company</span>
+                    <span className="truncate block text-sm text-muted-foreground min-w-0">
+                      {client.company_name || '—'}
+                    </span>
+                  </div>
+
+                  {/* Email */}
+                  <div className="min-w-0 flex items-baseline gap-2 lg:block">
+                    <span className="text-xs uppercase tracking-wider text-muted-foreground lg:hidden shrink-0">Email</span>
+                    <span className="truncate block text-sm text-muted-foreground min-w-0">
+                      {client.email || '—'}
+                    </span>
+                  </div>
+
+                  {/* Phone */}
+                  <div className="min-w-0 flex items-baseline gap-2 lg:block">
+                    <span className="text-xs uppercase tracking-wider text-muted-foreground lg:hidden shrink-0">Phone</span>
+                    <span className="truncate block text-sm text-muted-foreground min-w-0">
+                      {client.phone || '—'}
+                    </span>
+                  </div>
+
+                  {/* Projects */}
+                  <div className="min-w-0 flex items-baseline gap-2 lg:block">
+                    <span className="text-xs uppercase tracking-wider text-muted-foreground lg:hidden shrink-0">Projects</span>
+                    <span className="text-sm text-muted-foreground">{getProjectCount(client.id)}</span>
+                  </div>
+
+                  {/* Status (desktop) */}
+                  <div className="hidden lg:block">
+                    <StatusBadge status={client.status as 'active' | 'archived'} />
+                  </div>
+
+                  {/* Actions (desktop) */}
+                  <div className="hidden lg:flex justify-end">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <Link to={`/clients/${client.id}`}>View Details</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEdit(client)}>
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() => handleDelete(client)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )
       ) : (

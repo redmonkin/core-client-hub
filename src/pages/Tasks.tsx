@@ -58,14 +58,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -385,25 +377,30 @@ export default function Tasks() {
       </div>
 
       {tasks.length > 0 ? (
-        <div className="rounded-xl border border-border overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/40 hover:bg-muted/40">
-                <TableHead className="font-semibold">Task</TableHead>
-                <TableHead className="font-semibold">Project</TableHead>
-                <TableHead className="font-semibold">Assignee</TableHead>
-                <TableHead className="font-semibold">Date</TableHead>
-                <TableHead className="font-semibold">Status</TableHead>
-                <TableHead className="w-28" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {tasks.map((t: any) => {
-                const status = (t.status as TaskStatus) || 'new';
-                return (
-                  <TableRow key={t.id} className="group">
-                    <TableCell className="font-medium text-foreground">
-                      <div>{t.task}</div>
+        <div className="rounded-xl border border-border overflow-hidden min-w-0">
+          {/* Grid Header */}
+          <div className="hidden lg:grid lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,1fr)_110px_140px] items-center gap-4 border-b border-border bg-muted/40 px-6 py-3">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Task</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Project</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Assignee</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Date</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</span>
+            <span />
+          </div>
+
+          {/* Grid Rows */}
+          <div className="divide-y divide-border">
+            {tasks.map((t: any) => {
+              const status = (t.status as TaskStatus) || 'new';
+              return (
+                <div
+                  key={t.id}
+                  className="group grid grid-cols-1 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,1fr)_110px_140px] items-start lg:items-center gap-3 lg:gap-4 px-4 sm:px-6 py-4 transition-colors hover:bg-muted/30"
+                >
+                  {/* Task */}
+                  <div className="min-w-0 flex items-start justify-between gap-2 lg:block">
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate font-medium text-foreground">{t.task}</div>
                       {t.notes && (
                         <TooltipProvider delayDuration={150}>
                           <Tooltip>
@@ -418,93 +415,165 @@ export default function Tasks() {
                           </Tooltip>
                         </TooltipProvider>
                       )}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {t.projects ? (
-                        <Link to={`/projects/${t.project_id}`} className="hover:underline">
-                          {t.projects.project_name}
-                        </Link>
-                      ) : (
-                        <Badge variant="outline" className="text-xs">General</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{t.owner}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      <div>{format(new Date(t.date), 'MMM dd, yyyy')}</div>
-                      {t.due_date && (
-                        <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground/80">
-                          <CalendarClock className="h-3 w-3" />
-                          Due {format(new Date(t.due_date), 'MMM dd')}
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell>
+                    </div>
+                    {/* Mobile-only inline status + actions */}
+                    <div className="flex items-center gap-1 shrink-0 lg:hidden">
                       <Badge variant="secondary" className={`text-xs ${STATUS_STYLES[status]}`}>
                         {STATUS_LABELS[status]}
                       </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-1">
-                        {status === 'new' && (
-                          <RequirePermission module="timesheets" action="update">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-primary"
-                              onClick={() => startMutation.mutate(t.id)}
-                              disabled={startMutation.isPending}
-                              aria-label="Start task"
-                              title="Start"
-                            >
-                              <Play className="h-4 w-4" />
-                            </Button>
-                          </RequirePermission>
-                        )}
-                        {status === 'in-progress' && (
-                          <RequirePermission module="timesheets" action="update">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-green-600"
-                              onClick={() => openCompleteDialog(t.id)}
-                              aria-label="Complete task"
-                              title="Complete"
-                            >
-                              <CheckCircle2 className="h-4 w-4" />
-                            </Button>
-                          </RequirePermission>
-                        )}
-                        <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <RequirePermission module="timesheets" action="update">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => openEditDialog(t)}
-                              aria-label="Edit task"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          </RequirePermission>
-                          <RequirePermission module="timesheets" action="delete">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive hover:text-destructive"
-                              onClick={() => setDeleteId(t.id)}
-                              aria-label="Delete task"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </RequirePermission>
+                      {status === 'new' && (
+                        <RequirePermission module="timesheets" action="update">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-primary"
+                            onClick={() => startMutation.mutate(t.id)}
+                            disabled={startMutation.isPending}
+                            aria-label="Start task"
+                            title="Start"
+                          >
+                            <Play className="h-4 w-4" />
+                          </Button>
+                        </RequirePermission>
+                      )}
+                      {status === 'in-progress' && (
+                        <RequirePermission module="timesheets" action="update">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-green-600"
+                            onClick={() => openCompleteDialog(t.id)}
+                            aria-label="Complete task"
+                            title="Complete"
+                          >
+                            <CheckCircle2 className="h-4 w-4" />
+                          </Button>
+                        </RequirePermission>
+                      )}
+                      <RequirePermission module="timesheets" action="update">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => openEditDialog(t)}
+                          aria-label="Edit task"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </RequirePermission>
+                      <RequirePermission module="timesheets" action="delete">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => setDeleteId(t.id)}
+                          aria-label="Delete task"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </RequirePermission>
+                    </div>
+                  </div>
+
+                  {/* Project */}
+                  <div className="min-w-0 flex items-baseline gap-2 lg:block">
+                    <span className="text-xs uppercase tracking-wider text-muted-foreground lg:hidden shrink-0">Project</span>
+                    {t.projects ? (
+                      <Link to={`/projects/${t.project_id}`} className="truncate block text-sm text-muted-foreground hover:underline min-w-0">
+                        {t.projects.project_name}
+                      </Link>
+                    ) : (
+                      <Badge variant="outline" className="text-xs">General</Badge>
+                    )}
+                  </div>
+
+                  {/* Assignee */}
+                  <div className="min-w-0 flex items-baseline gap-2 lg:block">
+                    <span className="text-xs uppercase tracking-wider text-muted-foreground lg:hidden shrink-0">Assignee</span>
+                    <span className="truncate block text-sm text-muted-foreground min-w-0">{t.owner}</span>
+                  </div>
+
+                  {/* Date */}
+                  <div className="min-w-0 flex items-baseline gap-2 lg:block">
+                    <span className="text-xs uppercase tracking-wider text-muted-foreground lg:hidden shrink-0">Date</span>
+                    <div className="text-sm text-muted-foreground">
+                      <div>{format(new Date(t.date), 'MMM dd, yyyy')}</div>
+                      {t.due_date && (
+                        <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground/80">
+                          <CalendarClock className="h-3 w-3 shrink-0" />
+                          Due {format(new Date(t.due_date), 'MMM dd')}
                         </div>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Status (desktop) */}
+                  <div className="hidden lg:block">
+                    <Badge variant="secondary" className={`text-xs ${STATUS_STYLES[status]}`}>
+                      {STATUS_LABELS[status]}
+                    </Badge>
+                  </div>
+
+                  {/* Actions (desktop) */}
+                  <div className="hidden lg:flex items-center justify-end gap-1">
+                    {status === 'new' && (
+                      <RequirePermission module="timesheets" action="update">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-primary"
+                          onClick={() => startMutation.mutate(t.id)}
+                          disabled={startMutation.isPending}
+                          aria-label="Start task"
+                          title="Start"
+                        >
+                          <Play className="h-4 w-4" />
+                        </Button>
+                      </RequirePermission>
+                    )}
+                    {status === 'in-progress' && (
+                      <RequirePermission module="timesheets" action="update">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-green-600"
+                          onClick={() => openCompleteDialog(t.id)}
+                          aria-label="Complete task"
+                          title="Complete"
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                        </Button>
+                      </RequirePermission>
+                    )}
+                    <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <RequirePermission module="timesheets" action="update">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => openEditDialog(t)}
+                          aria-label="Edit task"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </RequirePermission>
+                      <RequirePermission module="timesheets" action="delete">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => setDeleteId(t.id)}
+                          aria-label="Delete task"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </RequirePermission>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       ) : (
         <EmptyState

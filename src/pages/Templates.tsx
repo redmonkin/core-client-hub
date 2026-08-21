@@ -17,14 +17,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { ViewToggle } from '@/components/ui/view-toggle';
 import { useViewMode } from '@/hooks/useViewMode';
 import {
@@ -279,54 +271,39 @@ export default function Templates() {
           ))}
         </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-border bg-card">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/30 hover:bg-muted/30">
-                  <TableHead className="font-semibold">Name</TableHead>
-                  <TableHead className="font-semibold">Type</TableHead>
-                  <TableHead className="font-semibold">Visibility</TableHead>
-                  <TableHead className="font-semibold">Created By</TableHead>
-                  <TableHead className="font-semibold">Created</TableHead>
-                  <TableHead className="w-12"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {templates.map(template => (
-                  <TableRow key={template.id} className="group">
-                    <TableCell>
+          <div className="rounded-xl border border-border overflow-hidden min-w-0">
+            {/* Grid Header */}
+            <div className="hidden lg:grid lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,0.9fr)_48px] items-center gap-4 border-b border-border bg-muted/40 px-6 py-3">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Name</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Type</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Visibility</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Created By</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Created</span>
+              <span />
+            </div>
+
+            {/* Grid Rows */}
+            <div className="divide-y divide-border">
+              {templates.map(template => (
+                <div
+                  key={template.id}
+                  className="group grid grid-cols-1 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,0.9fr)_48px] items-start lg:items-center gap-3 lg:gap-4 px-4 sm:px-6 py-4 transition-colors hover:bg-muted/30"
+                >
+                  {/* Name */}
+                  <div className="min-w-0 flex items-start justify-between gap-2 lg:block">
+                    <div className="min-w-0 flex-1">
                       <button
                         onClick={() => setPreviewingTemplate(template)}
-                        className="font-medium text-foreground hover:text-primary transition-colors text-left"
+                        className="truncate block font-medium text-foreground hover:text-primary transition-colors text-left"
                       >
                         {template.name}
                       </button>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className={`text-xs ${templateTypeColors[template.type]}`}>
-                        {templateTypeLabels[template.type]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {template.is_public ? (
-                        <Badge variant="secondary" className="text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 gap-1">
-                          <Globe className="h-3 w-3" />
-                          Public
-                        </Badge>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">Private</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {template.creator_name || '—'}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {format(new Date(template.created_at), 'MMM dd, yyyy')}
-                    </TableCell>
-                    <TableCell>
+                    </div>
+                    {/* Mobile-only inline actions */}
+                    <div className="flex items-center gap-1 shrink-0 lg:hidden">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -359,11 +336,87 @@ export default function Templates() {
                           )}
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                    </div>
+                  </div>
+
+                  {/* Type */}
+                  <div className="min-w-0 flex items-baseline gap-2 lg:block">
+                    <span className="text-xs uppercase tracking-wider text-muted-foreground lg:hidden shrink-0">Type</span>
+                    <Badge variant="secondary" className={`text-xs ${templateTypeColors[template.type]}`}>
+                      {templateTypeLabels[template.type]}
+                    </Badge>
+                  </div>
+
+                  {/* Visibility */}
+                  <div className="min-w-0 flex items-baseline gap-2 lg:block">
+                    <span className="text-xs uppercase tracking-wider text-muted-foreground lg:hidden shrink-0">Visibility</span>
+                    {template.is_public ? (
+                      <Badge variant="secondary" className="text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 gap-1">
+                        <Globe className="h-3 w-3" />
+                        Public
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Private</span>
+                    )}
+                  </div>
+
+                  {/* Created By */}
+                  <div className="min-w-0 flex items-baseline gap-2 lg:block">
+                    <span className="text-xs uppercase tracking-wider text-muted-foreground lg:hidden shrink-0">Created By</span>
+                    <span className="truncate block text-sm text-muted-foreground min-w-0">
+                      {template.creator_name || '—'}
+                    </span>
+                  </div>
+
+                  {/* Created */}
+                  <div className="min-w-0 flex items-baseline gap-2 lg:block">
+                    <span className="text-xs uppercase tracking-wider text-muted-foreground lg:hidden shrink-0">Created</span>
+                    <span className="text-sm text-muted-foreground">
+                      {format(new Date(template.created_at), 'MMM dd, yyyy')}
+                    </span>
+                  </div>
+
+                  {/* Actions (desktop) */}
+                  <div className="hidden lg:flex justify-end">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setPreviewingTemplate(template)}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          Preview
+                        </DropdownMenuItem>
+                        {isOwn(template) && (
+                          <DropdownMenuItem onClick={() => handleEdit(template)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem onClick={() => handleDuplicate(template)}>
+                          <Copy className="mr-2 h-4 w-4" />
+                          Duplicate
+                        </DropdownMenuItem>
+                        {isOwn(template) && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => setDeletingTemplate(template)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )
       ) : (
