@@ -838,17 +838,15 @@ export default function Invoices() {
       />
 
       <Tabs defaultValue="overview">
-        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <TabsList className="w-max min-w-full sm:w-auto sm:min-w-0">
-            <TabsTrigger value="overview" className="px-2.5 text-xs sm:px-3 sm:text-sm">Overview</TabsTrigger>
-            <TabsTrigger value="transactions" className="px-2.5 text-xs sm:px-3 sm:text-sm">Transactions</TabsTrigger>
-            <TabsTrigger value="tax" className="px-2.5 text-xs sm:px-3 sm:text-sm">Tax Deductions</TabsTrigger>
-            <TabsTrigger value="expenses" className="px-2.5 text-xs sm:px-3 sm:text-sm">Expenses</TabsTrigger>
-            <TabsTrigger value="invoices" className="px-2.5 text-xs sm:px-3 sm:text-sm">Invoices</TabsTrigger>
-            <TabsTrigger value="recurring" className="px-2.5 text-xs sm:px-3 sm:text-sm">Recurring</TabsTrigger>
-            <TabsTrigger value="items" className="px-2.5 text-xs sm:px-3 sm:text-sm">Items</TabsTrigger>
-          </TabsList>
-        </div>
+        <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 sm:w-auto sm:flex-nowrap">
+          <TabsTrigger value="overview" className="px-2.5 text-xs sm:px-3 sm:text-sm">Overview</TabsTrigger>
+          <TabsTrigger value="transactions" className="px-2.5 text-xs sm:px-3 sm:text-sm">Transactions</TabsTrigger>
+          <TabsTrigger value="tax" className="px-2.5 text-xs sm:px-3 sm:text-sm">Tax Deductions</TabsTrigger>
+          <TabsTrigger value="expenses" className="px-2.5 text-xs sm:px-3 sm:text-sm">Expenses</TabsTrigger>
+          <TabsTrigger value="invoices" className="px-2.5 text-xs sm:px-3 sm:text-sm">Invoices</TabsTrigger>
+          <TabsTrigger value="recurring" className="px-2.5 text-xs sm:px-3 sm:text-sm">Recurring</TabsTrigger>
+          <TabsTrigger value="items" className="px-2.5 text-xs sm:px-3 sm:text-sm">Items</TabsTrigger>
+        </TabsList>
 
         <TabsContent value="overview">
           <AccountsOverview />
