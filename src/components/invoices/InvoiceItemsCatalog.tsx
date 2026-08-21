@@ -205,7 +205,7 @@ export function InvoiceItemsCatalog() {
                 placeholder="e.g. Senior Web Consultant"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Unit</Label>
                 <Select value={form.unit} onValueChange={(value) => setForm((prev) => ({ ...prev, unit: value }))}>

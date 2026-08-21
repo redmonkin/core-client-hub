@@ -210,7 +210,7 @@ export function Expenses() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
           {expenses.length > 0 && <>Total logged: <span className="font-semibold text-foreground">{formatInvoiceCurrency(totalExpenses)}</span></>}
         </p>
@@ -301,7 +301,7 @@ export function Expenses() {
             <DialogTitle>{editingId ? 'Edit Expense' : 'Add Expense'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Date</Label>
                 <Input
@@ -322,7 +322,7 @@ export function Expenses() {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Vendor</Label>
                 <Input

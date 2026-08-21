@@ -1299,7 +1299,7 @@ export default function Invoices() {
                 <p className="text-sm text-muted-foreground">
                   Invoice {payingInvoice.invoice_number} — balance due {formatCurrency(balanceDue)}
                 </p>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label>Amount Received</Label>
                     <Input
@@ -1321,7 +1321,7 @@ export default function Invoices() {
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label>Date</Label>
                     <Input
