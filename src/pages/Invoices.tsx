@@ -43,6 +43,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { InvoiceLineItems } from '@/components/invoices/InvoiceLineItems';
 import { RecurringInvoices } from '@/components/invoices/RecurringInvoices';
+import { RecurringExpenses } from '@/components/invoices/RecurringExpenses';
 import { InvoiceItemsCatalog } from '@/components/invoices/InvoiceItemsCatalog';
 import { Expenses } from '@/components/invoices/Expenses';
 import { AccountsOverview } from '@/components/invoices/AccountsOverview';
@@ -1035,7 +1036,18 @@ export default function Invoices() {
         </TabsContent>
 
         <TabsContent value="recurring">
-          <RecurringInvoices clients={clients} projects={projects} />
+          <Tabs defaultValue="recurring-invoices">
+            <TabsList>
+              <TabsTrigger value="recurring-invoices" className="px-2.5 text-xs sm:px-3 sm:text-sm">Invoices</TabsTrigger>
+              <TabsTrigger value="recurring-expenses" className="px-2.5 text-xs sm:px-3 sm:text-sm">Expenses</TabsTrigger>
+            </TabsList>
+            <TabsContent value="recurring-invoices" className="mt-4">
+              <RecurringInvoices clients={clients} projects={projects} />
+            </TabsContent>
+            <TabsContent value="recurring-expenses" className="mt-4">
+              <RecurringExpenses projects={projects} />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
         <TabsContent value="items">

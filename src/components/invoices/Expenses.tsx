@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2, Loader2, Receipt, Paperclip, FileIcon, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, Receipt, Paperclip, FileIcon, X, FolderKanban } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspaceUser } from '@/hooks/useWorkspaceUser';
 import { RequirePermission } from '@/components/shared/RequirePermission';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { ProjectMultiSelect } from '@/components/shared/ProjectMultiSelect';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -52,6 +54,7 @@ interface Expense {
   notes: string | null;
   receipt_url: string | null;
   receipt_name: string | null;
+  expense_projects: { project_id: string; projects: { id: string; project_name: string } | null }[];
 }
 
 interface ExpenseFormState {
@@ -61,6 +64,7 @@ interface ExpenseFormState {
   description: string;
   amount: string;
   notes: string;
+  projectIds: string[];
 }
 
 const todayIso = () => new Date().toISOString().split('T')[0];
@@ -72,6 +76,7 @@ const emptyForm = (): ExpenseFormState => ({
   description: '',
   amount: '',
   notes: '',
+  projectIds: [],
 });
 
 export function Expenses() {
@@ -81,9 +86,22 @@ export function Expenses() {
   const { data: expenses = [], isLoading } = useQuery({
     queryKey: ['expenses', workspaceUserId],
     queryFn: async () => {
-      const { data, error } = await supabase.from('expenses').select('*').order('expense_date', { ascending: false });
+      const { data, error } = await supabase
+        .from('expenses')
+        .select('*, expense_projects(project_id, projects(id, project_name))')
+        .order('expense_date', { ascending: false });
       if (error) throw error;
-      return data as Expense[];
+      return data as unknown as Expense[];
+    },
+    enabled: !!workspaceUserId,
+  });
+
+  const { data: projects = [] } = useQuery({
+    queryKey: ['projects-list', workspaceUserId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('projects').select('id, project_name').order('project_name');
+      if (error) throw error;
+      return data;
     },
     enabled: !!workspaceUserId,
   });
@@ -131,6 +149,7 @@ export function Expenses() {
       description: expense.description || '',
       amount: String(expense.amount),
       notes: expense.notes || '',
+      projectIds: expense.expense_projects.map((ep) => ep.project_id),
     });
     setReceiptFile(null);
     setExistingReceipt(expense.receipt_url ? { url: expense.receipt_url, name: expense.receipt_name || 'receipt' } : null);
@@ -165,12 +184,25 @@ export function Expenses() {
         notes: form.notes.trim() || null,
         ...(receiptUrl !== undefined ? { receipt_url: receiptUrl, receipt_name: receiptName } : {}),
       };
+      let expenseId = editingId;
       if (editingId) {
         const { error } = await supabase.from('expenses').update(row).eq('id', editingId);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('expenses').insert({ ...row, user_id: workspaceUserId });
+        const { data: inserted, error } = await supabase.from('expenses').insert({ ...row, user_id: workspaceUserId }).select('id').single();
         if (error) throw error;
+        expenseId = inserted.id;
+      }
+
+      // Re-sync the tagged-projects join table: simplest correct approach is
+      // delete-all-then-reinsert rather than diffing, since the set is small.
+      const { error: clearError } = await supabase.from('expense_projects').delete().eq('expense_id', expenseId);
+      if (clearError) throw clearError;
+      if (form.projectIds.length > 0) {
+        const { error: linkError } = await supabase
+          .from('expense_projects')
+          .insert(form.projectIds.map((projectId) => ({ expense_id: expenseId, project_id: projectId })));
+        if (linkError) throw linkError;
       }
     },
     onSuccess: () => {
@@ -245,6 +277,7 @@ export function Expenses() {
                   <SortableTableHead label="Category" sortKey="category" sort={sort} onSort={(key) => setSort((prev) => toggleSort(prev, key))} className="w-32" />
                   <SortableTableHead label="Vendor" sortKey="vendor" sort={sort} onSort={(key) => setSort((prev) => toggleSort(prev, key))} className="min-w-[160px]" />
                   <SortableTableHead label="Description" sortKey="description" sort={sort} onSort={(key) => setSort((prev) => toggleSort(prev, key))} className="min-w-[200px]" />
+                  <TableHead className="min-w-[160px]">Projects</TableHead>
                   <SortableTableHead label="Amount" sortKey="amount" sort={sort} onSort={(key) => setSort((prev) => toggleSort(prev, key))} className="w-32 text-right" align="right" />
                   <TableHead className="w-16" />
                   <TableHead className="w-20" />
@@ -257,6 +290,22 @@ export function Expenses() {
                     <TableCell>{CATEGORY_LABELS[expense.category] || expense.category}</TableCell>
                     <TableCell>{expense.vendor || '—'}</TableCell>
                     <TableCell className="max-w-[280px] truncate text-muted-foreground">{expense.description || '—'}</TableCell>
+                    <TableCell>
+                      {expense.expense_projects.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {expense.expense_projects.map((ep) => (
+                            ep.projects && (
+                              <Badge key={ep.project_id} variant="secondary" className="gap-1 text-xs font-normal">
+                                <FolderKanban className="h-3 w-3" />
+                                {ep.projects.project_name}
+                              </Badge>
+                            )
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right font-medium">{formatInvoiceCurrency(expense.amount)}</TableCell>
                     <TableCell>
                       {expense.receipt_url && signedReceiptUrls[expense.receipt_url] && (
@@ -358,6 +407,14 @@ export function Expenses() {
                 value={form.description}
                 onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
                 placeholder="What was this for?"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Projects</Label>
+              <ProjectMultiSelect
+                projects={projects}
+                selectedIds={form.projectIds}
+                onChange={(ids) => setForm((prev) => ({ ...prev, projectIds: ids }))}
               />
             </div>
             <div className="space-y-2">
