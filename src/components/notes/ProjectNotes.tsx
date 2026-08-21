@@ -75,7 +75,11 @@ export function ProjectNotes({ projectId }: ProjectNotesProps) {
 
   const addSelectedFiles = (files: FileList | null) => {
     if (!files || files.length === 0) return;
-    setSelectedFiles((prev) => [...prev, ...Array.from(files)]);
+    // Snapshot into a plain array now — `files` is a live FileList tied to the
+    // input element, and the caller resets input.value right after this call,
+    // which would empty it out from under a lazy setState updater.
+    const newFiles = Array.from(files);
+    setSelectedFiles((prev) => [...prev, ...newFiles]);
   };
 
   const removeSelectedFile = (index: number) => {
