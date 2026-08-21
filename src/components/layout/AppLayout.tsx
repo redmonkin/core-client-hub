@@ -14,7 +14,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           <header className="flex h-12 items-center border-b px-4 md:hidden">
             <SidebarTrigger />
           </header>
-          <main className="flex-1 overflow-auto">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden">
             {children}
           </main>
         </SidebarInset>
