@@ -142,16 +142,16 @@ export default function ProjectDetail() {
     },
     enabled: !!id,
   });
-  const OPEN_TASK_STATUSES = ['new', 'in-progress', 'pending'];
+  const OPEN_TASK_STATUSES = ['new', 'in-progress', 'completed'];
   const openTaskCount = tasks.filter((t) => OPEN_TASK_STATUSES.includes(t.status)).length;
   const overdueTaskCount = tasks.filter(
     (t) => t.due_date && OPEN_TASK_STATUSES.includes(t.status) && new Date(t.due_date) < new Date(new Date().toDateString())
   ).length;
   const totalLoggedHours = tasks.reduce((sum, t) => sum + (Number(t.duration) || 0), 0);
-  // "pending" = duration logged, work done, not yet invoiced; "billed" = duration
+  // "completed" = duration logged, work done, not yet invoiced; "billed" = duration
   // already carried into an invoice. These are the two hour buckets that matter
   // for a billing-focused app -- what's ready to invoice vs. what's already gone out.
-  const pendingBillingHours = tasks.filter((t) => t.status === 'pending').reduce((sum, t) => sum + (Number(t.duration) || 0), 0);
+  const pendingBillingHours = tasks.filter((t) => t.status === 'completed').reduce((sum, t) => sum + (Number(t.duration) || 0), 0);
   const billedHours = tasks.filter((t) => t.status === 'billed').reduce((sum, t) => sum + (Number(t.duration) || 0), 0);
 
   // Same key + shape ProjectNotes uses (no limit either), so this shares its

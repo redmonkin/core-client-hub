@@ -2,14 +2,14 @@ import { useMutation, useQueryClient, UseMutationResult } from '@tanstack/react-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-export const TASK_STATUSES = ['new', 'in-progress', 'wont-do', 'pending', 'non-billable', 'billed'] as const;
+export const TASK_STATUSES = ['new', 'in-progress', 'completed', 'wont-do', 'non-billable', 'billed'] as const;
 export type TaskStatus = typeof TASK_STATUSES[number];
 
 export const STATUS_STYLES: Record<TaskStatus, string> = {
   new: 'bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-400',
   'in-progress': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+  completed: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
   'wont-do': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
-  pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
   'non-billable': 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400',
   billed: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
 };
@@ -17,8 +17,8 @@ export const STATUS_STYLES: Record<TaskStatus, string> = {
 export const STATUS_LABELS: Record<TaskStatus, string> = {
   new: 'New',
   'in-progress': 'In Progress',
+  completed: 'Completed',
   'wont-do': "Won't Do",
-  pending: 'Pending',
   'non-billable': 'Non Billable',
   billed: 'Billed',
 };
@@ -120,7 +120,7 @@ export function useTaskMutations({
         duration: parseFloat(e.duration) || 0,
         date: e.date,
         notes: e.notes || null,
-        status: e.status || 'pending',
+        status: e.status || 'completed',
       }));
       const { error } = await supabase.from('timesheets').insert(rows);
       if (error) throw error;
@@ -202,7 +202,7 @@ export function useTaskMutations({
     mutationFn: async ({ id, duration, notes }: { id: string; duration: string; notes: string }) => {
       const { data, error } = await supabase
         .from('timesheets')
-        .update({ duration: parseFloat(duration) || 0, notes: notes || null, status: 'pending' })
+        .update({ duration: parseFloat(duration) || 0, notes: notes || null, status: 'completed' })
         .eq('id', id)
         .select('id');
       if (error) throw error;
