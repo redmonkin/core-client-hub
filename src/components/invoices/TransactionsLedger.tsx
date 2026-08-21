@@ -11,6 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table';
 import { SortableTableHead, toggleSort, compareValues, type SortState } from '@/components/shared/SortableTableHead';
+import { TablePagination } from '@/components/shared/TablePagination';
+import { usePagination, DEFAULT_PAGE_SIZE } from '@/hooks/usePagination';
 import { formatInvoiceCurrency } from '@/lib/invoice-utils';
 import { CATEGORY_LABELS } from '@/components/invoices/Expenses';
 import { type RangeKey, RANGE_OPTIONS, toIso, resolveRange, defaultCustomStart, todayIso } from '@/lib/date-ranges';
@@ -133,6 +135,7 @@ export function TransactionsLedger() {
       const cmp = compareValues(ledgerSortValue(a, sort.key), ledgerSortValue(b, sort.key));
       return sort.direction === 'asc' ? cmp : -cmp;
     });
+  const ledgerPagination = usePagination(filtered, DEFAULT_PAGE_SIZE);
 
   return (
     <div className="space-y-6">
@@ -224,7 +227,7 @@ export function TransactionsLedger() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filtered.map((t) => (
+                    {ledgerPagination.pageItems.map((t) => (
                       <TableRow key={t.id}>
                         <TableCell className="text-muted-foreground">{format(new Date(t.date), 'MMM d, yyyy')}</TableCell>
                         <TableCell>
@@ -246,6 +249,13 @@ export function TransactionsLedger() {
                   </TableBody>
                 </Table>
               </CardContent>
+              <TablePagination
+                page={ledgerPagination.page}
+                pageCount={ledgerPagination.pageCount}
+                totalItems={ledgerPagination.totalItems}
+                pageSize={DEFAULT_PAGE_SIZE}
+                onPageChange={ledgerPagination.setPage}
+              />
             </Card>
           )}
         </>

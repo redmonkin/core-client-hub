@@ -11,6 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table';
 import { SortableTableHead, toggleSort, compareValues, type SortState } from '@/components/shared/SortableTableHead';
+import { TablePagination } from '@/components/shared/TablePagination';
+import { usePagination, DEFAULT_PAGE_SIZE } from '@/hooks/usePagination';
 import { formatInvoiceCurrency } from '@/lib/invoice-utils';
 import { type RangeKey, RANGE_OPTIONS, toIso, resolveRange, defaultCustomStart, todayIso } from '@/lib/date-ranges';
 
@@ -86,6 +88,7 @@ export function TaxDeductions() {
     const cmp = compareValues(taxSortValue(a, sort.key), taxSortValue(b, sort.key));
     return sort.direction === 'asc' ? cmp : -cmp;
   });
+  const rowsPagination = usePagination(sortedRows, DEFAULT_PAGE_SIZE);
 
   return (
     <div className="space-y-6">
@@ -161,7 +164,7 @@ export function TaxDeductions() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sortedRows.map((r) => (
+                  {rowsPagination.pageItems.map((r) => (
                     <TableRow key={r.id}>
                       <TableCell className="text-muted-foreground">{format(new Date(r.payment_date), 'MMM d, yyyy')}</TableCell>
                       <TableCell className="font-medium">{r.invoice_number}</TableCell>
@@ -174,6 +177,13 @@ export function TaxDeductions() {
                 </TableBody>
               </Table>
             </CardContent>
+            <TablePagination
+              page={rowsPagination.page}
+              pageCount={rowsPagination.pageCount}
+              totalItems={rowsPagination.totalItems}
+              pageSize={DEFAULT_PAGE_SIZE}
+              onPageChange={rowsPagination.setPage}
+            />
           </Card>
         </>
       )}

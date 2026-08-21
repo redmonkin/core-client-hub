@@ -23,6 +23,8 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
+import { TablePagination } from '@/components/shared/TablePagination';
+import { usePagination, DEFAULT_PAGE_SIZE } from '@/hooks/usePagination';
 import { INVOICE_UNITS, formatInvoiceCurrency } from '@/lib/invoice-utils';
 import { toast } from 'sonner';
 
@@ -123,6 +125,8 @@ export function InvoiceItemsCatalog() {
     onError: (error: Error) => toast.error('Failed to delete: ' + error.message),
   });
 
+  const itemsPagination = usePagination(items, DEFAULT_PAGE_SIZE);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-end">
@@ -158,7 +162,7 @@ export function InvoiceItemsCatalog() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {items.map((item) => (
+                {itemsPagination.pageItems.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">{item.title}</TableCell>
                     <TableCell className="max-w-[280px] truncate text-muted-foreground">{item.description || '—'}</TableCell>
@@ -188,6 +192,13 @@ export function InvoiceItemsCatalog() {
               </TableBody>
             </Table>
           </CardContent>
+          <TablePagination
+            page={itemsPagination.page}
+            pageCount={itemsPagination.pageCount}
+            totalItems={itemsPagination.totalItems}
+            pageSize={DEFAULT_PAGE_SIZE}
+            onPageChange={itemsPagination.setPage}
+          />
         </Card>
       )}
 

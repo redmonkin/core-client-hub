@@ -15,6 +15,8 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { NoAccessState } from '@/components/shared/NoAccessState';
 import { SortableTableHead, toggleSort, compareValues, type SortState } from '@/components/shared/SortableTableHead';
+import { TablePagination } from '@/components/shared/TablePagination';
+import { usePagination, DEFAULT_PAGE_SIZE } from '@/hooks/usePagination';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -809,6 +811,7 @@ export default function Invoices() {
       const cmp = compareValues(invoiceSortValue(a, invoiceSort.key), invoiceSortValue(b, invoiceSort.key));
       return invoiceSort.direction === 'asc' ? cmp : -cmp;
     });
+  const invoicesPagination = usePagination(filteredInvoices, DEFAULT_PAGE_SIZE);
 
   const clientProjects = projects.filter((p) => p.client_id === form.client_id);
   const clientContracts = contracts.filter((c) => c.client_id === form.client_id || !form.client_id);
@@ -908,7 +911,7 @@ export default function Invoices() {
         />
       ) : (
         <Card>
-          <CardContent className="p-0">
+          <CardContent className="p-0 overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -922,7 +925,7 @@ export default function Invoices() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredInvoices.map((invoice) => {
+                {invoicesPagination.pageItems.map((invoice) => {
                   const amount = amountsByInvoice.get(invoice.id);
                   const isOverdue = isInvoiceOverdue(invoice);
                   const balanceDue = amount ? amount.total_amount - amount.amount_paid : null;
@@ -1020,6 +1023,13 @@ export default function Invoices() {
               </TableBody>
             </Table>
           </CardContent>
+          <TablePagination
+            page={invoicesPagination.page}
+            pageCount={invoicesPagination.pageCount}
+            totalItems={invoicesPagination.totalItems}
+            pageSize={DEFAULT_PAGE_SIZE}
+            onPageChange={invoicesPagination.setPage}
+          />
         </Card>
       )}
         </TabsContent>

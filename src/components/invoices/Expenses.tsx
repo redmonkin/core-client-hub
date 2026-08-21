@@ -25,6 +25,8 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { SortableTableHead, toggleSort, compareValues, type SortState } from '@/components/shared/SortableTableHead';
+import { TablePagination } from '@/components/shared/TablePagination';
+import { usePagination, DEFAULT_PAGE_SIZE } from '@/hooks/usePagination';
 import { formatInvoiceCurrency } from '@/lib/invoice-utils';
 import { toast } from 'sonner';
 
@@ -207,6 +209,7 @@ export function Expenses() {
     const cmp = compareValues(expenseSortValue(a, sort.key), expenseSortValue(b, sort.key));
     return sort.direction === 'asc' ? cmp : -cmp;
   });
+  const expensesPagination = usePagination(sortedExpenses, DEFAULT_PAGE_SIZE);
 
   return (
     <div className="space-y-6">
@@ -248,7 +251,7 @@ export function Expenses() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedExpenses.map((expense) => (
+                {expensesPagination.pageItems.map((expense) => (
                   <TableRow key={expense.id}>
                     <TableCell className="text-muted-foreground">{format(new Date(expense.expense_date), 'MMM d, yyyy')}</TableCell>
                     <TableCell>{CATEGORY_LABELS[expense.category] || expense.category}</TableCell>
@@ -292,6 +295,13 @@ export function Expenses() {
               </TableBody>
             </Table>
           </CardContent>
+          <TablePagination
+            page={expensesPagination.page}
+            pageCount={expensesPagination.pageCount}
+            totalItems={expensesPagination.totalItems}
+            pageSize={DEFAULT_PAGE_SIZE}
+            onPageChange={expensesPagination.setPage}
+          />
         </Card>
       )}
 

@@ -27,6 +27,8 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
+import { TablePagination } from '@/components/shared/TablePagination';
+import { usePagination, DEFAULT_PAGE_SIZE } from '@/hooks/usePagination';
 import { toast } from 'sonner';
 
 const PAYMENT_TERMS = [
@@ -262,6 +264,8 @@ export function RecurringInvoices({ clients, projects }: RecurringInvoicesProps)
     }
   };
 
+  const schedulesPagination = usePagination(schedules, DEFAULT_PAGE_SIZE);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -294,7 +298,7 @@ export function RecurringInvoices({ clients, projects }: RecurringInvoicesProps)
         />
       ) : (
         <Card>
-          <CardContent className="p-0">
+          <CardContent className="p-0 overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -308,7 +312,7 @@ export function RecurringInvoices({ clients, projects }: RecurringInvoicesProps)
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {schedules.map((schedule: any) => (
+                {schedulesPagination.pageItems.map((schedule: any) => (
                   <TableRow key={schedule.id}>
                     <TableCell className="font-medium">
                       <Link to={`/clients/${schedule.client_id}`} className="hover:text-primary hover:underline">
@@ -386,6 +390,13 @@ export function RecurringInvoices({ clients, projects }: RecurringInvoicesProps)
               </TableBody>
             </Table>
           </CardContent>
+          <TablePagination
+            page={schedulesPagination.page}
+            pageCount={schedulesPagination.pageCount}
+            totalItems={schedulesPagination.totalItems}
+            pageSize={DEFAULT_PAGE_SIZE}
+            onPageChange={schedulesPagination.setPage}
+          />
         </Card>
       )}
 
