@@ -53,7 +53,7 @@ import {
   buildInvoiceLineItemsHtml, getInvoiceTotalFromJson, formatInvoiceCurrency, numberToIndianWords,
   createEmptyInvoiceLineItem, escapeInvoiceHtml,
 } from '@/lib/invoice-utils';
-import { exportToPdf } from '@/lib/pdf-export';
+import { exportToPdf, getPdfBase64 } from '@/lib/pdf-export';
 import { getOrCreateInvoicePortalAccess, regenerateInvoicePortalAccess, type PortalAccessResult } from '@/lib/invoice-portal-access';
 import { toast } from 'sonner';
 
@@ -618,12 +618,23 @@ export default function Invoices() {
       const amount = amountsByInvoice.get(sendingInvoice.id);
       const balanceDue = amount ? amount.total_amount - amount.amount_paid : null;
 
+      // Best-effort: a PDF-rendering hiccup shouldn't block getting the
+      // invoice (and its portal link) to the client at all.
+      let pdfAttachment: { filename: string; content: string } | null = null;
+      try {
+        const base64 = await getPdfBase64(buildInvoicePdfHtml(sendingInvoice));
+        pdfAttachment = { filename: `${sendingInvoice.invoice_number}.pdf`, content: base64 };
+      } catch (pdfError) {
+        console.error('Failed to attach invoice PDF, sending without it:', pdfError);
+      }
+
       const { error } = await supabase.functions.invoke('send-notification-email', {
         body: {
           type: isInvoiceOverdue(sendingInvoice) ? 'invoice_overdue' : 'invoice_sent',
           recipientEmail: '',
           recipientName: '',
           ccEmails: [...(selectedCcEmails.length > 0 ? selectedCcEmails : []), ...(user?.email ? [user.email] : [])].filter((v, i, a) => a.indexOf(v) === i),
+          attachments: pdfAttachment ? [pdfAttachment] : undefined,
           data: {
             invoiceId: sendingInvoice.id,
             invoiceNumber: sendingInvoice.invoice_number,

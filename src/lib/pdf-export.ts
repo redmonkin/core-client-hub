@@ -19,7 +19,11 @@ function preserveWordSpacing(root: HTMLElement) {
   });
 }
 
-export async function exportToPdf(html: string, filename: string) {
+// Shared by exportToPdf (triggers a browser download) and getPdfBase64
+// (returns the bytes for e.g. an email attachment) so both stay pixel-
+// identical -- same single-canvas html2canvas + jsPDF render, just a
+// different final step.
+async function renderPdf(html: string) {
   const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
     import('jspdf'),
     import('html2canvas'),
@@ -120,8 +124,20 @@ export async function exportToPdf(html: string, filename: string) {
       );
     }
 
-    pdf.save(filename);
+    return pdf;
   } finally {
     document.body.removeChild(container);
   }
+}
+
+export async function exportToPdf(html: string, filename: string) {
+  const pdf = await renderPdf(html);
+  pdf.save(filename);
+}
+
+// Returns the PDF as base64 (no data: URI prefix) -- e.g. for a Resend
+// email attachment -- without triggering a browser download.
+export async function getPdfBase64(html: string): Promise<string> {
+  const pdf = await renderPdf(html);
+  return pdf.output('datauristring').split(',')[1];
 }

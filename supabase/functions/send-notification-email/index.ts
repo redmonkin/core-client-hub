@@ -31,6 +31,7 @@ interface NotificationEmailRequest {
   recipientName: string;
   data: Record<string, any>;
   ccEmails?: string[];
+  attachments?: { filename: string; content: string }[];
 }
 
 function buildInvoiceEmail(
@@ -531,7 +532,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    const { type, recipientEmail: bodyRecipientEmail, recipientName: bodyRecipientName, data, ccEmails }: NotificationEmailRequest = await req.json();
+    const { type, recipientEmail: bodyRecipientEmail, recipientName: bodyRecipientName, data, ccEmails, attachments }: NotificationEmailRequest = await req.json();
 
     // Resolve the true recipient server-side rather than trusting the request body, so a
     // caller can't use their own valid session to relay arbitrary branded email to an
@@ -714,6 +715,25 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (ccEmails && ccEmails.length > 0) {
       emailPayload.cc = ccEmails;
+    }
+
+    // Only meaningful for invoice_sent/invoice_overdue (attaching the invoice
+    // PDF); ignored for other types so a caller can't smuggle arbitrary
+    // attachments through an unrelated notification. Base64 content is
+    // capped at ~15MB (well under Resend's 40MB request limit) as a
+    // defensive bound, not an expected real-world size for an invoice PDF.
+    if (
+      (type === "invoice_sent" || type === "invoice_overdue") &&
+      Array.isArray(attachments) &&
+      attachments.length > 0
+    ) {
+      const MAX_BASE64_LENGTH = 15 * 1024 * 1024;
+      const validAttachments = attachments.filter(
+        (a) => a && typeof a.filename === "string" && typeof a.content === "string" && a.content.length <= MAX_BASE64_LENGTH
+      );
+      if (validAttachments.length > 0) {
+        emailPayload.attachments = validAttachments;
+      }
     }
 
     const emailResponse = await resend.emails.send(emailPayload);
