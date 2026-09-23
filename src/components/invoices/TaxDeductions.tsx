@@ -46,7 +46,6 @@ export function TaxDeductions() {
       const { data, error } = await supabase
         .from('invoice_payments')
         .select('id, payment_date, amount, tax_deducted_amount, reference_number, invoices(invoice_number, clients(client_name, company_name))')
-        .gt('tax_deducted_amount', 0)
         .gte('payment_date', startIso)
         .lte('payment_date', endIso)
         .order('payment_date', { ascending: false });
@@ -72,7 +71,8 @@ export function TaxDeductions() {
   }
 
   const totalTaxDeducted = rows.reduce((acc, r) => acc + r.tax_deducted_amount, 0);
-  const totalGrossSettled = rows.reduce((acc, r) => acc + r.amount + r.tax_deducted_amount, 0);
+  const totalReceivedGross = rows.reduce((acc, r) => acc + r.amount + r.tax_deducted_amount, 0);
+  const totalNetCash = totalReceivedGross - totalTaxDeducted;
 
   const taxSortValue = (r: TaxDeductionRow, key: TaxSortKey): string | number => {
     switch (key) {
@@ -120,7 +120,7 @@ export function TaxDeductions() {
       )}
 
       <p className="text-xs text-muted-foreground">
-        Tax withheld by clients at the time of payment (TDS) — the amount to claim as tax already paid when filing your ITR for this period.
+        Every payment received this period, with any tax withheld by the client (TDS) broken out — the claimable amount when filing your ITR.
       </p>
 
       {isLoading ? (
@@ -130,22 +130,30 @@ export function TaxDeductions() {
       ) : rows.length === 0 ? (
         <EmptyState
           icon={Landmark}
-          title="No tax deductions in this period"
-          description="Payments recorded with tax withheld (TDS) will show up here."
+          title="No payments in this period"
+          description="Payments recorded against invoices will show up here, with any tax withheld (TDS) broken out."
         />
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Card>
               <CardContent className="p-6">
-                <p className="text-sm font-medium text-muted-foreground">Total Tax Deducted (Claimable)</p>
-                <p className="mt-2 text-2xl font-bold text-foreground">{formatInvoiceCurrency(totalTaxDeducted)}</p>
+                <p className="text-sm font-medium text-muted-foreground">Total Received (Gross)</p>
+                <p className="mt-2 text-2xl font-bold text-foreground">{formatInvoiceCurrency(totalReceivedGross)}</p>
+                <p className="mt-1 text-xs text-muted-foreground">Cash received + tax withheld</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-6">
-                <p className="text-sm font-medium text-muted-foreground">Total Gross Settled</p>
-                <p className="mt-2 text-2xl font-bold text-foreground">{formatInvoiceCurrency(totalGrossSettled)}</p>
+                <p className="text-sm font-medium text-muted-foreground">Net Cash Received</p>
+                <p className="mt-2 text-2xl font-bold text-foreground">{formatInvoiceCurrency(totalNetCash)}</p>
+                <p className="mt-1 text-xs text-muted-foreground">Gross minus tax withheld</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6">
+                <p className="text-sm font-medium text-muted-foreground">Total Tax Deducted (Claimable)</p>
+                <p className="mt-2 text-2xl font-bold text-foreground">{formatInvoiceCurrency(totalTaxDeducted)}</p>
               </CardContent>
             </Card>
           </div>
