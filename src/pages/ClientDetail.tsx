@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Mail, Phone, MapPin, FileText, FolderKanban, FileSignature, Building2, Users, Pencil, Loader2, Activity, UserPlus, CircleDot } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, MapPin, FileText, FolderKanban, FileSignature, Building2, Users, Pencil, Loader2, Activity, UserPlus, CircleDot, Wallet } from 'lucide-react';
 import { format } from 'date-fns';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { ClientContacts } from '@/components/clients/ClientContacts';
+import { ClientLedger } from '@/components/clients/ClientLedger';
 
 export default function ClientDetail() {
   const { id } = useParams();
@@ -250,7 +251,7 @@ export default function ClientDetail() {
 
       {/* Tabs */}
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <Activity className="h-4 w-4" />
             Overview
@@ -266,6 +267,10 @@ export default function ClientDetail() {
           <TabsTrigger value="contracts" className="flex items-center gap-2">
             <FileSignature className="h-4 w-4" />
             Contracts ({clientContracts.length})
+          </TabsTrigger>
+          <TabsTrigger value="account" className="flex items-center gap-2">
+            <Wallet className="h-4 w-4" />
+            Account
           </TabsTrigger>
           <TabsTrigger value="contacts" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
@@ -477,6 +482,10 @@ export default function ClientDetail() {
             )}
           </div>
         </TabsContent>
+        <TabsContent value="account" className="mt-4">
+          <ClientLedger clientId={id!} />
+        </TabsContent>
+
         <TabsContent value="contacts" className="mt-4">
           <ClientContacts clientId={id!} />
         </TabsContent>
