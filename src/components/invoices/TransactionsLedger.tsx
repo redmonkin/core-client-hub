@@ -79,11 +79,33 @@ export function TransactionsLedger() {
     enabled: !!workspaceUserId && canViewFinancials,
   });
 
+  // The running "Balance" column must reflect the actual account balance,
+  // not reset to zero at the start of whatever date filter is selected --
+  // otherwise switching to "This Financial Year" makes every balance wrong
+  // by the account's entire pre-FY history. Pull just the two sums needed
+  // to seed it (everything strictly before the filtered window starts),
+  // not full row data.
+  const { data: openingBalance = 0, isLoading: loadingOpeningBalance } = useQuery({
+    queryKey: ['ledger-opening-balance', workspaceUserId, startIso],
+    queryFn: async () => {
+      const [{ data: priorPayments, error: paymentsError }, { data: priorExpenses, error: expensesError }] = await Promise.all([
+        supabase.from('invoice_payments').select('amount').lt('payment_date', startIso),
+        supabase.from('expenses').select('amount').lt('expense_date', startIso),
+      ]);
+      if (paymentsError) throw paymentsError;
+      if (expensesError) throw expensesError;
+      const priorReceived = (priorPayments || []).reduce((acc, p) => acc + p.amount, 0);
+      const priorSpent = (priorExpenses || []).reduce((acc, e) => acc + e.amount, 0);
+      return priorReceived - priorSpent;
+    },
+    enabled: !!workspaceUserId && canViewFinancials,
+  });
+
   if (!canViewFinancials) {
     return <NoAccessState moduleLabel="financial figures" />;
   }
 
-  const isLoading = loadingPayments || loadingExpenses;
+  const isLoading = loadingPayments || loadingExpenses || loadingOpeningBalance;
 
   const fromPayments: TransactionRow[] = paymentRows.map((p) => {
     const client = p.invoices?.clients;
@@ -110,7 +132,7 @@ export function TransactionsLedger() {
   // balance accumulates in chronological order.
   const transactions = [...fromPayments, ...fromExpenses].sort((a, b) => (a.date === b.date ? a.id.localeCompare(b.id) : a.date.localeCompare(b.date)));
 
-  let running = 0;
+  let running = openingBalance;
   const withBalance = transactions.map((t) => {
     running += t.amount;
     return { ...t, balance: running };
@@ -187,7 +209,14 @@ export function TransactionsLedger() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Card>
+              <CardContent className="p-6">
+                <p className="text-sm font-medium text-muted-foreground">Opening Balance</p>
+                <p className="mt-2 text-2xl font-bold">{formatInvoiceCurrency(openingBalance)}</p>
+                <p className="mt-1 text-xs text-muted-foreground">as of {format(start, 'MMM d, yyyy')}</p>
+              </CardContent>
+            </Card>
             <Card>
               <CardContent className="p-6">
                 <p className="text-sm font-medium text-muted-foreground">Total Received</p>
@@ -202,8 +231,8 @@ export function TransactionsLedger() {
             </Card>
             <Card>
               <CardContent className="p-6">
-                <p className="text-sm font-medium text-muted-foreground">Net</p>
-                <p className="mt-2 text-2xl font-bold">{formatInvoiceCurrency(totalReceived - totalExpenses)}</p>
+                <p className="text-sm font-medium text-muted-foreground">Closing Balance</p>
+                <p className="mt-2 text-2xl font-bold">{formatInvoiceCurrency(openingBalance + totalReceived - totalExpenses)}</p>
               </CardContent>
             </Card>
           </div>
