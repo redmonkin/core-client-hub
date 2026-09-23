@@ -36,7 +36,7 @@ interface TransactionRow {
 
 export function TransactionsLedger() {
   const { workspaceUserId, canViewFinancials } = useWorkspaceUser();
-  const [range, setRange] = useState<RangeKey>('all_time');
+  const [range, setRange] = useState<RangeKey>('this_fy');
   const [customStart, setCustomStart] = useState(defaultCustomStart);
   const [customEnd, setCustomEnd] = useState(todayIso);
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');

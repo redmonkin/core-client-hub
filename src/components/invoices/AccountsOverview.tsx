@@ -71,7 +71,7 @@ const chartConfig: ChartConfig = {
 };
 
 export function AccountsOverview() {
-  const [range, setRange] = useState<RangeKey>('this_month');
+  const [range, setRange] = useState<RangeKey>('this_fy');
   const [customStart, setCustomStart] = useState(defaultCustomStart);
   const [customEnd, setCustomEnd] = useState(todayIso);
   const { workspaceUserId, canViewFinancials } = useWorkspaceUser();
