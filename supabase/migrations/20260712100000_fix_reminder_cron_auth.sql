@@ -9,7 +9,9 @@
 -- One-time manual step required after this migration runs: add a Vault
 -- secret named 'service_role_key' (Project Settings > Vault, or
 -- `select vault.create_secret('<the service role key>', 'service_role_key')`)
--- containing the project's actual service role key. Until that secret
+-- containing the project's actual service role key, and one named
+-- 'project_url' with the project's API URL (https://<ref>.supabase.co) --
+-- see 20260924120000_cron_project_url_from_vault.sql. Until those secrets
 -- exists, these jobs will send a null/blank bearer token and 401 the same
 -- way the old ones did -- check `select * from cron.job_run_details order by
 -- start_time desc limit 20;` after adding the secret to confirm 200s.
@@ -19,7 +21,7 @@ select cron.schedule(
   '0 9 * * *',
   $$
   select net.http_post(
-    url := 'https://jizouqjrdyfshhztqucd.supabase.co/functions/v1/contract-renewal-reminders',
+    url := (select decrypted_secret from vault.decrypted_secrets where name = 'project_url' limit 1) || '/functions/v1/contract-renewal-reminders',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
       'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'service_role_key' limit 1)
@@ -34,7 +36,7 @@ select cron.schedule(
   '0 9 * * *',
   $$
   select net.http_post(
-    url := 'https://jizouqjrdyfshhztqucd.supabase.co/functions/v1/proposal-expiry-reminders',
+    url := (select decrypted_secret from vault.decrypted_secrets where name = 'project_url' limit 1) || '/functions/v1/proposal-expiry-reminders',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
       'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'service_role_key' limit 1)

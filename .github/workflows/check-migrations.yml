@@ -5,6 +5,9 @@ on:
     paths:
       - "supabase/migrations/**"
 
+permissions:
+  contents: read
+
 jobs:
   check-permissive-rls:
     runs-on: ubuntu-latest
