@@ -1,73 +1,147 @@
-# Welcome to your Lovable project
+<div align="center">
 
-## Project info
+<img src="src/assets/clientra-dark.svg" alt="" width="72" height="72" />
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+# Clientra
 
-## How can I edit this code?
+**Open-source client management for freelancers and agencies.**
 
-There are several ways of editing your application.
+Clients, projects, proposals, contracts, invoices and a client portal, in one app you can use hosted or run yourself.
 
-**Use Lovable**
+[Website](https://clientra.redmonk.in) · [Self-hosting](#self-hosting) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+[![CI](https://github.com/redmonkin/core-client-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/redmonkin/core-client-hub/actions/workflows/ci.yml)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-0284C7.svg)](LICENSE)
 
-Changes made via Lovable will be committed automatically to this repo.
+</div>
 
-**Use your preferred IDE**
+![Clientra](public/og-image.png)
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Features
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+- **Clients & projects**: contacts, notes, files, tasks and history for every client.
+- **Proposals & templates**: reusable rich-text templates, scope and pricing, PDF and Word export.
+- **Contracts & e-signatures**: clients sign online. Renewal reminders go out before contracts expire.
+- **Invoices & accounts**: recurring invoices and expenses, payments, TDS tracking, and a per-client ledger. Amounts are in ₹.
+- **Tasks & timesheets**: track hours per project, import from CSV or Excel and export back.
+- **Client portal**: share proposals, contracts and invoices through password-protected links that expire. Clients approve, request changes, sign and comment without creating an account.
+- **Team workspace**: invite teammates with roles, including a separate permission for seeing financial figures.
+- **Public portfolio**: showcase featured projects, with a "start a project" form that creates leads in your workspace.
+- **Notifications**: in-app and email alerts when clients view or respond.
 
-Follow these steps:
+## Tech stack
+
+| Layer | Tools |
+| --- | --- |
+| Frontend | React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui, TanStack Query, TipTap |
+| Backend | [Supabase](https://supabase.com): Postgres with row-level security, Auth, Storage, Edge Functions (Deno) |
+| Email | [Resend](https://resend.com) |
+| Scheduling | `pg_cron` + `pg_net` for reminders and recurring invoices |
+
+The browser talks to Supabase directly. Row-level security scopes every table to a workspace, and edge functions handle anything that needs the service role: sending email, the token-authenticated client portal, and scheduled jobs.
+
+## Local development
+
+Requirements: Node.js 20+ and a Supabase project (the free tier is fine). [Self-hosting](#self-hosting) below explains how to set the project up.
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+git clone https://github.com/redmonkin/core-client-hub.git clientra
+cd clientra
+npm install
+cp .env.example .env   # fill in your Supabase URL and anon key
+npm run dev            # http://localhost:8080
 ```
 
-**Edit a file directly in GitHub**
+Useful scripts:
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Start the dev server |
+| `npm run build` | Production build into `dist/` |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | TypeScript checks (Vite's build does not typecheck) |
 
-**Use GitHub Codespaces**
+CI runs lint, typecheck and build on every pull request.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Self-hosting
 
-## What technologies are used for this project?
+Clientra runs on a single Supabase project plus any static hosting for the frontend. You'll need the [Supabase CLI](https://supabase.com/docs/guides/cli) and a [Resend](https://resend.com) account with a verified sending domain.
 
-This project is built with:
+### 1. Create and link a Supabase project
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+```sh
+supabase login
+supabase link --project-ref <project-ref>
+```
 
-## How can I deploy this project?
+### 2. Add two Vault secrets (before running migrations)
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+The scheduled jobs (reminders, recurring invoices and expenses) call your edge functions using these. In the SQL editor:
 
-## Can I connect a custom domain to my Lovable project?
+```sql
+select vault.create_secret('https://<project-ref>.supabase.co', 'project_url');
+select vault.create_secret('<your service_role key>', 'service_role_key');
+```
 
-Yes, you can!
+The migrations refuse to schedule the jobs until both secrets exist.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### 3. Apply the database migrations
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+```sh
+supabase db push
+```
+
+This creates the schema, RLS policies, storage buckets, `pg_cron` / `pg_net` extensions and cron jobs.
+
+### 4. Configure and deploy edge functions
+
+```sh
+cp supabase/functions/.env.example supabase/functions/.env   # fill it in
+supabase secrets set --env-file supabase/functions/.env
+supabase functions deploy
+```
+
+`supabase/config.toml` marks the functions that must be publicly callable (`verify_jwt = false`). Each of those checks its caller itself: the client portal uses its access token, and cron functions require the service role key.
+
+### 5. Configure Auth
+
+In **Authentication → URL Configuration**, set the Site URL to your frontend's URL. Add `https://<your-domain>/dashboard` and `https://<your-domain>/reset-password` to the redirect URLs.
+
+### 6. Build and deploy the frontend
+
+Set the variables from [`.env.example`](.env.example) in your hosting provider, then build:
+
+```sh
+npm run build   # outputs dist/
+```
+
+Serve `dist/` as a single-page app, rewriting every path to `/index.html`. `vercel.json` already does this on Vercel. Netlify, Cloudflare Pages and plain nginx work too.
+
+## Project structure
+
+```
+src/
+  pages/            Route components (thin; logic lives in hooks/components)
+  components/       Feature components by domain, plus shadcn/ui in ui/
+  hooks/            useAuth, useWorkspaceUser (workspace-scoped writes), ...
+  lib/              PDF export, portal access tokens, invoice utils, ...
+  integrations/     Generated Supabase client and database types
+supabase/
+  migrations/       SQL migrations, applied in timestamp order
+  functions/        Deno edge functions (_shared/ holds common helpers)
+docs/               Product requirements, roadmap and feature designs
+```
+
+[`CLAUDE.md`](CLAUDE.md) documents the architecture in more depth: the multi-tenant workspace model, token-based portal access and the security conventions every change must follow.
+
+## Contributing
+
+Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request, and see [docs/ROADMAP.md](docs/ROADMAP.md) for what's planned.
+
+## Security
+
+Please don't report vulnerabilities in public issues. See [SECURITY.md](SECURITY.md).
+
+## License
+
+Clientra is licensed under the [GNU Affero General Public License v3.0](LICENSE). You may use, modify and self-host it freely. If you run a modified version as a service for others, you must make your modified source code available to its users.
