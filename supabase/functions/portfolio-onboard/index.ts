@@ -16,8 +16,15 @@ const ALLOWED_MIME = [
   "text/plain", "text/csv",
 ];
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function sanitizeFileName(name: string): string {
   return name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120);
+}
+
+async function sha256Hex(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 Deno.serve(async (req) => {
@@ -31,10 +38,19 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     const body = await req.json();
-    const { user_id, name, email, phone, company_name, project_name, project_type, questionnaire, attachment } = body;
+    const { user_id, name, email, phone, company_name, project_name, project_type, questionnaire, attachment, website } = body;
+
+    // Honeypot field (hidden in the form): only bots fill it. Pretend success
+    // so they have no signal to adapt to.
+    if (website) {
+      return new Response(
+        JSON.stringify({ success: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Input validation
-    if (!user_id || typeof user_id !== "string" || user_id.length > 100) {
+    if (!user_id || typeof user_id !== "string" || !UUID_RE.test(user_id)) {
       return new Response(
         JSON.stringify({ error: "Invalid user_id" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -64,6 +80,50 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "Invalid portfolio" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate the attachment before creating anything, so a rejected file
+    // doesn't leave behind an orphan client/project.
+    let attachmentUpload: { binary: Uint8Array; name: string; type: string } | null = null;
+    if (attachment && typeof attachment === "object" && attachment.data && attachment.name && attachment.type) {
+      const fileType = String(attachment.type);
+      if (!ALLOWED_MIME.includes(fileType)) {
+        return new Response(
+          JSON.stringify({ error: "File type not allowed" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      let binary: Uint8Array;
+      try {
+        const base64 = String(attachment.data).split(",").pop() || "";
+        binary = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+      } catch {
+        return new Response(
+          JSON.stringify({ error: "Invalid attachment" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (binary.byteLength > MAX_FILE_BYTES) {
+        return new Response(
+          JSON.stringify({ error: "File too large (max 5MB)" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      attachmentUpload = { binary, name: sanitizeFileName(String(attachment.name)), type: fileType };
+    }
+
+    // Rate limit per submitter IP and per portfolio owner.
+    const clientIp = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "unknown";
+    const { data: allowed, error: rateLimitError } = await supabase.rpc("record_portfolio_onboard_submission", {
+      p_owner_id: user_id,
+      p_ip_hash: await sha256Hex(clientIp),
+    });
+    if (rateLimitError) throw rateLimitError;
+    if (!allowed) {
+      return new Response(
+        JSON.stringify({ error: "Too many submissions. Please try again later." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -122,30 +182,14 @@ Deno.serve(async (req) => {
 
     // 3. Optional file attachment upload
     let attachmentInfo: { url: string; name: string; type: string } | null = null;
-    if (attachment && typeof attachment === "object" && attachment.data && attachment.name && attachment.type) {
-      const fileType = String(attachment.type);
-      const fileName = sanitizeFileName(String(attachment.name));
-      if (!ALLOWED_MIME.includes(fileType)) {
-        return new Response(
-          JSON.stringify({ error: "File type not allowed" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
+    if (attachmentUpload) {
       try {
-        const base64 = String(attachment.data).split(",").pop() || "";
-        const binary = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-        if (binary.byteLength > MAX_FILE_BYTES) {
-          return new Response(
-            JSON.stringify({ error: "File too large (max 5MB)" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        const path = `${user_id}/portfolio-leads/${project.id}/${Date.now()}_${fileName}`;
+        const path = `${user_id}/portfolio-leads/${project.id}/${Date.now()}_${attachmentUpload.name}`;
         const { error: upErr } = await supabase.storage
           .from("project-attachments")
-          .upload(path, binary, { contentType: fileType, upsert: false });
+          .upload(path, attachmentUpload.binary, { contentType: attachmentUpload.type, upsert: false });
         if (upErr) throw upErr;
-        attachmentInfo = { url: path, name: fileName, type: fileType };
+        attachmentInfo = { url: path, name: attachmentUpload.name, type: attachmentUpload.type };
       } catch (e) {
         console.error("Attachment upload failed:", e);
       }
@@ -190,7 +234,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, client_id: clientId, project_id: project.id }),
+      JSON.stringify({ success: true }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

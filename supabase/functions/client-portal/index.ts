@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { verifyPortalPassword } from "../_shared/portal-password.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,6 +12,41 @@ const corsHeaders = {
 
 const escapeHtml = (s: string): string =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+
+// Checks a portal password against a token's stored hash, counting the attempt
+// toward the token's lockout (see claim_portal_password_attempt). Returns an
+// error Response to send back, or null when the password is correct.
+async function checkPortalPassword(
+  supabase: any,
+  documentType: "proposal" | "contract" | "invoice",
+  token: string,
+  storedHash: string,
+  password: unknown,
+): Promise<Response | null> {
+  const { data: claimed, error } = await supabase.rpc("claim_portal_password_attempt", {
+    p_document_type: documentType,
+    p_token: token,
+  });
+  if (error) throw error;
+  if (!claimed) {
+    return new Response(
+      JSON.stringify({ error: "Too many incorrect attempts. Please try again in 15 minutes." }),
+      { status: 429, headers: { "Content-Type": "application/json", ...corsHeaders } },
+    );
+  }
+
+  const valid = typeof password === "string" && password.length <= 128 && await verifyPortalPassword(password, storedHash);
+  if (!valid) {
+    return new Response(JSON.stringify({ error: "Incorrect password" }), { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } });
+  }
+
+  const { error: resetError } = await supabase
+    .from(`${documentType}_access_tokens`)
+    .update({ failed_password_attempts: 0, password_locked_until: null })
+    .eq("token", token);
+  if (resetError) console.error("Failed to reset password attempts:", resetError);
+  return null;
+}
 
 // Once a proposal/contract has been sent, its `content` column holds a frozen snapshot
 // of the template body at send time. Prefer that over the live template so editing a
@@ -406,14 +442,9 @@ const handler = async (req: Request): Promise<Response> => {
         return new Response(JSON.stringify({ error: "This link has expired" }), { status: 410, headers: { "Content-Type": "application/json", ...corsHeaders } });
       }
 
-      // Hash the password server-side and compare
-      const encoder = new TextEncoder();
-      const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(password));
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const computedHash = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
-
-      if (computedHash !== accessToken.password_hash) {
-        return new Response(JSON.stringify({ error: "Incorrect password" }), { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } });
+      if (accessToken.password_hash) {
+        const passwordError = await checkPortalPassword(supabase, documentType, token, accessToken.password_hash, password);
+        if (passwordError) return passwordError;
       }
 
       // Password verified — return the full document data (same as GET with valid password)
@@ -598,12 +629,8 @@ const handler = async (req: Request): Promise<Response> => {
         if (!password) {
           return new Response(JSON.stringify({ error: "Password required", password_required: true }), { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } });
         }
-        const encoder = new TextEncoder();
-        const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(password));
-        const computedHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
-        if (computedHash !== tokenData.password_hash) {
-          return new Response(JSON.stringify({ error: "Incorrect password" }), { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } });
-        }
+        const passwordError = await checkPortalPassword(supabase, documentType, accessTokenValue, tokenData.password_hash, password);
+        if (passwordError) return passwordError;
       }
 
       if (action === "comment") {

@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { generatePortalPassword, hashPortalPassword } from "@/lib/portal-password";
 
 export type PortalAccessResult = {
   link: string;
@@ -15,18 +16,8 @@ async function createNewToken(invoiceId: string, origin: string): Promise<Portal
   crypto.getRandomValues(tokenArray);
   const token = Array.from(tokenArray, (b) => b.toString(16).padStart(2, "0")).join("");
 
-  const passArray = new Uint8Array(4);
-  crypto.getRandomValues(passArray);
-  const password = Array.from(passArray, (b) => b.toString(36).padStart(2, "0"))
-    .join("")
-    .substring(0, 6)
-    .toUpperCase();
-
-  const encoder = new TextEncoder();
-  const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(password));
-  const passwordHash = Array.from(new Uint8Array(hashBuffer))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+  const password = generatePortalPassword();
+  const passwordHash = await hashPortalPassword(password);
 
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 30);

@@ -97,6 +97,9 @@ export default function Portfolio() {
     project_name: '',
     project_type: 'one-time',
   });
+  // Honeypot: hidden from people, but naive spam bots fill it in. The
+  // portfolio-onboard function silently drops submissions where it is set.
+  const [honeypot, setHoneypot] = useState('');
 
   const [questionnaire, setQuestionnaire] = useState({
     primaryGoal: '',
@@ -283,6 +286,7 @@ export default function Portfolio() {
             Object.entries(answers).filter(([, v]) => v && v.trim())
           ),
           attachment: attachmentPayload,
+          website: honeypot,
         },
       });
       if (error) throw error;
@@ -297,6 +301,7 @@ export default function Portfolio() {
   const resetForm = () => {
     setStep('details');
     setClientForm({ name: '', email: '', phone: '', company_name: '', project_name: '', project_type: 'one-time' });
+    setHoneypot('');
     setQuestionnaire({
       primaryGoal: '', targetAudience: '', hasExistingSite: '', existingSiteUrl: '', designInspiration: '',
       features: [], budget: '', timelineWeeks: '', contentReady: '', stakeholders: '', communicationPreference: '',
@@ -505,6 +510,16 @@ export default function Portfolio() {
             <form onSubmit={handleSubmitDetails} className="flex min-h-0 flex-1 flex-col">
               <div className="min-h-0 flex-1 overflow-y-auto -mx-6">
                 <div className="space-y-4 px-6 pb-1">
+                  <input
+                    type="text"
+                    name="website"
+                    value={honeypot}
+                    onChange={(e) => setHoneypot(e.target.value)}
+                    tabIndex={-1}
+                    autoComplete="off"
+                    aria-hidden="true"
+                    className="absolute -left-[9999px] h-px w-px opacity-0"
+                  />
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label>Full Name *</Label>
