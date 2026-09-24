@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { emailFrom } from "../_shared/email.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -190,7 +191,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       try {
         const emailResponse = await resend.emails.send({
-          from: "Contract Reminders <onboarding@resend.dev>",
+          from: emailFrom("Contract Reminders"),
           to: [userEmail],
           subject: `⏰ ${userContracts.length} Contract${userContracts.length > 1 ? "s" : ""} Expiring Soon`,
           html: emailHtml,

@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { generatePortalPassword, hashPortalPassword } from "../_shared/portal-password.ts";
+import { emailFrom } from "../_shared/email.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -330,7 +331,7 @@ const handler = async (req: Request): Promise<Response> => {
           });
 
           const emailPayload: Record<string, unknown> = {
-            from: `${brandingRow?.company_name || "Notifications"} <noreply@notifications.redmonk.in>`,
+            from: emailFrom(brandingRow?.company_name || "Notifications"),
             to: [clientRow.email],
             subject: emailContent.subject,
             html: emailContent.html,

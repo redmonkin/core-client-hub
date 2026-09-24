@@ -1,7 +1,17 @@
 {
-  "name": "vite_react_shadcn_ts",
+  "name": "clientra",
+  "description": "Open-source client management for freelancers and agencies: clients, projects, proposals, contracts, invoices and a client portal.",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "license": "AGPL-3.0-only",
+  "homepage": "https://clientra.redmonk.in",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/redmonkin/core-client-hub.git"
+  },
+  "bugs": {
+    "url": "https://github.com/redmonkin/core-client-hub/issues"
+  },
   "type": "module",
   "scripts": {
     "predev": "npx tsx scripts/generate-sitemap.ts",
@@ -100,7 +110,6 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
-    "lovable-tagger": "^1.1.13",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.23.0",

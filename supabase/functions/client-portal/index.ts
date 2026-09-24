@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { verifyPortalPassword } from "../_shared/portal-password.ts";
+import { emailFrom } from "../_shared/email.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -774,7 +775,7 @@ const handler = async (req: Request): Promise<Response> => {
               const ownerName = ownerData?.user?.user_metadata?.full_name || ownerEmail.split("@")[0];
 
               await resend.emails.send({
-                from: "Notifications <noreply@notifications.redmonk.in>",
+                from: emailFrom("Notifications"),
                 to: [ownerEmail],
                 subject: `${emojiMap[action]} ${subjectMap[action]} — ${docTitle}`,
                 html: `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.6;color:#333;max-width:600px;margin:0 auto;padding:20px;"><div style="background:${colorMap[action]};padding:30px;border-radius:10px 10px 0 0;text-align:center;"><div style="font-size:48px;margin-bottom:8px;">${emojiMap[action]}</div><h1 style="color:white;margin:0;font-size:24px;">${subjectMap[action]}</h1></div><div style="background:#f9fafb;padding:30px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 10px 10px;"><p style="margin-top:0;">Hi ${ownerName},</p><p>${messageMap[action]}</p>${notesHtml}<p style="color:#6b7280;font-size:14px;margin-bottom:0;">Log in to your dashboard to take the next steps.</p></div></body></html>`,

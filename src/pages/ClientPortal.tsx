@@ -24,6 +24,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
+const PORTAL_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/client-portal`;
+
 type PortalProposal = {
   id: string;
   title: string;
@@ -135,7 +137,7 @@ export default function ClientPortal() {
 
   const fetchProposal = async (plainPassword?: string) => {
     try {
-      const baseUrl = `https://jizouqjrdyfshhztqucd.supabase.co/functions/v1/client-portal?token=${token}`;
+      const baseUrl = `${PORTAL_FUNCTION_URL}?token=${token}`;
       
       let response: Response;
       if (plainPassword) {
@@ -213,7 +215,7 @@ export default function ClientPortal() {
         body.password = verifiedPassword;
       }
       const response = await fetch(
-        `https://jizouqjrdyfshhztqucd.supabase.co/functions/v1/client-portal`,
+        PORTAL_FUNCTION_URL,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -249,7 +251,7 @@ export default function ClientPortal() {
       if (commentAuthorName.trim()) body.comment_author_name = commentAuthorName.trim();
       if (verifiedPassword) body.password = verifiedPassword;
       const response = await fetch(
-        `https://jizouqjrdyfshhztqucd.supabase.co/functions/v1/client-portal`,
+        PORTAL_FUNCTION_URL,
         { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
       );
       const result = await response.json();
@@ -264,9 +266,18 @@ export default function ClientPortal() {
     }
   };
 
+  // Portal links carry access tokens; never let search engines index any state.
+  const portalHead = (
+    <Helmet>
+      <title>Client Portal — Clientra</title>
+      <meta name="robots" content="noindex, nofollow" />
+    </Helmet>
+  );
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${primaryColor}08, ${accentColor}05)` }}>
+        {portalHead}
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-10 w-10 animate-spin" style={{ color: primaryColor }} />
           <p className="text-muted-foreground text-sm">Loading proposal...</p>
@@ -278,6 +289,7 @@ export default function ClientPortal() {
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        {portalHead}
         <Card className="max-w-md w-full shadow-lg">
           <CardContent className="pt-8 pb-8">
             <div className="flex flex-col items-center text-center gap-4">
@@ -298,6 +310,7 @@ export default function ClientPortal() {
   if (passwordRequired && !authenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        {portalHead}
         <Card className="max-w-sm w-full shadow-lg">
           <CardContent className="pt-8 pb-8">
             <form onSubmit={handlePasswordSubmit} className="flex flex-col items-center text-center gap-5">
@@ -477,6 +490,7 @@ export default function ClientPortal() {
 
     return (
       <div className="min-h-screen" style={{ background: `linear-gradient(180deg, ${primaryColor}06 0%, #ffffff 40%)` }}>
+        {portalHead}
         <div className="mx-auto max-w-2xl px-4 py-10">
           {branding?.company_name && (
             <p className="mb-6 text-center text-sm font-medium text-muted-foreground">{branding.company_name}</p>
