@@ -27,6 +27,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { readSpreadsheetFile } from '@/lib/spreadsheet-import';
 
 const REQUIRED_FIELDS = ['task', 'owner', 'duration'] as const;
 const OPTIONAL_FIELDS = ['date', 'notes'] as const;
@@ -136,11 +137,7 @@ export function TimesheetImportDialog({ open, onOpenChange, onImport }: Timeshee
 
     setIsProcessing(true);
     try {
-      const XLSX = await import('xlsx');
-      const buffer = await file.arrayBuffer();
-      const workbook = XLSX.read(buffer, { type: 'array' });
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json<Record<string, any>>(sheet);
+      const rows = await readSpreadsheetFile(file);
 
       if (rows.length === 0) {
         toast.error('No data found in file');
@@ -281,7 +278,7 @@ export function TimesheetImportDialog({ open, onOpenChange, onImport }: Timeshee
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".csv,.xlsx,.xls"
+                accept=".csv,.xlsx"
                 className="hidden"
                 onChange={handleFileSelect}
               />

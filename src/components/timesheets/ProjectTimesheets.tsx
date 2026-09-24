@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Plus, Upload, Trash2, Clock, Loader2, FileSpreadsheet, Pencil, Download, Play, CheckCircle2, CalendarClock } from 'lucide-react';
-import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -250,33 +249,39 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
     bulkStatusMutation.mutate({ ids, status }, { onSuccess: () => setSelectedIds(new Set()) });
   };
 
-  const exportToExcel = (entries: typeof timesheets, filename: string) => {
-    const rows = entries.map(t => ({
-      Task: t.task,
-      Owner: t.owner,
-      Duration: t.duration != null ? Number(t.duration) : '',
-      Date: t.date ? new Date(t.date).toLocaleDateString('en-IN') : '',
-      'Due Date': t.due_date ? new Date(t.due_date).toLocaleDateString('en-IN') : '',
-      Status: STATUS_LABELS[(t.status as TimesheetStatus) || 'new'],
-      Notes: t.notes || '',
-    }));
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Timesheets');
-    XLSX.writeFile(wb, filename);
+  const exportToExcel = async (entries: typeof timesheets, filename: string) => {
+    const { default: writeXlsxFile } = await import('write-excel-file/browser');
+    const header = ['Task', 'Owner', 'Duration', 'Date', 'Due Date', 'Status', 'Notes'];
+    const rows = entries.map(t => [
+      t.task ?? '',
+      t.owner ?? '',
+      t.duration != null ? Number(t.duration) : null,
+      t.date ? new Date(t.date).toLocaleDateString('en-IN') : '',
+      t.due_date ? new Date(t.due_date).toLocaleDateString('en-IN') : '',
+      STATUS_LABELS[(t.status as TimesheetStatus) || 'new'],
+      t.notes || '',
+    ]);
+    await writeXlsxFile([header, ...rows], { sheet: 'Timesheets' }).toFile(filename);
+  };
+
+  const runExport = async (entries: typeof timesheets, filename: string) => {
+    try {
+      await exportToExcel(entries, filename);
+      toast.success(`${entries.length} entries exported`);
+    } catch (error) {
+      toast.error('Export failed: ' + (error instanceof Error ? error.message : String(error)));
+    }
   };
 
   const handleExportSelected = () => {
     const selected = timesheets.filter(t => selectedIds.has(t.id));
     if (selected.length === 0) return;
-    exportToExcel(selected, `timesheets-selected-${projectId.slice(0, 8)}.xlsx`);
-    toast.success(`${selected.length} entries exported`);
+    runExport(selected, `timesheets-selected-${projectId.slice(0, 8)}.xlsx`);
   };
 
   const handleExportAll = () => {
     if (timesheets.length === 0) return;
-    exportToExcel(timesheets, `timesheets-all-${projectId.slice(0, 8)}.xlsx`);
-    toast.success(`${timesheets.length} entries exported`);
+    runExport(timesheets, `timesheets-all-${projectId.slice(0, 8)}.xlsx`);
   };
 
   const totalHours = timesheets.reduce((sum, t) => sum + Number(t.duration ?? 0), 0);
