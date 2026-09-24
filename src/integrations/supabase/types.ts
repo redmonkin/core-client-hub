@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.1"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -447,6 +447,94 @@ export type Database = {
         }
         Relationships: []
       }
+      expense_projects: {
+        Row: {
+          created_at: string
+          expense_id: string
+          id: string
+          project_id: string
+        }
+        Insert: {
+          created_at?: string
+          expense_id: string
+          id?: string
+          project_id: string
+        }
+        Update: {
+          created_at?: string
+          expense_id?: string
+          id?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_projects_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_projects_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_projects_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "public_portfolio_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expenses: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          description: string | null
+          expense_date: string
+          id: string
+          notes: string | null
+          receipt_name: string | null
+          receipt_url: string | null
+          updated_at: string
+          user_id: string
+          vendor: string | null
+        }
+        Insert: {
+          amount?: number
+          category?: string
+          created_at?: string
+          description?: string | null
+          expense_date?: string
+          id?: string
+          notes?: string | null
+          receipt_name?: string | null
+          receipt_url?: string | null
+          updated_at?: string
+          user_id: string
+          vendor?: string | null
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          description?: string | null
+          expense_date?: string
+          id?: string
+          notes?: string | null
+          receipt_name?: string | null
+          receipt_url?: string | null
+          updated_at?: string
+          user_id?: string
+          vendor?: string | null
+        }
+        Relationships: []
+      }
       invoice_access_tokens: {
         Row: {
           created_at: string
@@ -834,6 +922,41 @@ export type Database = {
         }
         Relationships: []
       }
+      project_note_attachments: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_type: string | null
+          file_url: string
+          id: string
+          note_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_type?: string | null
+          file_url: string
+          id?: string
+          note_id: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_type?: string | null
+          file_url?: string
+          id?: string
+          note_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_note_attachments_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "project_notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_notes: {
         Row: {
           content: string
@@ -1107,6 +1230,114 @@ export type Database = {
             columns: ["template_id"]
             isOneToOne: false
             referencedRelation: "templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recurring_expense_projects: {
+        Row: {
+          created_at: string
+          id: string
+          project_id: string
+          recurring_expense_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          project_id: string
+          recurring_expense_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          project_id?: string
+          recurring_expense_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_expense_projects_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_expense_projects_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "public_portfolio_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_expense_projects_recurring_expense_id_fkey"
+            columns: ["recurring_expense_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_expenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recurring_expenses: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          day_of_month: number
+          description: string | null
+          end_date: string | null
+          frequency: string
+          id: string
+          is_active: boolean
+          last_generated_expense_id: string | null
+          next_run_date: string
+          notes: string | null
+          start_date: string
+          updated_at: string
+          user_id: string
+          vendor: string | null
+        }
+        Insert: {
+          amount?: number
+          category?: string
+          created_at?: string
+          day_of_month: number
+          description?: string | null
+          end_date?: string | null
+          frequency: string
+          id?: string
+          is_active?: boolean
+          last_generated_expense_id?: string | null
+          next_run_date: string
+          notes?: string | null
+          start_date: string
+          updated_at?: string
+          user_id: string
+          vendor?: string | null
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          day_of_month?: number
+          description?: string | null
+          end_date?: string | null
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          last_generated_expense_id?: string | null
+          next_run_date?: string
+          notes?: string | null
+          start_date?: string
+          updated_at?: string
+          user_id?: string
+          vendor?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_expenses_last_generated_expense_id_fkey"
+            columns: ["last_generated_expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
             referencedColumns: ["id"]
           },
         ]
@@ -1541,6 +1772,7 @@ export type Database = {
           _contract_id: string
           _cost_breakdown: string
           _due_date: string
+          _invoice_number?: string
           _issued_date: string
           _notes: string
           _payment_terms: string
@@ -1613,12 +1845,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1642,11 +1874,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1667,11 +1899,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1692,11 +1924,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1709,11 +1941,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

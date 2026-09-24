@@ -66,10 +66,6 @@ export function TaxDeductions() {
     enabled: !!workspaceUserId && canViewFinancials,
   });
 
-  if (!canViewFinancials) {
-    return <NoAccessState moduleLabel="financial figures" />;
-  }
-
   const totalTaxDeducted = rows.reduce((acc, r) => acc + r.tax_deducted_amount, 0);
   const totalReceivedGross = rows.reduce((acc, r) => acc + r.amount + r.tax_deducted_amount, 0);
   const totalNetCash = totalReceivedGross - totalTaxDeducted;
@@ -89,6 +85,10 @@ export function TaxDeductions() {
     return sort.direction === 'asc' ? cmp : -cmp;
   });
   const rowsPagination = usePagination(sortedRows, DEFAULT_PAGE_SIZE);
+
+  if (!canViewFinancials) {
+    return <NoAccessState moduleLabel="financial figures" />;
+  }
 
   return (
     <div className="space-y-6">

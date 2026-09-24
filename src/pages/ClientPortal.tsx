@@ -156,8 +156,8 @@ export default function ClientPortal() {
         return;
       }
       
-      if (response.status === 403) {
-        setPasswordError('Incorrect password. Please try again.');
+      if (response.status === 403 || response.status === 429) {
+        setPasswordError(response.status === 429 ? result.error : 'Incorrect password. Please try again.');
         setVerifyingPassword(false);
         return;
       }
@@ -191,7 +191,7 @@ export default function ClientPortal() {
     if (!password.trim()) return;
     setVerifyingPassword(true);
     setPasswordError('');
-    await fetchProposal(password.toUpperCase());
+    await fetchProposal(password.trim().toUpperCase());
   };
 
   const handleAction = async (action: 'approve' | 'reject' | 'request_changes') => {

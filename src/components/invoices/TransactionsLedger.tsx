@@ -101,10 +101,6 @@ export function TransactionsLedger() {
     enabled: !!workspaceUserId && canViewFinancials,
   });
 
-  if (!canViewFinancials) {
-    return <NoAccessState moduleLabel="financial figures" />;
-  }
-
   const isLoading = loadingPayments || loadingExpenses || loadingOpeningBalance;
 
   const fromPayments: TransactionRow[] = paymentRows.map((p) => {
@@ -158,6 +154,10 @@ export function TransactionsLedger() {
       return sort.direction === 'asc' ? cmp : -cmp;
     });
   const ledgerPagination = usePagination(filtered, DEFAULT_PAGE_SIZE);
+
+  if (!canViewFinancials) {
+    return <NoAccessState moduleLabel="financial figures" />;
+  }
 
   return (
     <div className="space-y-6">

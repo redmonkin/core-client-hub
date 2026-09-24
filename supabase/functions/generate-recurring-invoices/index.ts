@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { generatePortalPassword, hashPortalPassword } from "../_shared/portal-password.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -93,13 +94,8 @@ async function createInvoicePortalToken(
   crypto.getRandomValues(tokenArray);
   const token = Array.from(tokenArray, (b) => b.toString(16).padStart(2, "0")).join("");
 
-  const passArray = new Uint8Array(4);
-  crypto.getRandomValues(passArray);
-  const password = Array.from(passArray, (b) => b.toString(36).padStart(2, "0")).join("").substring(0, 6).toUpperCase();
-
-  const encoder = new TextEncoder();
-  const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(password));
-  const passwordHash = Array.from(new Uint8Array(hashBuffer)).map((b) => b.toString(16).padStart(2, "0")).join("");
+  const password = generatePortalPassword();
+  const passwordHash = await hashPortalPassword(password);
 
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 30);
