@@ -20,6 +20,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Globe, Building2, Send, CheckCircle, Loader2, Image as ImageIcon, Mail, Paperclip, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { SITE_URL } from '@/lib/site';
+import NotFound from './NotFound';
 
 const BUDGET_OPTIONS = [
   { value: '10k-25k', label: '₹10,000 – ₹25,000' },
@@ -129,7 +131,7 @@ export default function Portfolio() {
     }));
   };
 
-  const { data: branding } = useQuery({
+  const { data: branding, isLoading: brandingLoading } = useQuery({
     queryKey: ['portfolio-branding', routeParam],
     queryFn: async () => {
       if (!routeParam) return null;
@@ -339,8 +341,22 @@ export default function Portfolio() {
   const stepIndex = step === 'success' ? FORM_STEPS.length : FORM_STEPS.indexOf(step as typeof FORM_STEPS[number]);
   const stepProgress = ((stepIndex + 1) / FORM_STEPS.length) * 100;
 
-  const primaryColor = branding?.primary_color || '#8B5CF6';
-  const accentColor = branding?.accent_color || '#F59E0B';
+  // Unknown slug/user id (or a failed lookup): don't render a generic,
+  // indexable portfolio page with a working lead form.
+  if (!routeParam || (!brandingLoading && !branding)) {
+    return <NotFound />;
+  }
+  if (brandingLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" aria-label="Loading portfolio" />
+      </div>
+    );
+  }
+
+  // Default to the Clientra primary blue when the owner hasn't set brand colors.
+  const primaryColor = branding?.primary_color || '#0284C7';
+  const accentColor = branding?.accent_color || '#38BDF8';
   const companyName = branding?.company_name || 'Our Portfolio';
 
   return (
@@ -351,10 +367,10 @@ export default function Portfolio() {
           name="description"
           content={branding?.tagline || (companyName ? `Selected work and projects by ${companyName}.` : 'Portfolio of selected work and projects.')}
         />
-        <link rel="canonical" href={`https://clientra.redmonk.in/portfolio/${routeParam ?? ''}`} />
+        <link rel="canonical" href={`${SITE_URL}/portfolio/${routeParam ?? ''}`} />
         <meta property="og:title" content={companyName ? `${companyName} — Portfolio` : 'Portfolio'} />
         <meta property="og:description" content={branding?.tagline || (companyName ? `Selected work and projects by ${companyName}.` : 'Portfolio of selected work and projects.')} />
-        <meta property="og:url" content={`https://clientra.redmonk.in/portfolio/${routeParam ?? ''}`} />
+        <meta property="og:url" content={`${SITE_URL}/portfolio/${routeParam ?? ''}`} />
         <meta property="og:type" content="profile" />
         {branding?.company_logo_url && <meta property="og:image" content={branding.company_logo_url} />}
       </Helmet>

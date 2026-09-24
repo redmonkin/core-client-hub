@@ -7,52 +7,72 @@ import {
   Users,
   FileText,
   FileSignature,
-  FolderKanban,
   Bell,
   Share2,
   Github,
   ArrowRight,
   CheckCircle,
-  Sparkles,
   Shield,
   Zap,
   Code2,
-  Heart,
+  Database,
+  Receipt,
+  Clock,
+  UsersRound,
+  Globe,
+  Server,
+  Cloud,
 } from "lucide-react";
 import clientraLogoLight from "@/assets/clientra-light.svg";
 import clientraLogoDark from "@/assets/clientra-dark.svg";
 import { useAuth } from "@/hooks/useAuth";
+import { LICENSE_URL, REPO_URL, SELF_HOST_GUIDE_URL, SITE_URL } from "@/lib/site";
 
 const features = [
   {
     icon: Users,
-    title: "Client Management",
-    description: "Organize all your client information in one place with contact details, notes, and history.",
-  },
-  {
-    icon: FolderKanban,
-    title: "Project Tracking",
-    description: "Track projects from start to finish with status updates, timelines, and milestones.",
+    title: "Clients & Projects",
+    description: "Keep every client's contacts, projects, notes, files and history in one place.",
   },
   {
     icon: FileText,
-    title: "Proposal Builder",
-    description: "Create professional proposals with scope of work and cost breakdowns. Share via secure links.",
+    title: "Proposals & Templates",
+    description: "Build proposals from reusable templates with scope and pricing, then export to PDF or Word.",
   },
   {
     icon: FileSignature,
-    title: "Contract Management",
-    description: "Manage contracts with renewal tracking and automated reminders before expiration.",
+    title: "Contracts & E-Signatures",
+    description: "Clients sign contracts online. Renewal reminders go out before anything expires.",
   },
   {
-    icon: Bell,
-    title: "Smart Notifications",
-    description: "Get real-time alerts when clients view or respond to proposals. Customizable preferences.",
+    icon: Receipt,
+    title: "Invoices & Accounts",
+    description: "Recurring invoices, expenses, payments, TDS tracking and a per-client ledger, in ₹.",
+  },
+  {
+    icon: Clock,
+    title: "Tasks & Timesheets",
+    description: "Track tasks and hours per project. Import timesheets from CSV or Excel and export them back.",
   },
   {
     icon: Share2,
     title: "Client Portal",
-    description: "Share proposals via secure, expiring links. Clients can review and approve without an account.",
+    description: "Share proposals, contracts and invoices through password-protected, expiring links. No client account needed.",
+  },
+  {
+    icon: UsersRound,
+    title: "Team Workspace",
+    description: "Invite teammates into your workspace with roles, including who can see financial figures.",
+  },
+  {
+    icon: Globe,
+    title: "Public Portfolio",
+    description: "Showcase featured work on a public page with a built-in \u201cstart a project\u201d form that creates leads.",
+  },
+  {
+    icon: Bell,
+    title: "Notifications",
+    description: "Get alerted when clients view, approve or comment on what you've sent.",
   },
 ];
 
@@ -79,51 +99,34 @@ const howItWorks = [
   },
 ];
 
-const pricingPlans = [
+const deploymentOptions = [
   {
-    name: "Free",
-    price: "$0",
-    description: "Perfect for freelancers just getting started",
+    icon: Cloud,
+    name: "Use it here",
+    description: "Create an account on this instance and start right away.",
     features: [
-      "Up to 5 clients",
-      "10 proposals per month",
-      "Basic notifications",
-      "Community support",
-      "Open source access",
+      "Nothing to install or maintain",
+      "Clients, proposals, contracts and invoices",
+      "Client portal and public portfolio",
+      "Invite your team",
     ],
-    cta: "Get Started",
-    popular: false,
+    cta: "Create an account",
+    href: "/auth",
+    external: false,
   },
   {
-    name: "Pro",
-    price: "$19",
-    period: "/month",
-    description: "For growing freelancers and small teams",
+    icon: Server,
+    name: "Host it yourself",
+    description: "Run your own copy on your own Supabase project.",
     features: [
-      "Unlimited clients",
-      "Unlimited proposals",
-      "Priority notifications",
-      "Contract renewals",
-      "Custom branding",
-      "Email support",
+      "Free and open source (AGPL-3.0)",
+      "Your database, your data",
+      "Deploy the frontend anywhere static sites run",
+      "Customize it to fit your workflow",
     ],
-    cta: "Start Free Trial",
-    popular: true,
-  },
-  {
-    name: "Enterprise",
-    price: "Custom",
-    description: "For agencies and large teams",
-    features: [
-      "Everything in Pro",
-      "Team collaboration",
-      "API access",
-      "Custom integrations",
-      "Dedicated support",
-      "SLA guarantee",
-    ],
-    cta: "Contact Sales",
-    popular: false,
+    cta: "Read the self-hosting guide",
+    href: SELF_HOST_GUIDE_URL,
+    external: true,
   },
 ];
 
@@ -147,10 +150,10 @@ export default function Landing() {
       <Helmet>
         <title>Clientra — Open-source client management for freelancers</title>
         <meta name="description" content="Open-source client management for freelancers and agencies. Track clients, projects, proposals, and contracts in one place." />
-        <link rel="canonical" href="https://clientra.redmonk.in/" />
+        <link rel="canonical" href={`${SITE_URL}/`} />
         <meta property="og:title" content="Clientra — Open-source client management" />
         <meta property="og:description" content="Track clients, projects, proposals, and contracts in one place. Open source and self-hostable." />
-        <meta property="og:url" content="https://clientra.redmonk.in/" />
+        <meta property="og:url" content={`${SITE_URL}/`} />
         <meta property="og:type" content="website" />
       </Helmet>
       {/* Navigation */}
@@ -168,26 +171,26 @@ export default function Landing() {
             <a href="#how-it-works" className="text-muted-foreground hover:text-foreground transition-colors">
               How it Works
             </a>
-            <a href="#pricing" className="text-muted-foreground hover:text-foreground transition-colors">
-              Pricing
+            <a href="#get-started" className="text-muted-foreground hover:text-foreground transition-colors">
+              Self-Host
             </a>
+          </div>
+          <div className="flex items-center gap-1 sm:gap-3">
             <a
-              href="https://github.com"
+              href={REPO_URL}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="GitHub"
-              className="text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Clientra on GitHub"
+              className="rounded-md p-2 text-muted-foreground hover:text-foreground transition-colors"
             >
               <Github className="h-5 w-5" />
             </a>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link to="/auth">
-              <Button variant="ghost">Sign In</Button>
-            </Link>
-            <Link to="/auth">
-              <Button>Get Started</Button>
-            </Link>
+            <Button variant="ghost" asChild className="hidden sm:inline-flex">
+              <Link to="/auth">Sign In</Link>
+            </Button>
+            <Button asChild>
+              <Link to="/auth">Get Started</Link>
+            </Button>
           </div>
         </div>
       </nav>
@@ -199,7 +202,7 @@ export default function Landing() {
         <div className="mx-auto max-w-4xl text-center">
           <Badge variant="secondary" className="mb-6 gap-2">
             <Github className="h-4 w-4" />
-            Open Source First
+            Free &amp; open source
           </Badge>
           <h1 className="mb-6 text-4xl font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl">
             Manage Clients,{" "}
@@ -210,24 +213,20 @@ export default function Landing() {
             Track projects, send proposals, manage contracts — all in one place.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link to="/auth">
-              <Button size="lg" className="gap-2">
-                Start Free <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
-            <a
-              href="https://github.com"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Button size="lg" variant="outline" className="gap-2">
+            <Button size="lg" className="gap-2" asChild>
+              <Link to="/auth">
+                Get Started <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+            <Button size="lg" variant="outline" className="gap-2" asChild>
+              <a href={REPO_URL} target="_blank" rel="noopener noreferrer">
                 <Github className="h-4 w-4" />
                 View on GitHub
-              </Button>
-            </a>
+              </a>
+            </Button>
           </div>
           <p className="mt-4 text-sm text-muted-foreground">
-            No credit card required • Free tier available forever
+            AGPL-3.0 licensed • Use it here or host it yourself
           </p>
         </div>
       </section>
@@ -238,15 +237,15 @@ export default function Landing() {
           <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16 text-center">
             <div className="flex items-center gap-3">
               <Code2 className="h-6 w-6 text-primary" />
-              <span className="font-medium text-foreground">100% Open Source</span>
+              <span className="font-medium text-foreground">Open Source</span>
             </div>
             <div className="flex items-center gap-3">
               <Shield className="h-6 w-6 text-primary" />
               <span className="font-medium text-foreground">Self-Hostable</span>
             </div>
             <div className="flex items-center gap-3">
-              <Heart className="h-6 w-6 text-primary" />
-              <span className="font-medium text-foreground">Community Driven</span>
+              <Database className="h-6 w-6 text-primary" />
+              <span className="font-medium text-foreground">Your Data, Your Database</span>
             </div>
             <div className="flex items-center gap-3">
               <Zap className="h-6 w-6 text-primary" />
@@ -311,53 +310,43 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section id="pricing" className="container mx-auto px-4 py-20 md:py-32">
+      {/* Deployment Options Section */}
+      <section id="get-started" className="container mx-auto px-4 py-20 md:py-32">
         <div className="mx-auto max-w-3xl text-center mb-16">
-          <Badge variant="outline" className="mb-4">Pricing</Badge>
+          <Badge variant="outline" className="mb-4">Get Started</Badge>
           <h2 className="text-3xl font-bold text-foreground sm:text-4xl mb-4">
-            Simple, Transparent Pricing
+            Two Ways to Use Clientra
           </h2>
           <p className="text-lg text-muted-foreground">
-            Start free, upgrade when you're ready. No hidden fees, no surprises.
+            Same app either way. Sign up here, or run it on infrastructure you control.
           </p>
         </div>
-        <div className="grid gap-8 md:grid-cols-3 max-w-5xl mx-auto">
-          {pricingPlans.map((plan) => (
-            <Card
-              key={plan.name}
-              className={`relative ${plan.popular ? "border-primary shadow-lg scale-105" : ""}`}
-            >
-              {plan.popular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <Badge className="gap-1">
-                    <Sparkles className="h-3 w-3" />
-                    Most Popular
-                  </Badge>
+        <div className="grid gap-8 md:grid-cols-2 max-w-4xl mx-auto">
+          {deploymentOptions.map((option) => (
+            <Card key={option.name} className="flex flex-col">
+              <CardHeader className="pb-4">
+                <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <option.icon className="h-6 w-6" />
                 </div>
-              )}
-              <CardHeader className="text-center pb-4">
-                <CardTitle className="text-xl">{plan.name}</CardTitle>
-                <div className="mt-4">
-                  <span className="text-4xl font-bold text-foreground">{plan.price}</span>
-                  {plan.period && <span className="text-muted-foreground">{plan.period}</span>}
-                </div>
-                <CardDescription className="mt-2">{plan.description}</CardDescription>
+                <CardTitle className="text-xl">{option.name}</CardTitle>
+                <CardDescription className="text-base">{option.description}</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="flex flex-1 flex-col gap-6">
                 <ul className="space-y-3">
-                  {plan.features.map((feature) => (
+                  {option.features.map((feature) => (
                     <li key={feature} className="flex items-center gap-2 text-sm">
                       <CheckCircle className="h-4 w-4 text-primary shrink-0" />
                       <span className="text-foreground">{feature}</span>
                     </li>
                   ))}
                 </ul>
-                <Link to="/auth" className="block">
-                  <Button className="w-full" variant={plan.popular ? "default" : "outline"}>
-                    {plan.cta}
-                  </Button>
-                </Link>
+                <Button className="mt-auto w-full" variant={option.external ? "outline" : "default"} asChild>
+                  {option.external ? (
+                    <a href={option.href} target="_blank" rel="noopener noreferrer">{option.cta}</a>
+                  ) : (
+                    <Link to={option.href}>{option.cta}</Link>
+                  )}
+                </Button>
               </CardContent>
             </Card>
           ))}
@@ -371,25 +360,21 @@ export default function Landing() {
             Ready to Take Control of Your Client Workflow?
           </h2>
           <p className="mx-auto mb-8 max-w-2xl text-lg text-muted-foreground">
-            Join thousands of freelancers and agencies using Clientra to streamline
-            their client management. Open source, always.
+            Spend less time on admin and more time on the work. Clientra is open
+            source, so you can read the code, suggest features and contribute.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link to="/auth">
-              <Button size="lg" className="gap-2">
-                Get Started Free <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
-            <a
-              href="https://github.com"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Button size="lg" variant="outline" className="gap-2">
+            <Button size="lg" className="gap-2" asChild>
+              <Link to="/auth">
+                Get Started <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+            <Button size="lg" variant="outline" className="gap-2" asChild>
+              <a href={REPO_URL} target="_blank" rel="noopener noreferrer">
                 <Github className="h-4 w-4" />
                 Star on GitHub
-              </Button>
-            </a>
+              </a>
+            </Button>
           </div>
         </div>
       </section>
@@ -407,13 +392,17 @@ export default function Landing() {
             </div>
             <div className="flex items-center gap-6 text-sm text-muted-foreground">
               <a href="#features" className="hover:text-foreground transition-colors">Features</a>
-              <a href="#pricing" className="hover:text-foreground transition-colors">Pricing</a>
-              <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
+              <a href="#get-started" className="hover:text-foreground transition-colors">Self-Host</a>
+              <a href={REPO_URL} target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
                 GitHub
               </a>
             </div>
             <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} Clientra. Open source under MIT license.
+              © {new Date().getFullYear()} Clientra. Open source under the{" "}
+              <a href={LICENSE_URL} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4 hover:text-foreground">
+                AGPL-3.0
+              </a>{" "}
+              license.
             </p>
           </div>
         </div>
