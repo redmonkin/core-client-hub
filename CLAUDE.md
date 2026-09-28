@@ -40,7 +40,7 @@ Supabase CLI (`supabase/`) manages migrations and edge functions for the linked 
 
 **UI stack**: shadcn/ui components (`src/components/ui/`, configured via `components.json`) on top of Radix primitives, Tailwind CSS (`tailwind.config.ts`), `lucide-react` icons. Feature components are grouped by domain under `src/components/{clients,contracts,dashboard,layout,notes,notifications,proposals,settings,shared,templates,timesheets}`. Pages live in `src/pages/` and are thin — most logic lives in hooks/components.
 
-**Editors & exports**: Proposal/contract/template rich text uses TipTap (`@tiptap/react` + extensions). PDF export (`src/lib/pdf-export.ts`) uses a single-canvas `html2canvas` + `jsPDF` approach — use non-breaking spaces where plain spaces get collapsed/dropped in the rendered text. `.docx` export uses `html-docx-js-typescript`.
+**Editors & exports**: Proposal/contract/template rich text uses TipTap (`@tiptap/react` + extensions). PDF export (`src/lib/pdf-export.ts`) uses a single-canvas `html2canvas` + `jsPDF` approach — use non-breaking spaces where plain spaces get collapsed/dropped in the rendered text. Where there is no browser (the `generate-recurring-invoices` cron job), invoices are rendered server-side with jsPDF by `supabase/functions/_shared/invoice-pdf.ts`, which mirrors `buildInvoicePdfHtml` in `src/pages/Invoices.tsx` — change both together. `.docx` export uses `html-docx-js-typescript`.
 
 **Design system conventions**: Inter for UI text (Tailwind `font-sans`; Poppins only in generated invoice/PDF HTML, Hurricane for signatures), primary color `#0284C5`, currency is Rupee (₹) formatted with `en-IN` locale, headerless sidebar layout (`AppLayout`).
 

@@ -3,6 +3,7 @@ import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { generatePortalPassword, hashPortalPassword } from "../_shared/portal-password.ts";
 import { emailFrom } from "../_shared/email.ts";
+import { getInvoiceTotals, parseInvoiceLineItems, renderInvoicePdfBase64 } from "../_shared/invoice-pdf.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -17,48 +18,6 @@ const escapeHtml = (s: string): string =>
 
 const isSafeHttpUrl = (url: unknown): url is string =>
   typeof url === "string" && /^https?:\/\//i.test(url);
-
-// -- Line-item total calculation, mirrored from src/lib/invoice-utils.ts --
-// (pure arithmetic, no DOM/React deps, so duplicating rather than sharing a
-// module across the Vite client bundle and this Deno function is simplest).
-type DiscountType = 'percent' | 'flat';
-interface InvoiceLineItem {
-  quantity: number;
-  unitPrice: number;
-  discount: number;
-  discountType?: DiscountType;
-}
-interface InvoiceLineItemsData {
-  items: InvoiceLineItem[];
-  additionalDiscount: number;
-  additionalDiscountType?: DiscountType;
-  taxRate: number;
-}
-function parseLineItems(value: string | null | undefined): InvoiceLineItemsData {
-  if (!value) return { items: [], additionalDiscount: 0, taxRate: 0 };
-  try {
-    const parsed = JSON.parse(value);
-    return {
-      items: Array.isArray(parsed.items) ? parsed.items : [],
-      additionalDiscount: parsed.additionalDiscount ?? 0,
-      additionalDiscountType: parsed.additionalDiscountType === 'flat' ? 'flat' : 'percent',
-      taxRate: parsed.taxRate ?? 0,
-    };
-  } catch {
-    return { items: [], additionalDiscount: 0, taxRate: 0 };
-  }
-}
-function getTotalFromCostBreakdown(costBreakdown: string | null): number {
-  const data = parseLineItems(costBreakdown);
-  const subtotal = data.items.reduce((acc, item) => {
-    const lineSubtotal = item.quantity * item.unitPrice;
-    const discountAmount = item.discountType === 'flat' ? Math.min(item.discount, lineSubtotal) : lineSubtotal * (item.discount / 100);
-    return acc + (lineSubtotal - discountAmount);
-  }, 0);
-  const additionalDiscountAmount = data.additionalDiscountType === 'flat' ? Math.min(data.additionalDiscount, subtotal) : subtotal * (data.additionalDiscount / 100);
-  const afterDiscount = subtotal - additionalDiscountAmount;
-  return afterDiscount + afterDiscount * (data.taxRate / 100);
-}
 
 // -- Payment terms -> fixed day offset, mirrored from src/pages/Invoices.tsx --
 const PAYMENT_TERM_DAYS: Record<string, number> = { net15: 15, net30: 30, net45: 45, net60: 60 };
@@ -273,7 +232,7 @@ const handler = async (req: Request): Promise<Response> => {
           .single();
         if (invoiceError) throw invoiceError;
 
-        const totalAmount = getTotalFromCostBreakdown(schedule.cost_breakdown);
+        const totalAmount = getInvoiceTotals(parseInvoiceLineItems(schedule.cost_breakdown)).total;
         const { error: amountError } = await supabase
           .from("invoice_amounts")
           .insert({ invoice_id: invoiceRow.id, total_amount: totalAmount });
@@ -296,7 +255,7 @@ const handler = async (req: Request): Promise<Response> => {
         if (schedule.auto_send) {
           const { data: clientRow, error: clientError } = await supabase
             .from("clients")
-            .select("email, client_name, primary_contact_name")
+            .select("email, client_name, primary_contact_name, company_name, billing_address")
             .eq("id", schedule.client_id)
             .maybeSingle();
           if (clientError) throw clientError;
@@ -309,7 +268,12 @@ const handler = async (req: Request): Promise<Response> => {
           const { data: ownerUser } = await supabase.auth.admin.getUserById(schedule.user_id);
           const { data: brandingRow } = await supabase
             .from("branding_settings")
-            .select("company_name")
+            .select("company_name, company_logo_url, company_address, support_email")
+            .eq("user_id", schedule.user_id)
+            .maybeSingle();
+          const { data: invoiceSettings } = await supabase
+            .from("invoice_settings")
+            .select("bank_account_name, account_number, swift_code, ifsc_code, pan, upi_id, payment_instructions, terms_and_conditions")
             .eq("user_id", schedule.user_id)
             .maybeSingle();
 
@@ -321,7 +285,9 @@ const handler = async (req: Request): Promise<Response> => {
           const emailContent = buildInvoiceEmail(clientRow.primary_contact_name || clientRow.client_name, {
             invoiceId: invoiceRow.id,
             invoiceNumber,
-            totalAmount: totalAmount ? `₹${totalAmount.toLocaleString("en-IN")}` : null,
+            totalAmount: totalAmount
+              ? new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalAmount)
+              : null,
             issuedDate: today,
             dueDate,
             portalLink: portal?.link,
@@ -338,6 +304,26 @@ const handler = async (req: Request): Promise<Response> => {
           };
           if (ownerUser?.user?.email) {
             emailPayload.cc = [ownerUser.user.email];
+          }
+
+          // Attach the invoice PDF, like a manually sent invoice. Best-effort:
+          // a rendering failure shouldn't stop the invoice (and its portal
+          // link) from reaching the client.
+          try {
+            const pdfBase64 = await renderInvoicePdfBase64({
+              invoiceNumber,
+              issuedDate: today,
+              dueDate,
+              paymentTerms: schedule.payment_terms,
+              notes: schedule.notes,
+              costBreakdown: schedule.cost_breakdown,
+              branding: brandingRow,
+              client: clientRow,
+              settings: invoiceSettings,
+            });
+            emailPayload.attachments = [{ filename: `${invoiceNumber}.pdf`, content: pdfBase64 }];
+          } catch (pdfError) {
+            console.error(`Failed to render PDF for invoice ${invoiceNumber}, sending without it:`, pdfError);
           }
 
           await resend.emails.send(emailPayload as any);
