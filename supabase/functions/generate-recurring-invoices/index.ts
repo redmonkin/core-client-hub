@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { generatePortalPassword, hashPortalPassword } from "../_shared/portal-password.ts";
+import { createInvoicePortalToken, isSafeHttpUrl } from "../_shared/invoice-portal.ts";
 import { emailFrom } from "../_shared/email.ts";
 import { getInvoiceTotals, parseInvoiceLineItems, renderInvoicePdfBase64 } from "../_shared/invoice-pdf.ts";
 
@@ -16,8 +16,6 @@ const corsHeaders = {
 const escapeHtml = (s: string): string =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
-const isSafeHttpUrl = (url: unknown): url is string =>
-  typeof url === "string" && /^https?:\/\//i.test(url);
 
 // -- Payment terms -> fixed day offset, mirrored from src/pages/Invoices.tsx --
 const PAYMENT_TERM_DAYS: Record<string, number> = { net15: 15, net30: 30, net45: 45, net60: 60 };
@@ -38,37 +36,6 @@ function advanceRunDate(current: string, frequency: string, dayOfMonth: number):
   const lastDayOfTargetMonth = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
   const day = Math.min(dayOfMonth, lastDayOfTargetMonth);
   return new Date(Date.UTC(targetYear, targetMonth, day)).toISOString().split("T")[0];
-}
-
-// -- Portal token creation, ported from src/lib/invoice-portal-access.ts --
-// (Deno has the same Web Crypto globals the browser does, so this is a
-// direct port, not a reimplementation.)
-async function createInvoicePortalToken(
-  supabase: ReturnType<typeof createClient>,
-  invoiceId: string,
-  appUrl: string,
-): Promise<{ link: string; password: string } | null> {
-  if (!isSafeHttpUrl(appUrl)) return null;
-
-  const tokenArray = new Uint8Array(32);
-  crypto.getRandomValues(tokenArray);
-  const token = Array.from(tokenArray, (b) => b.toString(16).padStart(2, "0")).join("");
-
-  const password = generatePortalPassword();
-  const passwordHash = await hashPortalPassword(password);
-
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 30);
-
-  const { error } = await supabase.from("invoice_access_tokens").insert({
-    invoice_id: invoiceId,
-    token,
-    expires_at: expiresAt.toISOString(),
-    password_hash: passwordHash,
-  });
-  if (error) throw error;
-
-  return { link: `${appUrl}/portal?token=${token}`, password };
 }
 
 // -- Invoice email, mirrored from send-notification-email's buildInvoiceEmail
