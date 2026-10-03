@@ -58,6 +58,10 @@ import { getOrCreateContractPortalAccess, regenerateContractPortalAccess } from 
 import { contractTitle, contractTypeLabel, renewalLabel } from '@/lib/labels';
 import { getContractExpiryInfo } from "@/lib/contract-alerts";
 
+// "Aug 24 – Oct 28, 2026", but "Oct 28, 2026 – Oct 28, 2027" when the years differ.
+const formatDateRange = (start: Date, end: Date) =>
+  `${format(start, start.getFullYear() === end.getFullYear() ? "MMM dd" : "MMM dd, yyyy")} – ${format(end, "MMM dd, yyyy")}`;
+
 type Contract = {
   id: string;
   client_id: string;
@@ -855,7 +859,7 @@ export default function Contracts() {
                       <span className="text-xs uppercase tracking-wider text-muted-foreground lg:hidden shrink-0">Duration</span>
                       <Calendar className="h-3.5 w-3.5 shrink-0 text-muted-foreground hidden lg:block" />
                       <span className={`truncate ${isExpiringSoon ? "text-destructive font-medium" : "text-muted-foreground"}`}>
-                        {format(startDate, "MMM dd")} – {format(endDate, "MMM dd, yyyy")}
+                        {formatDateRange(startDate, endDate)}
                       </span>
                     </div>
                     {isExpiringSoon && (
@@ -1036,7 +1040,7 @@ export default function Contracts() {
                       <div className="flex items-center gap-1.5 text-sm">
                         <Calendar className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                         <span className={`truncate ${isExpiringSoon ? "text-destructive font-medium" : "text-muted-foreground"}`}>
-                          {format(startDate, "MMM dd")} – {format(endDate, "MMM dd, yyyy")}
+                          {formatDateRange(startDate, endDate)}
                         </span>
                       </div>
                       {isExpiringSoon && (
