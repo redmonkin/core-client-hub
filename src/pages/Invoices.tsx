@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import {
   Plus, Search, MoreHorizontal, Loader2, Pencil, Trash2, Send, LinkIcon,
-  CheckCircle2, Download, FileText, Wallet, Ban, Eye, Copy, RefreshCw, Users,
+  CheckCircle2, Download, FileText, Wallet, Ban, Eye, Copy, RefreshCw, Users, BellRing,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -146,6 +146,8 @@ export default function Invoices() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [voidingId, setVoidingId] = useState<string | null>(null);
   const [sendingInvoice, setSendingInvoice] = useState<Invoice | null>(null);
+  // 'reminder' asks for payment on an invoice the client already has.
+  const [sendMode, setSendMode] = useState<'send' | 'reminder'>('send');
   const [isSending, setIsSending] = useState(false);
   const [emailSubject, setEmailSubject] = useState('');
   const [emailIntro, setEmailIntro] = useState('');
@@ -590,22 +592,30 @@ export default function Invoices() {
     onError: (error: Error) => toast.error('Failed to void invoice: ' + error.message),
   });
 
-  const handleSend = (invoice: Invoice) => {
+  const handleSend = (invoice: Invoice, mode: 'send' | 'reminder' = 'send') => {
     const client = getClient(invoice.client_id);
     const clientName = client?.client_name || 'there';
-    const overdue = isInvoiceOverdue(invoice);
+    const number = invoice.invoice_number;
     setSendingInvoice(invoice);
+    setSendMode(mode);
     setSelectedCcEmails([]);
-    setEmailSubject(
-      overdue
-        ? `Payment Reminder: Invoice ${invoice.invoice_number}`
-        : `Invoice ${invoice.invoice_number}`
-    );
-    setEmailIntro(
-      overdue
-        ? `Hi ${clientName},\n\nThis is a friendly reminder that invoice ${invoice.invoice_number} is now overdue. Please arrange payment at your earliest convenience.`
-        : `Hi ${clientName},\n\nThe following invoice has been raised for the services rendered. Please review the details below.`
-    );
+
+    if (mode === 'send') {
+      setEmailSubject(`Invoice ${number}`);
+      setEmailIntro(`Hi ${clientName},\n\nThe following invoice has been raised for the services rendered. Please review the details below.`);
+      return;
+    }
+
+    setEmailSubject(`Payment Reminder: Invoice ${number}`);
+    let reminder: string;
+    if (isInvoiceOverdue(invoice)) {
+      reminder = `This is a friendly reminder that invoice ${number} is now overdue. Please arrange payment at your earliest convenience.`;
+    } else if (invoice.due_date) {
+      reminder = `This is a friendly reminder that invoice ${number} is due on ${format(new Date(invoice.due_date), 'd MMM yyyy')}. Please arrange payment by then.`;
+    } else {
+      reminder = `This is a friendly reminder that payment for invoice ${number} is still pending. Please arrange payment at your earliest convenience.`;
+    }
+    setEmailIntro(`Hi ${clientName},\n\n${reminder}`);
   };
 
   const confirmSend = async () => {
@@ -630,7 +640,9 @@ export default function Invoices() {
 
       const { error } = await supabase.functions.invoke('send-notification-email', {
         body: {
-          type: isInvoiceOverdue(sendingInvoice) ? 'invoice_overdue' : 'invoice_sent',
+          // invoice_overdue renders the "Payment Reminder" email; its wording
+          // comes from customIntro, so it also suits reminders before the due date.
+          type: sendMode === 'reminder' ? 'invoice_overdue' : 'invoice_sent',
           recipientEmail: '',
           recipientName: '',
           ccEmails: [...(selectedCcEmails.length > 0 ? selectedCcEmails : []), ...(user?.email ? [user.email] : [])].filter((v, i, a) => a.indexOf(v) === i),
@@ -659,7 +671,7 @@ export default function Invoices() {
 
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       const ccNote = selectedCcEmails.length > 0 ? ` (CC: ${selectedCcEmails.join(', ')})` : '';
-      toast.success(`Invoice sent to ${client.client_name}${ccNote}`);
+      toast.success(`${sendMode === 'reminder' ? 'Payment reminder' : 'Invoice'} sent to ${client.client_name}${ccNote}`);
       setSendingInvoice(null);
     } catch (error: unknown) {
       toast.error('Failed to send invoice: ' + (error instanceof Error ? error.message : String(error)));
@@ -988,10 +1000,16 @@ export default function Invoices() {
                                   Edit
                                 </DropdownMenuItem>
                               )}
+                              {(invoice.status === 'sent' || invoice.status === 'partial') && (
+                                <DropdownMenuItem onClick={() => handleSend(invoice, 'reminder')}>
+                                  <BellRing className="mr-2 h-4 w-4" />
+                                  Send Payment Reminder
+                                </DropdownMenuItem>
+                              )}
                               {invoice.status !== 'void' && (
                                 <DropdownMenuItem onClick={() => handleSend(invoice)}>
                                   <Send className="mr-2 h-4 w-4" />
-                                  {isInvoiceOverdue(invoice) ? 'Send Reminder' : 'Send to Client'}
+                                  {invoice.status === 'draft' ? 'Send to Client' : 'Resend Invoice'}
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuItem onClick={() => openLinkDialog(invoice)}>
@@ -1194,7 +1212,7 @@ export default function Invoices() {
       <Dialog open={!!sendingInvoice} onOpenChange={(open) => !open && setSendingInvoice(null)}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Send Invoice to Client</DialogTitle>
+            <DialogTitle>{sendMode === 'reminder' ? 'Send Payment Reminder' : 'Send Invoice to Client'}</DialogTitle>
             <DialogDescription>
               {sendingInvoice && (
                 <>
