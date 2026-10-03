@@ -303,6 +303,7 @@ export function CostBreakdownTable({ value, onChange }: CostBreakdownTableProps)
                 onChange={(e) => updateItem(item.id, 'description', e.target.value)}
                 placeholder="Item description"
                 aria-label={`Item ${idx + 1} description`}
+                className="min-w-0 flex-1"
               />
               <Button
                 type="button"

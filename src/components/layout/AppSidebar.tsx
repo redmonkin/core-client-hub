@@ -144,7 +144,7 @@ export function AppSidebar() {
                           "flex items-center rounded-lg font-medium transition-all duration-200",
                           collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2.5",
                           isActive
-                            ? "bg-primary text-primary-foreground shadow-sm data-[active=true]:bg-primary data-[active=true]:text-primary-foreground"
+                            ? "shadow-sm data-[active=true]:!bg-primary data-[active=true]:!text-primary-foreground hover:!bg-primary/90"
                             : "text-sidebar-foreground hover:bg-sidebar-accent/80"
                         )}
                       >
