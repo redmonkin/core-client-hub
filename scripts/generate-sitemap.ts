@@ -1,9 +1,12 @@
-// Runs before `vite dev` and `vite build` (predev/prebuild hooks); writes public/sitemap.xml.
+// Runs before `vite dev` and `vite build` (predev/prebuild hooks); writes
+// public/sitemap.xml and public/robots.txt for this deployment's VITE_SITE_URL.
 
 import { writeFileSync } from "fs";
 import { resolve } from "path";
+import { loadEnv } from "vite";
 
-const BASE_URL = "https://clientra.redmonk.in";
+const env = loadEnv(process.env.NODE_ENV === "development" ? "development" : "production", process.cwd(), "");
+const BASE_URL = (env.VITE_SITE_URL || "https://clientra.redmonk.in").replace(/\/$/, "");
 
 interface SitemapEntry {
   path: string;
@@ -41,5 +44,16 @@ function generateSitemap(items: SitemapEntry[]) {
   ].join("\n");
 }
 
+// Portal links carry access tokens and are never meant to be crawled.
+const robots = [
+  "User-agent: *",
+  "Allow: /",
+  "Disallow: /portal",
+  "",
+  `Sitemap: ${BASE_URL}/sitemap.xml`,
+  "",
+].join("\n");
+
 writeFileSync(resolve("public/sitemap.xml"), generateSitemap(entries));
-console.log(`sitemap.xml written (${entries.length} entries)`);
+writeFileSync(resolve("public/robots.txt"), robots);
+console.log(`sitemap.xml (${entries.length} entries) and robots.txt written for ${BASE_URL}`);

@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import clientraLogoLight from '@/assets/clientra-light.svg';
 import clientraLogoDark from '@/assets/clientra-dark.svg';
+import { SITE_URL } from '@/lib/site';
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -137,9 +138,9 @@ export default function Auth() {
       <Helmet>
         <title>Sign in or sign up — Clientra</title>
         <meta name="description" content="Sign in to Clientra or create a free account to manage clients, projects, proposals, and contracts." />
-        <link rel="canonical" href="https://clientra.redmonk.in/auth" />
+        <link rel="canonical" href={`${SITE_URL}/auth`} />
         <meta property="og:title" content="Sign in or sign up — Clientra" />
-        <meta property="og:url" content="https://clientra.redmonk.in/auth" />
+        <meta property="og:url" content={`${SITE_URL}/auth`} />
       </Helmet>
       {/* Left side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-between bg-primary p-12">
@@ -182,7 +183,7 @@ export default function Auth() {
         </div>
         
         <p className="text-sm text-primary-foreground/60">
-          © 2024 Clientra. All rights reserved.
+          © {new Date().getFullYear()} Clientra. Open source under the AGPL-3.0 license.
         </p>
       </div>
       
@@ -403,10 +404,7 @@ export default function Auth() {
               </Tabs>
             </CardContent>
           </Card>
-          
-          <p className="text-center text-sm text-muted-foreground">
-            By continuing, you agree to our Terms of Service and Privacy Policy.
-          </p>
+
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { emailFrom } from "../_shared/email.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -208,7 +209,7 @@ const handler = async (req: Request): Promise<Response> => {
       ? truncate(stripHtml(customerGoals), 300)
       : null;
 
-    const fromName = senderCompany || senderName || "Redmonk Studios";
+    const fromName = senderCompany || senderName || "Clientra";
 
     // Validate portal link – only https:// URLs are embedded as anchors.
     const safePortalLink = isSafeHttpUrl(portalLink) ? portalLink : null;
@@ -372,7 +373,7 @@ const handler = async (req: Request): Promise<Response> => {
     `;
 
     const emailPayload: any = {
-      from: `${fromName} <noreply@notifications.redmonk.in>`,
+      from: emailFrom(fromName),
       to: [clientEmail],
       subject: (customSubject && customSubject.trim()) || `${isReminder ? "Reminder — " : ""}Proposal: ${proposalTitle}`,
       html: emailHtml,

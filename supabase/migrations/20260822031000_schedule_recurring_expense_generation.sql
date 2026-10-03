@@ -5,7 +5,7 @@ select cron.schedule(
   '5 6 * * *',
   $$
   select net.http_post(
-    url := 'https://jizouqjrdyfshhztqucd.supabase.co/functions/v1/generate-recurring-expenses',
+    url := (select decrypted_secret from vault.decrypted_secrets where name = 'project_url' limit 1) || '/functions/v1/generate-recurring-expenses',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
       'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'service_role_key' limit 1)

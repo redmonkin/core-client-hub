@@ -6,7 +6,7 @@ Clientra is a self-hostable web application that helps independent professionals
 
 ## Pages
 
-- [Home](/): Product overview, features, pricing, and getting started.
+- [Home](/): Product overview, features, and options to use the hosted app or self-host.
 - [Sign In or Sign Up](/auth): Create a Clientra account or log in.
 
 ## Optional

@@ -18,6 +18,14 @@ function extractPath(value: string): string | null {
   return value.split("?")[0];
 }
 
+// Feature images are uploaded to `<uploader id>/<project id>/feature.<ext>`.
+// Only sign paths inside this project's own folder, so a featured project
+// can't point feature_image_url at another workspace's private file.
+function isOwnFeatureImage(path: string, projectId: string): boolean {
+  const parts = path.split("/");
+  return parts.length === 3 && parts[1] === projectId && /^feature\.[A-Za-z0-9]+$/.test(parts[2]);
+}
+
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -61,6 +69,7 @@ const handler = async (req: Request): Promise<Response> => {
           urls[p.id] = p.feature_image_url;
           return;
         }
+        if (!isOwnFeatureImage(path, p.id)) return;
         const { data: signed } = await admin.storage
           .from("project-files")
           .createSignedUrl(path, 60 * 60); // 1 hour
