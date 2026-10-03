@@ -1006,10 +1006,10 @@ export default function Invoices() {
                                   Send Payment Reminder
                                 </DropdownMenuItem>
                               )}
-                              {invoice.status !== 'void' && (
+                              {invoice.status === 'draft' && (
                                 <DropdownMenuItem onClick={() => handleSend(invoice)}>
                                   <Send className="mr-2 h-4 w-4" />
-                                  {invoice.status === 'draft' ? 'Send to Client' : 'Resend Invoice'}
+                                  Send to Client
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuItem onClick={() => openLinkDialog(invoice)}>
@@ -1017,16 +1017,12 @@ export default function Invoices() {
                                 Copy Share Link
                               </DropdownMenuItem>
                               {canViewFinancials && invoice.status !== 'paid' && invoice.status !== 'void' && (
-                                <>
-                                  <DropdownMenuItem onClick={() => openPaymentDialog(invoice)}>
-                                    <Wallet className="mr-2 h-4 w-4" />
-                                    Record Payment...
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => openPaymentDialog(invoice)}>
-                                    <CheckCircle2 className="mr-2 h-4 w-4" />
-                                    Mark as Paid
-                                  </DropdownMenuItem>
-                                </>
+                                // One action for full and partial payments: the dialog starts at the
+                                // full balance, and recording it marks the invoice paid.
+                                <DropdownMenuItem onClick={() => openPaymentDialog(invoice)}>
+                                  <Wallet className="mr-2 h-4 w-4" />
+                                  Record Payment
+                                </DropdownMenuItem>
                               )}
                               {invoice.status !== 'void' && (
                                 <DropdownMenuItem onClick={() => setVoidingId(invoice.id)}>
@@ -1370,6 +1366,32 @@ export default function Invoices() {
                     />
                   </div>
                 </div>
+                {(() => {
+                  const taxWithheld = taxDeductedInput ? parseFloat(taxAmountInput) || 0 : 0;
+                  const settled = (parseFloat(paymentAmountInput) || 0) + taxWithheld;
+                  const remaining = balanceDue - settled;
+                  if (settled <= 0) return null;
+                  if (remaining <= 0.005) {
+                    return (
+                      <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                        Settles the full balance. The invoice will be marked as paid.
+                      </p>
+                    );
+                  }
+                  return (
+                    <p className="text-xs text-muted-foreground">
+                      Partial payment: {formatCurrency(remaining)} will remain due.{' '}
+                      <button
+                        type="button"
+                        className="font-medium text-primary underline-offset-4 hover:underline"
+                        onClick={() => setPaymentAmountInput(Math.max(balanceDue - taxWithheld, 0).toFixed(2))}
+                      >
+                        Record full balance
+                      </button>
+                    </p>
+                  );
+                })()}
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label>Date</Label>
