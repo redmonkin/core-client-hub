@@ -8,20 +8,15 @@ import { useAuth } from '@/hooks/useAuth';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { StatusBadge } from '@/components/shared/StatusBadge';
+import { StatusBadge, type StatusType } from '@/components/shared/StatusBadge';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { ContractStatus } from '@/lib/types';
-import { NotificationsDropdown } from '@/components/notifications/NotificationsDropdown';
 import { getContractExpiryInfo } from '@/lib/contract-alerts';
 import { STATUS_LABELS, STATUS_STYLES, type TaskStatus } from '@/hooks/useTaskMutations';
+import { contractTypeLabel } from '@/lib/labels';
 
-const contractTypeLabels: Record<string, string> = {
-  amc: 'Annual Maintenance Contract',
-  fixed: 'Fixed Contract',
-  retainer: 'Retainer',
-};
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -180,14 +175,11 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-8 p-8">
-      <div className="flex items-center justify-between">
-        <PageHeader 
-          title="Dashboard" 
-          description="Overview of your clients, projects, and contracts"
-        />
-        <NotificationsDropdown />
-      </div>
+    <div className="space-y-8 p-4 sm:p-6 lg:p-8">
+      <PageHeader
+        title="Dashboard"
+        description="Overview of your clients, projects, and contracts"
+      />
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
@@ -252,7 +244,7 @@ export default function Dashboard() {
                           />
                         )}
                         <span className="truncate">
-                          {contractTypeLabels[contract.contract_type] || contract.contract_type}
+                          {contractTypeLabel(contract.contract_type)}
                         </span>
                       </h4>
                       <p className="mt-0.5 truncate text-sm text-muted-foreground">
@@ -318,14 +310,7 @@ export default function Dashboard() {
                         {proposal.validity_date && ` · Valid till ${format(new Date(proposal.validity_date), 'MMM d, yyyy')}`}
                       </p>
                     </div>
-                    <span className={`ml-4 shrink-0 rounded-full px-3 py-1 text-xs font-medium ${
-                      proposal.status === 'approved' ? 'bg-primary/10 text-primary' :
-                      proposal.status === 'sent' ? 'bg-accent text-accent-foreground' :
-                      proposal.status === 'rejected' ? 'bg-destructive/10 text-destructive' :
-                      'bg-muted text-muted-foreground'
-                    }`}>
-                      {proposal.status.charAt(0).toUpperCase() + proposal.status.slice(1)}
-                    </span>
+                    <StatusBadge status={proposal.status as StatusType} className="ml-4 shrink-0" />
                   </Link>
                 ))
               ) : (

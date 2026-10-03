@@ -111,13 +111,13 @@ export function InvoiceLineItems({ value, onChange }: InvoiceLineItemsProps) {
                       value={item.name}
                       onChange={(e) => updateItem(item.id, 'name', e.target.value)}
                       placeholder="e.g. Senior Web Consultant"
-                      className="border-0 p-0 h-auto shadow-none focus-visible:ring-0 font-medium"
+                      className="h-8 border-transparent bg-transparent px-2 shadow-none hover:border-input focus-visible:border-input focus-visible:ring-1 focus-visible:ring-offset-0 font-medium"
                     />
                     <Input
                       value={item.description}
                       onChange={(e) => updateItem(item.id, 'description', e.target.value)}
                       placeholder="Description (optional)"
-                      className="border-0 p-0 h-auto shadow-none focus-visible:ring-0 text-xs text-muted-foreground"
+                      className="h-8 border-transparent bg-transparent px-2 shadow-none hover:border-input focus-visible:border-input focus-visible:ring-1 focus-visible:ring-offset-0 text-xs text-muted-foreground"
                     />
                   </div>
                 </TableCell>
@@ -128,7 +128,7 @@ export function InvoiceLineItems({ value, onChange }: InvoiceLineItemsProps) {
                     onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value) || 0)}
                     min={0}
                     step={0.5}
-                    className="border-0 p-0 h-auto shadow-none focus-visible:ring-0 text-right"
+                    className="h-8 border-transparent bg-transparent px-2 shadow-none hover:border-input focus-visible:border-input focus-visible:ring-1 focus-visible:ring-offset-0 text-right"
                   />
                 </TableCell>
                 <TableCell>
@@ -150,7 +150,7 @@ export function InvoiceLineItems({ value, onChange }: InvoiceLineItemsProps) {
                     onChange={(e) => updateItem(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
                     min={0}
                     step={0.01}
-                    className="border-0 p-0 h-auto shadow-none focus-visible:ring-0 text-right"
+                    className="h-8 border-transparent bg-transparent px-2 shadow-none hover:border-input focus-visible:border-input focus-visible:ring-1 focus-visible:ring-offset-0 text-right"
                   />
                 </TableCell>
                 <TableCell>
@@ -162,7 +162,7 @@ export function InvoiceLineItems({ value, onChange }: InvoiceLineItemsProps) {
                       min={0}
                       max={item.discountType === 'percent' ? 100 : undefined}
                       step={item.discountType === 'percent' ? 1 : 0.01}
-                      className="border-0 p-0 h-auto shadow-none focus-visible:ring-0 text-right w-14"
+                      className="h-8 border-transparent bg-transparent px-2 shadow-none hover:border-input focus-visible:border-input focus-visible:ring-1 focus-visible:ring-offset-0 text-right w-14"
                     />
                     <Select value={item.discountType} onValueChange={(v) => setItemDiscountType(item.id, v as DiscountType)}>
                       <SelectTrigger className="h-8 w-16 border-0 shadow-none focus:ring-0 px-1">

@@ -345,7 +345,7 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <RequirePermission module="timesheets" action="create">
             <Button
               variant="outline"
@@ -514,7 +514,7 @@ export function ProjectTimesheets({ projectId }: ProjectTimesheetsProps) {
                           </Button>
                         </RequirePermission>
                       )}
-                      <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 focus-visible:opacity-100 transition-opacity">
                         <RequirePermission module="timesheets" action="update">
                           <Button
                             variant="ghost"

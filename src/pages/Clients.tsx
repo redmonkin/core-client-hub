@@ -283,7 +283,7 @@ export default function Clients() {
 
   if (!can('clients', 'read')) {
     return (
-      <div className="space-y-6 p-8">
+      <div className="space-y-6 p-4 sm:p-6 lg:p-8">
         <PageHeader title="Clients" description="Manage your client relationships" />
         <NoAccessState moduleLabel="clients" />
       </div>
@@ -291,7 +291,7 @@ export default function Clients() {
   }
 
   return (
-    <div className="space-y-6 p-8">
+    <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       <PageHeader
         title="Clients"
         description="Manage your client relationships"
@@ -345,7 +345,7 @@ export default function Clients() {
                     <Input 
                       id="phone" 
                       type="tel" 
-                      placeholder="+1 (555) 000-0000" 
+                      placeholder="+91 98765 43210" 
                       value={formData.phone}
                       onChange={handleInputChange}
                       required
@@ -362,8 +362,9 @@ export default function Clients() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="address">Company Address</Label>
-                    <Input 
-                      id="address" 
+                    <Textarea
+                      id="address"
+                      rows={2} 
                       placeholder="Enter company address" 
                       value={formData.address}
                       onChange={handleInputChange}
@@ -445,7 +446,7 @@ export default function Clients() {
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 focus-visible:opacity-100 transition-opacity" aria-label="More actions">
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -533,7 +534,7 @@ export default function Clients() {
                       <StatusBadge status={client.status as 'active' | 'archived'} />
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="More actions">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -596,7 +597,7 @@ export default function Clients() {
                   <div className="hidden lg:flex justify-end">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 focus-visible:opacity-100 transition-opacity" aria-label="More actions">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -626,8 +627,8 @@ export default function Clients() {
       ) : (
         <EmptyState
           icon={Building2}
-          title="No clients found"
-          description={searchQuery ? "Try adjusting your search query" : "Get started by adding your first client"}
+          title={searchQuery || statusFilter !== 'all' ? "No matching clients" : "No clients yet"}
+          description={searchQuery || statusFilter !== 'all' ? "Try adjusting your search or filters" : "Get started by adding your first client"}
           actionLabel={!searchQuery ? "Add Client" : undefined}
           onAction={() => setIsDialogOpen(true)}
         />
@@ -676,7 +677,7 @@ export default function Clients() {
                 <Input 
                   id="phone" 
                   type="tel" 
-                  placeholder="+1 (555) 000-0000" 
+                  placeholder="+91 98765 43210" 
                   value={editFormData.phone}
                   onChange={handleEditInputChange}
                   required
@@ -693,8 +694,9 @@ export default function Clients() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="address">Company Address</Label>
-                <Input 
-                  id="address" 
+                <Textarea
+                  id="address"
+                  rows={2} 
                   placeholder="Enter company address" 
                   value={editFormData.address}
                   onChange={handleEditInputChange}

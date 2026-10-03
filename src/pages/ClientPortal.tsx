@@ -523,7 +523,7 @@ export default function ClientPortal() {
             <p className="mb-6 text-center text-sm font-medium text-muted-foreground">{branding.company_name}</p>
           )}
           <Card className="shadow-lg">
-            <CardContent className="space-y-6 p-8">
+            <CardContent className="space-y-6 p-4 sm:p-6 lg:p-8">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <h1 className="text-2xl font-bold text-foreground">Invoice <span className="whitespace-nowrap">{invoice.invoice_number}</span></h1>

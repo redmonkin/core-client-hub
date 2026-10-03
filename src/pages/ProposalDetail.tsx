@@ -57,7 +57,7 @@ const statusIconMap: Record<string, React.ElementType> = {
 const statusColorMap: Record<string, string> = {
   draft: 'bg-muted text-muted-foreground',
   sent: 'bg-primary/10 text-primary',
-  approved: 'bg-green-500/10 text-green-600',
+  approved: 'bg-green-500/10 text-green-700',
   rejected: 'bg-destructive/10 text-destructive',
   change_requested: 'bg-orange-500/10 text-orange-600',
 };
@@ -465,7 +465,7 @@ export default function ProposalDetail() {
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
         <div className="flex items-center gap-3 min-w-0">
           <Link to="/proposals">
-            <Button variant="ghost" size="icon" className="shrink-0">
+            <Button variant="ghost" size="icon" className="shrink-0" aria-label="Back">
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
@@ -474,13 +474,16 @@ export default function ProposalDetail() {
           </div>
         </div>
         <div className="flex items-center gap-2 sm:ml-auto">
-          <Button onClick={handleSendEmail} variant="default" size="sm">
-            <Mail className="mr-2 h-4 w-4" />
-            Send to Client
-          </Button>
+          {/* Nothing left to send once the client has approved or declined. */}
+          {!['approved', 'rejected'].includes(proposal.status) && (
+            <Button onClick={handleSendEmail} variant="default" size="sm">
+              <Mail className="mr-2 h-4 w-4" />
+              Send to Client
+            </Button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" className="h-8 w-8">
+              <Button variant="outline" size="icon" className="h-8 w-8" aria-label="More actions">
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>

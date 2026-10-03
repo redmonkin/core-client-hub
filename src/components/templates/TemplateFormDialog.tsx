@@ -108,8 +108,8 @@ export function TemplateFormDialog({
         {/* Form */}
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
           {/* Meta fields */}
-          <div className="flex-shrink-0 px-6 py-4 border-b bg-muted/30">
-            <div className="flex gap-4 items-end">
+          <div className="flex-shrink-0 px-4 py-4 border-b bg-muted/30 sm:px-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
               <div className="flex-1 space-y-1.5">
                 <Label htmlFor="templateName" className="text-xs">Template Name</Label>
                 <Input 
@@ -121,7 +121,7 @@ export function TemplateFormDialog({
                   className="h-9"
                 />
               </div>
-              <div className="w-48 space-y-1.5">
+              <div className="w-full space-y-1.5 sm:w-48">
                 <Label htmlFor="templateType" className="text-xs">Template Type</Label>
                 <Select value={type} onValueChange={(value) => setType(value as TemplateType)}>
                   <SelectTrigger className="h-9">

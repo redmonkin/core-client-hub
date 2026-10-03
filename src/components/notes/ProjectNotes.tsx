@@ -291,7 +291,7 @@ export function ProjectNotes({ projectId }: ProjectNotesProps) {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
+                    className="h-8 w-8 shrink-0 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 focus-visible:opacity-100 transition-opacity text-destructive hover:text-destructive"
                     onClick={() => setDeleteId(note.id)}
                   >
                     <Trash2 className="h-4 w-4" />

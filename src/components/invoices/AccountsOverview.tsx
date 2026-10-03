@@ -11,7 +11,7 @@ import { StatCard } from '@/components/dashboard/StatCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
+import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
 import { formatInvoiceCurrency } from '@/lib/invoice-utils';
 import { CATEGORY_LABELS } from '@/components/invoices/Expenses';
 import { type RangeKey, RANGE_OPTIONS, toIso, resolveRange, defaultCustomStart, todayIso } from '@/lib/date-ranges';
@@ -68,6 +68,16 @@ const chartConfig: ChartConfig = {
   invoiced: { label: 'Invoiced', color: '#0284C5' },
   collected: { label: 'Collected', color: '#16a34a' },
   expenses: { label: 'Expenses', color: '#dc2626' },
+};
+
+/** Short rupee labels for chart axes: ₹45k, ₹1.9L, ₹2.5Cr. */
+const formatCompactRupees = (v: number) => {
+  const abs = Math.abs(v);
+  const fmt = (n: number) => n.toFixed(n >= 10 ? 0 : 1).replace(/\.0$/, '');
+  if (abs >= 1e7) return `₹${fmt(v / 1e7)}Cr`;
+  if (abs >= 1e5) return `₹${fmt(v / 1e5)}L`;
+  if (abs >= 1e3) return `₹${fmt(v / 1e3)}k`;
+  return `₹${v}`;
 };
 
 export function AccountsOverview() {
@@ -241,7 +251,7 @@ export function AccountsOverview() {
               title="Net Cash Flow"
               value={formatInvoiceCurrency(netCashFlow)}
               icon={TrendingUp}
-              description={netCashFlow >= 0 ? 'Collected exceeds expenses' : 'Expenses exceed collected'}
+              description={netCashFlow > 0 ? 'Collected exceeds expenses' : netCashFlow < 0 ? 'Expenses exceed collected' : 'No net cash flow yet'}
             />
           </div>
 
@@ -257,11 +267,12 @@ export function AccountsOverview() {
                   <BarChart data={chartData}>
                     <CartesianGrid vertical={false} strokeDasharray="3 3" />
                     <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} interval="preserveStartEnd" />
-                    <YAxis tickLine={false} axisLine={false} tickMargin={8} width={60} tickFormatter={(v) => formatInvoiceCurrency(v).replace(/\.00$/, '')} />
+                    <YAxis tickLine={false} axisLine={false} tickMargin={8} width={56} tickFormatter={formatCompactRupees} />
                     <ChartTooltip content={<ChartTooltipContent />} />
                     <Bar dataKey="invoiced" fill="var(--color-invoiced)" radius={2} />
                     <Bar dataKey="collected" fill="var(--color-collected)" radius={2} />
                     <Bar dataKey="expenses" fill="var(--color-expenses)" radius={2} />
+                    <ChartLegend content={<ChartLegendContent />} />
                   </BarChart>
                 </ChartContainer>
               )}
@@ -276,16 +287,30 @@ export function AccountsOverview() {
               {categoryData.length === 0 ? (
                 <EmptyState icon={ReceiptIcon} title="No expenses in this period" description="Logged expenses will show up here broken down by category." />
               ) : (
-                <ChartContainer config={chartConfig} className="aspect-auto h-[280px] w-full">
-                  <PieChart>
-                    <ChartTooltip content={<ChartTooltipContent nameKey="name" />} />
-                    <Pie data={categoryData} dataKey="value" nameKey="name" innerRadius={60} outerRadius={100} strokeWidth={2}>
-                      {categoryData.map((entry, index) => (
-                        <Cell key={entry.name} fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]} />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ChartContainer>
+                <div className="grid items-center gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                  <ChartContainer config={chartConfig} className="aspect-auto h-[240px] w-full">
+                    <PieChart>
+                      <ChartTooltip content={<ChartTooltipContent nameKey="name" />} />
+                      <Pie data={categoryData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={95} strokeWidth={2}>
+                        {categoryData.map((entry, index) => (
+                          <Cell key={entry.name} fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ChartContainer>
+                  {/* Legend with amounts, so categories don't rely on colour alone. */}
+                  <ul className="space-y-2 text-sm">
+                    {categoryData.map((entry, index) => (
+                      <li key={entry.name} className="flex items-center justify-between gap-3">
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ backgroundColor: CATEGORY_COLORS[index % CATEGORY_COLORS.length] }} />
+                          <span className="truncate text-foreground">{entry.name}</span>
+                        </span>
+                        <span className="whitespace-nowrap tabular-nums text-muted-foreground">{formatInvoiceCurrency(entry.value)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               )}
             </CardContent>
           </Card>

@@ -220,7 +220,7 @@ export function TransactionsLedger() {
             <Card>
               <CardContent className="p-6">
                 <p className="text-sm font-medium text-muted-foreground">Total Received</p>
-                <p className="mt-2 text-2xl font-bold text-green-600">{formatInvoiceCurrency(totalReceived)}</p>
+                <p className="mt-2 text-2xl font-bold text-green-700">{formatInvoiceCurrency(totalReceived)}</p>
               </CardContent>
             </Card>
             <Card>
@@ -252,13 +252,13 @@ export function TransactionsLedger() {
                       <SortableTableHead label="Date" sortKey="date" sort={sort} onSort={(key) => setSort((prev) => toggleSort(prev, key))} className="w-28" />
                       <SortableTableHead label="Description" sortKey="description" sort={sort} onSort={(key) => setSort((prev) => toggleSort(prev, key))} />
                       <SortableTableHead label="Amount" sortKey="amount" sort={sort} onSort={(key) => setSort((prev) => toggleSort(prev, key))} className="w-36 text-right" align="right" />
-                      <SortableTableHead label="Balance" sortKey="balance" sort={sort} onSort={(key) => setSort((prev) => toggleSort(prev, key))} className="w-36 text-right" align="right" />
+                      <SortableTableHead label="Balance" sortKey="balance" sort={sort} onSort={(key) => setSort((prev) => toggleSort(prev, key))} className="hidden w-36 text-right sm:table-cell" align="right" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {ledgerPagination.pageItems.map((t) => (
                       <TableRow key={t.id}>
-                        <TableCell className="text-muted-foreground">{format(new Date(t.date), 'MMM d, yyyy')}</TableCell>
+                        <TableCell className="whitespace-nowrap text-muted-foreground">{format(new Date(t.date), 'MMM d, yyyy')}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             {t.type === 'payment' ? (
@@ -269,10 +269,10 @@ export function TransactionsLedger() {
                             <span className="truncate">{t.description}</span>
                           </div>
                         </TableCell>
-                        <TableCell className={`text-right font-medium ${t.type === 'payment' ? 'text-green-600' : 'text-destructive'}`}>
+                        <TableCell className={`whitespace-nowrap text-right font-medium tabular-nums ${t.type === 'payment' ? 'text-green-700' : 'text-destructive'}`}>
                           {t.type === 'payment' ? '+' : '-'}{formatInvoiceCurrency(Math.abs(t.amount))}
                         </TableCell>
-                        <TableCell className="text-right text-muted-foreground">{formatInvoiceCurrency(t.balance)}</TableCell>
+                        <TableCell className="hidden whitespace-nowrap text-right tabular-nums text-muted-foreground sm:table-cell">{formatInvoiceCurrency(t.balance)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

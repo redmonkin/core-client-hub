@@ -206,8 +206,8 @@ export function TemplatePreviewDialog({
         </div>
 
         {/* Sample Data Reference */}
-        <div className="flex-shrink-0 px-6 py-4 border-t bg-muted/30">
-          <p className="text-xs font-medium text-muted-foreground mb-2">Sample Data Used:</p>
+        <div className="flex-shrink-0 max-h-28 overflow-y-auto px-4 py-3 border-t bg-muted/30 sm:max-h-44 sm:px-6 sm:py-4">
+          <p className="text-xs font-medium text-muted-foreground mb-2">Sample data used</p>
           <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs">
             {Object.entries(sampleData).map(([placeholder, value]) => (
               <div key={placeholder} className="flex items-center gap-1.5">
@@ -215,14 +215,14 @@ export function TemplatePreviewDialog({
                   {placeholder}
                 </code>
                 <span className="text-muted-foreground">→</span>
-                <span className="text-foreground truncate max-w-40">{value}</span>
+                <span className="text-foreground truncate max-w-40">{/^\s*</.test(String(value)) ? 'Pricing table' : value}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Actions */}
-        <div className="flex-shrink-0 flex justify-end gap-3 px-6 py-4 border-t">
+        <div className="flex-shrink-0 flex flex-col-reverse gap-2 px-4 py-3 border-t sm:flex-row sm:justify-end sm:gap-3 sm:px-6 sm:py-4">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Close
           </Button>

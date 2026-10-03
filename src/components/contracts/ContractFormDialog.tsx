@@ -20,7 +20,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScopeOfWorkEditor } from '@/components/proposals/ScopeOfWorkEditor';
 import { CostBreakdownTable } from '@/components/proposals/CostBreakdownTable';
-import { FileText, DollarSign, Settings, LayoutTemplate, Upload, X, FileIcon, Loader2 } from 'lucide-react';
+import { FileText, IndianRupee, Settings, LayoutTemplate, Upload, X, FileIcon, Loader2 } from 'lucide-react';
 import { Template } from '@/hooks/useTemplates';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -214,18 +214,18 @@ export function ContractFormDialog({
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
             <TabsList className={`grid w-full ${formData.is_external ? 'grid-cols-1' : 'grid-cols-3'} mb-4`}>
               <TabsTrigger value="details" className="gap-2">
-                <Settings className="h-4 w-4" />
-                <span className="hidden sm:inline">Details</span>
+                <Settings className="hidden h-4 w-4 sm:block" />
+                <span>Details</span>
               </TabsTrigger>
               {!formData.is_external && (
                 <>
                   <TabsTrigger value="scope" className="gap-2">
-                    <FileText className="h-4 w-4" />
-                    <span className="hidden sm:inline">Scope of Work</span>
+                    <FileText className="hidden h-4 w-4 sm:block" />
+                    <span className="sm:hidden">Scope</span><span className="hidden sm:inline">Scope of Work</span>
                   </TabsTrigger>
                   <TabsTrigger value="pricing" className="gap-2">
-                    <DollarSign className="h-4 w-4" />
-                    <span className="hidden sm:inline">Pricing</span>
+                    <IndianRupee className="hidden h-4 w-4 sm:block" />
+                    <span>Pricing</span>
                   </TabsTrigger>
                 </>
               )}

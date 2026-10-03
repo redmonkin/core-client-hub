@@ -293,8 +293,78 @@ export function CostBreakdownTable({ value, onChange }: CostBreakdownTableProps)
         </p>
       )}
 
+      {/* Line items on phones: one card per item with labelled fields. */}
+      <div className="space-y-3 md:hidden">
+        {activePlan.items.map((item, idx) => (
+          <div key={item.id} className="space-y-3 rounded-lg border border-input p-3">
+            <div className="flex items-start gap-2">
+              <Input
+                value={item.description}
+                onChange={(e) => updateItem(item.id, 'description', e.target.value)}
+                placeholder="Item description"
+                aria-label={`Item ${idx + 1} description`}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => removeItem(item.id)}
+                disabled={activePlan.items.length <= 1}
+                aria-label={`Remove item ${idx + 1}`}
+                className="h-10 w-10 shrink-0 text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <label className="space-y-1 text-xs font-medium text-muted-foreground">
+                Qty
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  value={item.quantity}
+                  onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value) || 0)}
+                  min={0}
+                  step={1}
+                  className="text-right"
+                />
+              </label>
+              <label className="space-y-1 text-xs font-medium text-muted-foreground">
+                Unit price
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  value={item.unitPrice}
+                  onChange={(e) => updateItem(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
+                  min={0}
+                  step={0.01}
+                  className="text-right"
+                />
+              </label>
+              <label className="space-y-1 text-xs font-medium text-muted-foreground">
+                Disc %
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  value={item.discount}
+                  onChange={(e) => updateItem(item.id, 'discount', parseFloat(e.target.value) || 0)}
+                  min={0}
+                  max={100}
+                  step={1}
+                  className="text-right"
+                />
+              </label>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Line total</span>
+              <span className="font-medium tabular-nums">{formatCurrency(calculateLineTotal(item))}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* Line Items Table for active plan */}
-      <div className="rounded-lg border border-input overflow-hidden">
+      <div className="hidden rounded-lg border border-input overflow-hidden md:block">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
@@ -318,7 +388,7 @@ export function CostBreakdownTable({ value, onChange }: CostBreakdownTableProps)
                     value={item.description}
                     onChange={(e) => updateItem(item.id, 'description', e.target.value)}
                     placeholder="Enter item description"
-                    className="border-0 p-0 h-auto shadow-none focus-visible:ring-0"
+                    className="h-9 border-transparent bg-transparent px-2 shadow-none hover:border-input focus-visible:border-input focus-visible:ring-1 focus-visible:ring-offset-0"
                   />
                 </TableCell>
                 <TableCell>
@@ -328,7 +398,7 @@ export function CostBreakdownTable({ value, onChange }: CostBreakdownTableProps)
                     onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value) || 0)}
                     min={0}
                     step={1}
-                    className="border-0 p-0 h-auto shadow-none focus-visible:ring-0 text-right"
+                    className="h-9 border-transparent bg-transparent px-2 shadow-none hover:border-input focus-visible:border-input focus-visible:ring-1 focus-visible:ring-offset-0 text-right"
                   />
                 </TableCell>
                 <TableCell>
@@ -338,7 +408,7 @@ export function CostBreakdownTable({ value, onChange }: CostBreakdownTableProps)
                     onChange={(e) => updateItem(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
                     min={0}
                     step={0.01}
-                    className="border-0 p-0 h-auto shadow-none focus-visible:ring-0 text-right"
+                    className="h-9 border-transparent bg-transparent px-2 shadow-none hover:border-input focus-visible:border-input focus-visible:ring-1 focus-visible:ring-offset-0 text-right"
                   />
                 </TableCell>
                 <TableCell>
@@ -349,7 +419,7 @@ export function CostBreakdownTable({ value, onChange }: CostBreakdownTableProps)
                     min={0}
                     max={100}
                     step={1}
-                    className="border-0 p-0 h-auto shadow-none focus-visible:ring-0 text-right"
+                    className="h-9 border-transparent bg-transparent px-2 shadow-none hover:border-input focus-visible:border-input focus-visible:ring-1 focus-visible:ring-offset-0 text-right"
                   />
                 </TableCell>
                 <TableCell className="text-right font-medium">
@@ -363,6 +433,7 @@ export function CostBreakdownTable({ value, onChange }: CostBreakdownTableProps)
                     onClick={() => removeItem(item.id)}
                     disabled={activePlan.items.length <= 1}
                     className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                    aria-label="Remove item"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

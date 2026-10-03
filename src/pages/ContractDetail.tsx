@@ -35,20 +35,9 @@ import { ProposalData, buildDisplayTemplate } from '@/lib/proposal-utils';
 import { ContractStatus } from '@/lib/types';
 import { getOrCreateContractPortalAccess, regenerateContractPortalAccess } from '@/lib/contract-portal-access';
 import { getContractExpiryInfo } from '@/lib/contract-alerts';
+import { contractTitle, contractTypeLabel, renewalLabel } from '@/lib/labels';
 
-const contractTypeLabels: Record<string, string> = {
-  amc: 'Annual Maintenance Contract',
-  fixed: 'Fixed Contract',
-  retainer: 'Retainer',
-};
 
-const renewalLabels: Record<string, string> = {
-  '1-month': '1 Month',
-  '3-months': '3 Months',
-  '6-months': '6 Months',
-  '1-year': '1 Year',
-  '3-years': '3 Years',
-};
 
 function addRenewalPeriod(date: Date, frequency: string): Date {
   switch (frequency) {
@@ -336,7 +325,7 @@ export default function ContractDetail() {
     const savedTemplate = buildDisplayTemplate((contract as any).content, liveTemplate || contractTemplates[0]);
 
     setPreviewData({
-      title: contractTypeLabels[contract.contract_type] || contract.contract_type,
+      title: contractTypeLabel(contract.contract_type),
       clientName: client?.primary_contact_name || client?.client_name || '',
       clientDesignation: client?.designation || '',
       clientEmail: client?.email || '',
@@ -390,19 +379,7 @@ export default function ContractDetail() {
         .eq('user_id', user?.id)
         .maybeSingle();
 
-      const contractTypeLabelsLocal: Record<string, string> = {
-        amc: 'Annual Maintenance Contract',
-        fixed: 'Fixed Contract',
-        retainer: 'Retainer Contract',
-      };
 
-      const renewalLabelsLocal: Record<string, string> = {
-        '1-month': '1 Month',
-        '3-months': '3 Months',
-        '6-months': '6 Months',
-        '1-year': '1 Year',
-        '3-years': '3 Years',
-      };
 
       const formatCurrency = (amount: number): string => {
         return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(amount);
@@ -415,12 +392,12 @@ export default function ContractDetail() {
           recipientName: client.primary_contact_name || client.client_name,
           data: {
             contractId: contract.id,
-            contractTitle: contractTypeLabelsLocal[contract.contract_type] || contract.contract_type,
+            contractTitle: contractTypeLabel(contract.contract_type),
             contractType: contract.contract_type,
             startDate: contract.start_date,
             endDate: contract.end_date,
             totalAmount: contract.value ? formatCurrency(contract.value) : null,
-            renewalFrequency: renewalLabelsLocal[contract.renewal_frequency] || contract.renewal_frequency,
+            renewalFrequency: renewalLabel(contract.renewal_frequency),
             senderName: user?.user_metadata?.full_name || 'Your Team',
             senderCompany: brandingData?.company_name || null,
             supportEmail: brandingData?.support_email || null,
@@ -611,13 +588,13 @@ export default function ContractDetail() {
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
         <div className="flex items-center gap-3 min-w-0">
           <Link to="/contracts">
-            <Button variant="ghost" size="icon" className="shrink-0">
+            <Button variant="ghost" size="icon" className="shrink-0" aria-label="Back">
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
           <div className="flex-1 min-w-0">
             <h1 className="text-xl sm:text-2xl font-bold truncate">
-              {contractTypeLabels[contract.contract_type] || contract.contract_type}
+              {contractTitle(contract.contract_type, project?.project_name || client?.client_name)}
             </h1>
           </div>
         </div>
@@ -628,7 +605,7 @@ export default function ContractDetail() {
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" className="h-8 w-8">
+              <Button variant="outline" size="icon" className="h-8 w-8" aria-label="More actions">
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -707,7 +684,7 @@ export default function ContractDetail() {
             <Separator />
             <div className="flex justify-between">
               <span className="text-muted-foreground">Type</span>
-              <span>{contractTypeLabels[contract.contract_type] || contract.contract_type}</span>
+              <span>{contractTypeLabel(contract.contract_type)}</span>
             </div>
             {client && (
               <>
@@ -760,7 +737,7 @@ export default function ContractDetail() {
             <Separator />
             <div className="flex justify-between">
               <span className="text-muted-foreground">Renewal</span>
-              <span>{renewalLabels[contract.renewal_frequency] || contract.renewal_frequency}</span>
+              <span>{renewalLabel(contract.renewal_frequency)}</span>
             </div>
             <Separator />
             <div className="flex justify-between">
@@ -828,14 +805,14 @@ export default function ContractDetail() {
                     ))}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Based on this contract's {renewalLabels[contract.renewal_frequency]?.toLowerCase() || contract.renewal_frequency} billing cycle,
+                    Based on this contract's {renewalLabel(contract.renewal_frequency).toLowerCase()} billing cycle,
                     the next invoice would cover the period starting{' '}
                     {format(addRenewalPeriod(new Date(contractInvoices[0].issued_date), contract.renewal_frequency), 'MMM d, yyyy')}.
                   </p>
                 </>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  No invoices generated from this contract yet. This is a recurring {renewalLabels[contract.renewal_frequency]?.toLowerCase() || contract.renewal_frequency} engagement —
+                  No invoices generated from this contract yet. This is a recurring {renewalLabel(contract.renewal_frequency).toLowerCase()} engagement —
                   use "Generate Next Invoice" each billing cycle; Clientra doesn't auto-generate these.
                 </p>
               )}
@@ -1139,6 +1116,7 @@ export default function ContractDetail() {
 
       {/* Contract Preview Dialog */}
       <ProposalPreviewDialog
+        documentLabel="contract"
         open={isPreviewOpen}
         onOpenChange={setIsPreviewOpen}
         template={previewTemplate}

@@ -38,7 +38,8 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { InvoiceLineItems } from '@/components/invoices/InvoiceLineItems';
@@ -828,7 +829,8 @@ export default function Invoices() {
     .filter((inv) => {
       const clientName = getClientName(inv.client_id).toLowerCase();
       const matchesSearch = clientName.includes(searchQuery.toLowerCase()) || inv.invoice_number.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesStatus = statusFilter === 'all' || inv.status === statusFilter;
+      const matchesStatus = statusFilter === 'all'
+        || (statusFilter === 'overdue' ? isInvoiceOverdue(inv) : inv.status === statusFilter);
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
@@ -850,7 +852,7 @@ export default function Invoices() {
 
   if (!can('invoices', 'read')) {
     return (
-      <div className="space-y-6 p-4 sm:p-8">
+      <div className="space-y-6 p-4 sm:p-6 lg:p-8">
         <PageHeader title="Accounts" description="Bill clients, track payments, and log business expenses" />
         <NoAccessState moduleLabel="invoices" />
       </div>
@@ -858,14 +860,14 @@ export default function Invoices() {
   }
 
   return (
-    <div className="space-y-6 p-4 sm:p-8">
+    <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       <PageHeader
         title="Accounts"
         description="Bill clients, track payments, and log business expenses"
       />
 
       <Tabs defaultValue="overview">
-        <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 sm:w-auto sm:flex-nowrap">
+        <TabsList className="w-full sm:w-auto">
           <TabsTrigger value="overview" className="px-2.5 text-xs sm:px-3 sm:text-sm">Overview</TabsTrigger>
           <TabsTrigger value="transactions" className="px-2.5 text-xs sm:px-3 sm:text-sm">Transactions</TabsTrigger>
           <TabsTrigger value="tax" className="px-2.5 text-xs sm:px-3 sm:text-sm">Tax Deductions</TabsTrigger>
@@ -911,6 +913,7 @@ export default function Invoices() {
             <SelectItem value="draft">Draft</SelectItem>
             <SelectItem value="sent">Sent</SelectItem>
             <SelectItem value="partial">Partially Paid</SelectItem>
+            <SelectItem value="overdue">Overdue</SelectItem>
             <SelectItem value="paid">Paid</SelectItem>
             <SelectItem value="void">Void</SelectItem>
           </SelectContent>
@@ -940,10 +943,10 @@ export default function Invoices() {
               <TableHeader>
                 <TableRow>
                   <SortableTableHead label="Invoice" sortKey="invoice_number" sort={invoiceSort} onSort={(key) => setInvoiceSort((prev) => toggleSort(prev, key))} />
-                  <SortableTableHead label="Client" sortKey="client" sort={invoiceSort} onSort={(key) => setInvoiceSort((prev) => toggleSort(prev, key))} />
+                  <SortableTableHead label="Client" sortKey="client" sort={invoiceSort} onSort={(key) => setInvoiceSort((prev) => toggleSort(prev, key))} className="hidden sm:table-cell" />
                   <SortableTableHead label="Status" sortKey="status" sort={invoiceSort} onSort={(key) => setInvoiceSort((prev) => toggleSort(prev, key))} />
-                  <SortableTableHead label="Due" sortKey="due_date" sort={invoiceSort} onSort={(key) => setInvoiceSort((prev) => toggleSort(prev, key))} />
-                  <SortableTableHead label="Invoice Date" sortKey="issued_date" sort={invoiceSort} onSort={(key) => setInvoiceSort((prev) => toggleSort(prev, key))} />
+                  <SortableTableHead label="Due" sortKey="due_date" sort={invoiceSort} onSort={(key) => setInvoiceSort((prev) => toggleSort(prev, key))} className="hidden md:table-cell" />
+                  <SortableTableHead label="Invoice Date" sortKey="issued_date" sort={invoiceSort} onSort={(key) => setInvoiceSort((prev) => toggleSort(prev, key))} className="hidden lg:table-cell" />
                   <SortableTableHead label="Amount" sortKey="amount" sort={invoiceSort} onSort={(key) => setInvoiceSort((prev) => toggleSort(prev, key))} className="text-right" align="right" />
                   <TableHead className="w-10" />
                 </TableRow>
@@ -955,8 +958,15 @@ export default function Invoices() {
                   const balanceDue = amount ? amount.total_amount - amount.amount_paid : null;
                   return (
                     <TableRow key={invoice.id}>
-                      <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
-                      <TableCell className="text-muted-foreground">
+                      <TableCell className="font-medium">
+                        <span className="whitespace-nowrap">{invoice.invoice_number}</span>
+                        {/* Client and due date move under the number on small screens. */}
+                        <div className="mt-0.5 text-xs font-normal text-muted-foreground sm:hidden">
+                          {getClientName(invoice.client_id)}
+                          {invoice.due_date && ` · Due ${format(new Date(invoice.due_date), 'd MMM')}`}
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden text-muted-foreground sm:table-cell">
                         <Link to={`/clients/${invoice.client_id}`} className="hover:text-primary hover:underline">
                           {getClientName(invoice.client_id)}
                         </Link>
@@ -964,13 +974,13 @@ export default function Invoices() {
                       <TableCell>
                         <StatusBadge status={(isOverdue ? 'overdue' : invoice.status) as 'draft' | 'sent' | 'partial' | 'paid' | 'void' | 'overdue'} />
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
+                      <TableCell className="hidden whitespace-nowrap text-muted-foreground md:table-cell">
                         {invoice.due_date ? format(new Date(invoice.due_date), 'MMM d, yyyy') : '—'}
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
+                      <TableCell className="hidden whitespace-nowrap text-muted-foreground lg:table-cell">
                         {format(new Date(invoice.issued_date), 'MMM d, yyyy')}
                       </TableCell>
-                      <TableCell className="text-right font-semibold">
+                      <TableCell className="whitespace-nowrap text-right font-semibold tabular-nums">
                         {canViewFinancials
                           ? (amount
                               ? (invoice.status === 'partial' && balanceDue != null ? `${formatCurrency(balanceDue)} due` : formatCurrency(amount.total_amount))
@@ -980,7 +990,7 @@ export default function Invoices() {
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="More actions">
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -1023,6 +1033,9 @@ export default function Invoices() {
                                   <Wallet className="mr-2 h-4 w-4" />
                                   Record Payment
                                 </DropdownMenuItem>
+                              )}
+                              {invoice.status !== 'void' && (
+                                <DropdownMenuSeparator />
                               )}
                               {invoice.status !== 'void' && (
                                 <DropdownMenuItem onClick={() => setVoidingId(invoice.id)}>

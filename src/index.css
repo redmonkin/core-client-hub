@@ -16,20 +16,24 @@ All colors MUST be HSL.
     --card: 210 40% 98%;
     --card-foreground: 222 47% 11%;
 
-    --popover: 214 31% 91%;
+    --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
     --primary: 200 98% 39%;
     --primary-foreground: 204 100% 97%;
 
-    --secondary: 215 24% 26%;
-    --secondary-foreground: 210 40% 98%;
+    /* Neutral surfaces: light slate fills with dark text (badges, tab bars,
+       table headers). muted-foreground is the secondary-text colour
+       (descriptions, placeholders, timestamps) at ~6:1 on the background. */
+    --secondary: 210 40% 93%;
+    --secondary-foreground: 215 25% 27%;
 
-    --muted: 215 20% 65%;
-    --muted-foreground: 222 47% 11%;
+    --muted: 210 40% 93%;
+    --muted-foreground: 215 16% 40%;
 
-    --accent: 210 40% 98%;
-    --accent-foreground: 215 19% 34%;
+    /* Hover/highlight tint for menus, ghost buttons and select items. */
+    --accent: 204 94% 94%;
+    --accent-foreground: 200 98% 24%;
 
     --destructive: 0 72% 50%;
     --destructive-foreground: 0 85% 97%;
@@ -48,9 +52,9 @@ All colors MUST be HSL.
 
     --sidebar-primary-foreground: 204 100% 97%;
 
-    --sidebar-accent: 215 24% 26%;
+    --sidebar-accent: 204 94% 94%;
 
-    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-accent-foreground: 200 98% 24%;
 
     --sidebar-border: 212 26% 83%;
 

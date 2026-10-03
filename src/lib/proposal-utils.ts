@@ -1,4 +1,5 @@
 import { format } from 'date-fns';
+import { humanize } from '@/lib/labels';
 
 export interface ProposalData {
   title: string;
@@ -268,8 +269,8 @@ export function replacePlaceholders(content: string, data: ProposalData, highlig
     '{{totalAmount}}': totalAmount,
     '{{approvedDate}}': approvedDateFormatted,
     // Contract-specific placeholders
-    '{{contractType}}': contractTypeLabels[data.contractType || ''] || data.contractType || '',
-    '{{renewalFrequency}}': renewalLabels[data.renewalFrequency || ''] || data.renewalFrequency || '',
+    '{{contractType}}': contractTypeLabels[data.contractType || ''] || humanize(data.contractType),
+    '{{renewalFrequency}}': renewalLabels[data.renewalFrequency || ''] || humanize(data.renewalFrequency),
     '{{startDate}}': startDateFormatted,
     '{{endDate}}': endDateFormatted,
     '{{clientSignature}}': data.clientSignatureImageUrl

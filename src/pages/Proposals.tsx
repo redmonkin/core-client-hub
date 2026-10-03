@@ -641,7 +641,7 @@ export default function Proposals() {
 
   if (!can('proposals', 'read')) {
     return (
-      <div className="space-y-6 p-8">
+      <div className="space-y-6 p-4 sm:p-6 lg:p-8">
         <PageHeader title="Proposals" description="Create and manage client proposals" />
         <NoAccessState moduleLabel="proposals" />
       </div>
@@ -649,7 +649,7 @@ export default function Proposals() {
   }
 
   return (
-    <div className="space-y-6 p-8">
+    <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       <PageHeader
         title="Proposals"
         description="Create and manage client proposals"
@@ -777,7 +777,7 @@ export default function Proposals() {
                 <div className="flex justify-end">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 focus-visible:opacity-100 transition-opacity" aria-label="More actions">
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -859,7 +859,7 @@ export default function Proposals() {
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 focus-visible:opacity-100 transition-opacity" aria-label="More actions">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -930,7 +930,7 @@ export default function Proposals() {
       ) : (
         <EmptyState
           icon={FileText}
-          title="No proposals found"
+          title={searchQuery || statusFilter !== 'all' ? 'No matching proposals' : 'No proposals yet'}
           description={searchQuery || statusFilter !== 'all'
             ? "Try adjusting your filters"
             : "Create your first proposal to get started"}

@@ -40,6 +40,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useWorkspaceUser, PermissionModule } from '@/hooks/useWorkspaceUser';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import clientraLogoLight from '@/assets/clientra-light.svg';
+import { NotificationsDropdown } from '@/components/notifications/NotificationsDropdown';
 import clientraLogoDark from '@/assets/clientra-dark.svg';
 
 const menuItems: { title: string; url: string; icon: typeof LayoutDashboard; module?: PermissionModule }[] = [
@@ -109,9 +110,14 @@ export function AppSidebar() {
               <img src={clientraLogoLight} alt="Clientra" className="h-7 w-7 hidden dark:block" />
             </SidebarTrigger>
           ) : (
-            <SidebarTrigger className="h-8 w-8 text-sidebar-foreground hover:bg-sidebar-accent">
-              <ChevronLeft className="h-4 w-4 transition-transform duration-200" />
-            </SidebarTrigger>
+            <div className="flex items-center gap-1">
+              <div className="hidden md:block">
+                <NotificationsDropdown align="start" />
+              </div>
+              <SidebarTrigger className="h-8 w-8 text-sidebar-foreground hover:bg-sidebar-accent" aria-label="Collapse sidebar">
+                <ChevronLeft className="h-4 w-4 transition-transform duration-200" />
+              </SidebarTrigger>
+            </div>
           )}
         </div>
       </SidebarHeader>
@@ -138,7 +144,7 @@ export function AppSidebar() {
                           "flex items-center rounded-lg font-medium transition-all duration-200",
                           collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2.5",
                           isActive
-                            ? "bg-primary text-primary-foreground shadow-sm"
+                            ? "bg-primary text-primary-foreground shadow-sm data-[active=true]:bg-primary data-[active=true]:text-primary-foreground"
                             : "text-sidebar-foreground hover:bg-sidebar-accent/80"
                         )}
                       >
