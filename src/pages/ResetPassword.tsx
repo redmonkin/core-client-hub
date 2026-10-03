@@ -86,8 +86,10 @@ export default function ResetPassword() {
 
         <Card className="border-0 shadow-lg lg:border lg:shadow-sm">
           <CardHeader className="space-y-1 pb-4 text-center">
-            <CardTitle className="text-2xl font-bold">Set a new password</CardTitle>
-            <CardDescription>Enter a new password for your account.</CardDescription>
+            <CardTitle className="text-2xl font-bold">
+              {hasRecoverySession === false ? 'Reset link expired' : 'Set a new password'}
+            </CardTitle>
+            {hasRecoverySession !== false && <CardDescription>Enter a new password for your account.</CardDescription>}
           </CardHeader>
           <CardContent>
             {hasRecoverySession === false ? (
