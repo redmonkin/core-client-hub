@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -56,8 +57,14 @@ const menuItems: { title: string; url: string; icon: typeof LayoutDashboard; mod
 ];
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const location = useLocation();
+
+  // On phones the sidebar is a sheet over the page: close it once the user
+  // has navigated somewhere, otherwise it keeps covering the new page.
+  useEffect(() => {
+    if (isMobile) setOpenMobile(false);
+  }, [location.pathname, isMobile, setOpenMobile]);
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { role, isTeamMember, can, loading: permLoading } = useWorkspaceUser();
@@ -140,6 +147,7 @@ export function AppSidebar() {
                     >
                       <NavLink
                         to={item.url}
+                        onClick={() => { if (isMobile) setOpenMobile(false); }}
                         className={cn(
                           "flex items-center rounded-lg font-medium transition-all duration-200",
                           collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2.5",
