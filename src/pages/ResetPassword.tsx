@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
+import { openedFromRecoveryLink } from '@/lib/auth-recovery';
 import { toast } from 'sonner';
 import clientraLogoLight from '@/assets/clientra-light.svg';
 import clientraLogoDark from '@/assets/clientra-dark.svg';
@@ -18,21 +19,20 @@ export default function ResetPassword() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   // Supabase parses the recovery token from the URL and establishes a temporary
-  // session automatically (detectSessionInUrl is on by default). We just need to
-  // wait for that to settle before allowing the form to submit.
+  // session automatically (detectSessionInUrl is on by default). The form only
+  // unlocks when this page was opened from a recovery link and that session
+  // exists; an ordinary signed-in session isn't enough.
   const [hasRecoverySession, setHasRecoverySession] = useState<boolean | null>(null);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        setHasRecoverySession(true);
-      } else if (session) {
+      if (event === 'PASSWORD_RECOVERY' || (openedFromRecoveryLink && session)) {
         setHasRecoverySession(true);
       }
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setHasRecoverySession(true);
+      if (openedFromRecoveryLink && session) setHasRecoverySession(true);
       else setHasRecoverySession((prev) => prev ?? false);
     });
 

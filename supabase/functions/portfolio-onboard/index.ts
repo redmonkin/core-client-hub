@@ -69,11 +69,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Validate user_id is a real portfolio owner (has branding settings)
+    // Validate user_id owns a published portfolio (a slug is what makes it
+    // public), so the form can't be used to push leads into any workspace.
     const { data: branding, error: brandingError } = await supabase
       .from("branding_settings")
       .select("id")
       .eq("user_id", user_id)
+      .not("slug", "is", null)
       .maybeSingle();
 
     if (brandingError || !branding) {
@@ -114,7 +116,15 @@ Deno.serve(async (req) => {
     }
 
     // Rate limit per submitter IP and per portfolio owner.
-    const clientIp = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "unknown";
+    // cf-connecting-ip / x-real-ip are set by the platform's edge (Cloudflare)
+    // and can't be spoofed by the caller, unlike the first x-forwarded-for
+    // entry. x-forwarded-for is only a fallback for self-hosted setups.
+    const clientIp = (
+      req.headers.get("cf-connecting-ip") ||
+      req.headers.get("x-real-ip") ||
+      (req.headers.get("x-forwarded-for") || "").split(",").pop() ||
+      ""
+    ).trim() || "unknown";
     const { data: allowed, error: rateLimitError } = await supabase.rpc("record_portfolio_onboard_submission", {
       p_owner_id: user_id,
       p_ip_hash: await sha256Hex(clientIp),

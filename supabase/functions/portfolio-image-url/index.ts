@@ -49,13 +49,23 @@ const handler = async (req: Request): Promise<Response> => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { data: projects, error } = await admin
+    const { data: featured, error } = await admin
       .from("projects")
-      .select("id, feature_image_url, is_featured")
+      .select("id, user_id, feature_image_url, is_featured")
       .in("id", ids)
       .eq("is_featured", true);
 
     if (error) throw error;
+
+    // Only owners who have published a portfolio (have a slug), matching the
+    // public_portfolio_projects view, so unpublished work stays private.
+    const ownerIds = [...new Set((featured || []).map((p) => p.user_id))];
+    const { data: published, error: brandingError } = ownerIds.length
+      ? await admin.from("branding_settings").select("user_id").in("user_id", ownerIds).not("slug", "is", null)
+      : { data: [], error: null };
+    if (brandingError) throw brandingError;
+    const publishedOwners = new Set((published || []).map((b) => b.user_id));
+    const projects = (featured || []).filter((p) => publishedOwners.has(p.user_id));
 
     const urls: Record<string, string | null> = {};
     for (const id of ids) urls[id] = null;
