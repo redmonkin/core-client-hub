@@ -197,7 +197,7 @@ const handler = async (req: Request): Promise<Response> => {
           html: emailHtml,
         });
 
-        console.log(`Email sent to ${userEmail}:`, emailResponse);
+        console.log("Reminder email sent:", emailResponse?.data?.id ?? emailResponse?.error);
         emailsSent.push(userEmail);
       } catch (emailError: any) {
         console.error(`Failed to send email to ${userEmail}:`, emailError);

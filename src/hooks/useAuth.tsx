@@ -15,18 +15,14 @@ export function useAuth() {
         setUser(session?.user ?? null);
         setLoading(false);
 
-        // On sign-in, activate any pending team invitations for this email
+        // On sign-in, accept any pending team invitations addressed to this
+        // (confirmed) email. The database checks the address itself.
         if (event === 'SIGNED_IN' && session?.user) {
           setTimeout(async () => {
             try {
-              await supabase
-                .from('team_members')
-                .update({ member_id: session.user.id, status: 'active' } as any)
-                .eq('invited_email', session.user.email!)
-                .eq('status', 'pending')
-                .is('member_id', null);
+              await supabase.rpc('accept_team_invitations');
             } catch (e) {
-              // Silent fail — trigger will handle it on signup anyway
+              // Silent fail — the email-confirmation trigger also binds invites
             }
           }, 0);
         }

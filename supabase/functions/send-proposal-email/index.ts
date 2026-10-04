@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { emailFrom } from "../_shared/email.ts";
+import { appLinkOrNull, claimEmailQuota, sanitizeCcEmails } from "../_shared/email-guard.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -18,11 +19,6 @@ const escapeHtml = (s: string): string =>
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
-
-const isSafeHttpUrl = (url: string | null | undefined): url is string => {
-  if (!url) return false;
-  return /^https?:\/\//i.test(url);
-};
 
 interface SendProposalRequest {
   proposalId: string;
@@ -192,9 +188,7 @@ const handler = async (req: Request): Promise<Response> => {
     const clientEmail = clientRow.email;
     const clientName = clientRow.client_name;
 
-    console.log(
-      `Sending proposal email to ${clientEmail} for proposal: ${proposalTitle}`
-    );
+    console.log(`Sending proposal email for proposal ${proposalId}`);
 
     const formattedValidity = validityDate
       ? new Date(validityDate).toLocaleDateString("en-US", {
@@ -211,8 +205,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     const fromName = senderCompany || senderName || "Clientra";
 
-    // Validate portal link – only https:// URLs are embedded as anchors.
-    const safePortalLink = isSafeHttpUrl(portalLink) ? portalLink : null;
+    // The button may only link back into this app, never to a caller-chosen site.
+    const safePortalLink = appLinkOrNull(portalLink);
 
     // Pre-escape every user-supplied value before embedding into the HTML template.
     const safeClientName = escapeHtml(clientName || "");
@@ -379,14 +373,21 @@ const handler = async (req: Request): Promise<Response> => {
       html: emailHtml,
     };
 
-    // Add CC recipients if provided
-    if (ccEmails && ccEmails.length > 0) {
-      emailPayload.cc = ccEmails;
+    const cc = sanitizeCcEmails(ccEmails, clientEmail);
+    if (cc.length > 0) {
+      emailPayload.cc = cc;
+    }
+
+    if (!(await claimEmailQuota(user.id))) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Daily email limit reached. Try again tomorrow." }),
+        { status: 429, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
     }
 
     const emailResponse = await resend.emails.send(emailPayload);
 
-    console.log("Email sent successfully:", emailResponse);
+    console.log("Email sent successfully:", emailResponse?.data?.id ?? emailResponse?.error);
 
     return new Response(
       JSON.stringify({ success: true, data: emailResponse }),

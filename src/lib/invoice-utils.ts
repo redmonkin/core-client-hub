@@ -166,6 +166,8 @@ export function buildInvoiceLineItemsHtml(costBreakdownJson: string | null | und
   const data = parseInvoiceLineItems(costBreakdownJson);
   const totals = getInvoiceTotals(data);
   const fmt = (n: number) => formatInvoiceCurrency(n, currency);
+  // Branding colour lands in a style attribute; accept only a hex colour.
+  const safeHeaderColor = /^#[0-9a-f]{3,8}$/i.test(headerColor) ? headerColor : '#c0392b';
 
   const rows = data.items.map((item, idx) => `
     <tr>
@@ -174,7 +176,7 @@ export function buildInvoiceLineItemsHtml(costBreakdownJson: string | null | und
         ${item.name ? `<div style="font-weight:600;">${escapeInvoiceHtml(item.name)}</div>` : ''}
         ${item.description ? `<div style="${item.name ? 'font-size:11px;color:#6b7280;margin-top:2px;' : ''}">${escapeInvoiceHtml(item.description)}</div>` : ''}
       </td>
-      <td style="padding:10px 12px;border-bottom:1px solid #f1f1f1;text-align:right;white-space:nowrap;">${item.quantity.toFixed(2)}<div style="font-size:11px;color:#9ca3af;">${UNIT_LABELS[item.unit] || item.unit}</div></td>
+      <td style="padding:10px 12px;border-bottom:1px solid #f1f1f1;text-align:right;white-space:nowrap;">${item.quantity.toFixed(2)}<div style="font-size:11px;color:#9ca3af;">${escapeInvoiceHtml(UNIT_LABELS[item.unit] || item.unit || '')}</div></td>
       <td style="padding:10px 12px;border-bottom:1px solid #f1f1f1;text-align:right;">${fmt(item.unitPrice)}</td>
       <td style="padding:10px 12px;border-bottom:1px solid #f1f1f1;text-align:right;">${fmt(calculateInvoiceLineTotal(item))}</td>
     </tr>
@@ -183,7 +185,7 @@ export function buildInvoiceLineItemsHtml(costBreakdownJson: string | null | und
   const tableHtml = `
     <table style="width:100%;border-collapse:collapse;font-size:13px;">
       <thead>
-        <tr style="background:${headerColor};color:#fff;">
+        <tr style="background:${safeHeaderColor};color:#fff;">
           <th style="padding:10px 12px;text-align:left;font-weight:600;">#</th>
           <th style="padding:10px 12px;text-align:left;font-weight:600;">Item &amp; Description</th>
           <th style="padding:10px 12px;text-align:right;font-weight:600;">Qty</th>

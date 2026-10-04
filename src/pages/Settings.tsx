@@ -12,6 +12,7 @@ import { Loader2, Upload, Trash2, Palette, Globe, Building2, Mail, MapPin } from
 import { TeamManagement } from "@/components/settings/TeamManagement";
 import { InvoiceSettings } from "@/components/settings/InvoiceSettings";
 import { Textarea } from "@/components/ui/textarea";
+import { normalizeWebsiteUrl } from "@/lib/sanitize";
 
 interface BrandingSettings {
   id?: string;
@@ -144,6 +145,12 @@ export default function Settings() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      const websiteUrl = normalizeWebsiteUrl(branding.website_url);
+      if (branding.website_url.trim() && !websiteUrl) {
+        toast({ title: "Invalid website", description: "Enter a web address like https://example.com", variant: "destructive" });
+        return;
+      }
+
       const brandingData: any = {
         user_id: workspaceUserId!,
         company_name: branding.company_name || null,
@@ -152,7 +159,7 @@ export default function Settings() {
         primary_color: branding.primary_color,
         accent_color: branding.accent_color,
         tagline: branding.tagline || null,
-        website_url: branding.website_url || null,
+        website_url: websiteUrl,
         support_email: branding.support_email || null,
         slug: branding.slug ? branding.slug.trim().toLowerCase() : null,
       };

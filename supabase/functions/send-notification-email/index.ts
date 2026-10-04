@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { emailFrom } from "../_shared/email.ts";
+import { appLinkOrNull, claimEmailQuota, isPdfBase64, sanitizeCcEmails } from "../_shared/email-guard.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -34,6 +35,18 @@ interface NotificationEmailRequest {
   ccEmails?: string[];
   attachments?: { filename: string; content: string }[];
 }
+
+const KNOWN_TYPES = new Set<string>([
+  "proposal_approved",
+  "proposal_rejected",
+  "proposal_change_requested",
+  "contract_created",
+  "contract_sent",
+  "team_invite",
+  "invoice_sent",
+  "invoice_overdue",
+  "invoice_paid",
+]);
 
 function buildInvoiceEmail(
   recipientName: string,
@@ -533,7 +546,22 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    const { type, recipientEmail: bodyRecipientEmail, recipientName: bodyRecipientName, data, ccEmails, attachments }: NotificationEmailRequest = await req.json();
+    const { type, recipientEmail: bodyRecipientEmail, recipientName: bodyRecipientName, data: rawData, ccEmails, attachments }: NotificationEmailRequest = await req.json();
+
+    // Only known types are sendable: every one of them resolves its recipient
+    // server-side below. An unknown type would otherwise fall through to the
+    // generic template with the caller's own recipient address.
+    if (!KNOWN_TYPES.has(type)) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Unknown notification type" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Buttons may only link back into this app, never to a caller-chosen site.
+    const data: Record<string, any> = { ...(rawData && typeof rawData === "object" ? rawData : {}) };
+    data.portalLink = appLinkOrNull(data.portalLink);
+    data.appUrl = appLinkOrNull(data.appUrl);
 
     // Resolve the true recipient server-side rather than trusting the request body, so a
     // caller can't use their own valid session to relay arbitrary branded email to an
@@ -687,11 +715,18 @@ const handler = async (req: Request): Promise<Response> => {
       recipientName = clientRow.primary_contact_name || clientRow.client_name;
     }
 
-    console.log(`Sending ${type} notification email to ${recipientEmail}`);
-
     if (!recipientEmail) {
       throw new Error("Recipient email is required");
     }
+
+    if (!(await claimEmailQuota(user.id))) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Daily email limit reached. Try again tomorrow." }),
+        { status: 429, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    console.log(`Sending ${type} notification email`);
 
     let emailContent: { subject: string; html: string };
 
@@ -714,8 +749,9 @@ const handler = async (req: Request): Promise<Response> => {
       html: emailContent.html,
     };
 
-    if (ccEmails && ccEmails.length > 0) {
-      emailPayload.cc = ccEmails;
+    const cc = sanitizeCcEmails(ccEmails, recipientEmail);
+    if (cc.length > 0) {
+      emailPayload.cc = cc;
     }
 
     // Only meaningful for invoice_sent/invoice_overdue (attaching the invoice
@@ -729,9 +765,15 @@ const handler = async (req: Request): Promise<Response> => {
       attachments.length > 0
     ) {
       const MAX_BASE64_LENGTH = 15 * 1024 * 1024;
-      const validAttachments = attachments.filter(
-        (a) => a && typeof a.filename === "string" && typeof a.content === "string" && a.content.length <= MAX_BASE64_LENGTH
-      );
+      // Only real PDFs, always named .pdf, so the invoice slot can't carry an
+      // executable or HTML file dressed up as an invoice.
+      const validAttachments = attachments
+        .filter((a) => a && typeof a.filename === "string" && isPdfBase64(a.content) && a.content.length <= MAX_BASE64_LENGTH)
+        .slice(0, 1)
+        .map((a) => ({
+          filename: `${(a.filename.split(/[\\/]/).pop() || "").replace(/\.pdf$/i, "").replace(/[^\w .-]/g, "").replace(/^[.\s]+/, "").trim().slice(0, 80) || "invoice"}.pdf`,
+          content: a.content,
+        }));
       if (validAttachments.length > 0) {
         emailPayload.attachments = validAttachments;
       }
@@ -739,7 +781,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     const emailResponse = await resend.emails.send(emailPayload);
 
-    console.log("Notification email sent:", emailResponse);
+    console.log("Notification email sent:", emailResponse?.data?.id ?? emailResponse?.error);
 
     return new Response(
       JSON.stringify({ success: true, data: emailResponse }),
