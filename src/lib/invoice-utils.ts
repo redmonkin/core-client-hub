@@ -162,7 +162,7 @@ const UNIT_LABELS: Record<string, string> = {
  * invoice PDF/portal, plus Sub Total / Discount / Tax rows -- Balance Due and
  * Total In Words are rendered separately by the caller since they also need
  * amount_paid, which isn't part of the line-item data. */
-export function buildInvoiceLineItemsHtml(costBreakdownJson: string | null | undefined, currency = 'INR'): { tableHtml: string; totals: ReturnType<typeof getInvoiceTotals> } {
+export function buildInvoiceLineItemsHtml(costBreakdownJson: string | null | undefined, currency = 'INR', headerColor = '#c0392b'): { tableHtml: string; totals: ReturnType<typeof getInvoiceTotals> } {
   const data = parseInvoiceLineItems(costBreakdownJson);
   const totals = getInvoiceTotals(data);
   const fmt = (n: number) => formatInvoiceCurrency(n, currency);
@@ -183,7 +183,7 @@ export function buildInvoiceLineItemsHtml(costBreakdownJson: string | null | und
   const tableHtml = `
     <table style="width:100%;border-collapse:collapse;font-size:13px;">
       <thead>
-        <tr style="background:#c0392b;color:#fff;">
+        <tr style="background:${headerColor};color:#fff;">
           <th style="padding:10px 12px;text-align:left;font-weight:600;">#</th>
           <th style="padding:10px 12px;text-align:left;font-weight:600;">Item &amp; Description</th>
           <th style="padding:10px 12px;text-align:right;font-weight:600;">Qty</th>

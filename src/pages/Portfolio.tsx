@@ -8,7 +8,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
@@ -18,7 +17,7 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Globe, Building2, Send, CheckCircle, Loader2, Image as ImageIcon, Mail, Paperclip, X } from 'lucide-react';
+import { Globe, Building2, Send, CheckCircle, Loader2, Mail, Paperclip, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { SITE_URL } from '@/lib/site';
 import NotFound from './NotFound';
@@ -74,13 +73,6 @@ function fileToBase64(file: File): Promise<string> {
     reader.readAsDataURL(file);
   });
 }
-
-const projectTypeLabels: Record<string, string> = {
-  'one-time': 'One-time',
-  'amc': 'AMC',
-  'retainer': 'Retainer',
-  'hourly': 'Hourly',
-};
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -454,19 +446,26 @@ export default function Portfolio() {
               const imageUrl = imageUrls[project.id] || '';
               return (
                 <Card key={project.id} className="overflow-hidden group hover:shadow-xl transition-all duration-300 border-0 shadow-md bg-white">
-                  <div className="aspect-video bg-gray-100 flex items-center justify-center overflow-hidden">
-                    {imageUrl ? (
+                  {imageUrl ? (
+                    <div className="aspect-video overflow-hidden bg-gray-100">
                       <img
                         src={imageUrl}
                         alt={project.project_name}
                         className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
-                    ) : (
-                      <div className="flex flex-col items-center gap-2 text-gray-300">
-                        <ImageIcon className="h-12 w-12" />
-                      </div>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    // No cover image: a short brand-tinted band with the project's initial.
+                    <div
+                      className="flex h-24 items-center justify-center"
+                      style={{ background: `linear-gradient(135deg, ${primaryColor}22, ${accentColor}22)` }}
+                      aria-hidden="true"
+                    >
+                      <span className="text-3xl font-semibold" style={{ color: primaryColor }}>
+                        {project.project_name.trim().charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                  )}
                   <CardContent className="p-5">
                     <h3 className="text-lg font-semibold text-gray-900">{project.project_name}</h3>
                     {getClientName(project.client_id) && (
@@ -475,15 +474,6 @@ export default function Portfolio() {
                         {getClientName(project.client_id)}
                       </p>
                     )}
-                    <div className="mt-3">
-                      <Badge
-                        variant="outline"
-                        className="text-xs border-0 font-medium px-3 py-1"
-                        style={{ backgroundColor: `${primaryColor}15`, color: primaryColor }}
-                      >
-                        {projectTypeLabels[project.project_type] || project.project_type}
-                      </Badge>
-                    </div>
                   </CardContent>
                 </Card>
               );
@@ -538,8 +528,8 @@ export default function Portfolio() {
                   />
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label>Full Name *</Label>
-                      <Input
+                      <Label htmlFor="pf-full-name">Full Name *</Label>
+                      <Input id="pf-full-name"
                         value={clientForm.name}
                         onChange={(e) => setClientForm(p => ({ ...p, name: e.target.value }))}
                         placeholder="John Doe"
@@ -547,8 +537,8 @@ export default function Portfolio() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Email *</Label>
-                      <Input
+                      <Label htmlFor="pf-email">Email *</Label>
+                      <Input id="pf-email"
                         type="email"
                         value={clientForm.email}
                         onChange={(e) => setClientForm(p => ({ ...p, email: e.target.value }))}
@@ -559,16 +549,16 @@ export default function Portfolio() {
                   </div>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label>Phone</Label>
-                      <Input
+                      <Label htmlFor="pf-phone">Phone</Label>
+                      <Input id="pf-phone"
                         value={clientForm.phone}
                         onChange={(e) => setClientForm(p => ({ ...p, phone: e.target.value }))}
                         placeholder="+91 9876543210"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Company</Label>
-                      <Input
+                      <Label htmlFor="pf-company">Company</Label>
+                      <Input id="pf-company"
                         value={clientForm.company_name}
                         onChange={(e) => setClientForm(p => ({ ...p, company_name: e.target.value }))}
                         placeholder="Company name"
@@ -576,8 +566,8 @@ export default function Portfolio() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>Project Name</Label>
-                    <Input
+                    <Label htmlFor="pf-project-name">Project Name</Label>
+                    <Input id="pf-project-name"
                       value={clientForm.project_name}
                       onChange={(e) => setClientForm(p => ({ ...p, project_name: e.target.value }))}
                       placeholder="e.g. Website Redesign"
@@ -615,8 +605,8 @@ export default function Portfolio() {
               <div className="min-h-0 flex-1 overflow-y-auto -mx-6">
                 <div className="space-y-4 px-6 pb-1">
                   <div className="space-y-2">
-                    <Label className="text-sm">What is the primary goal of this project?</Label>
-                    <Textarea
+                    <Label htmlFor="pf-what-is-the-primary-goal-of-this-project" className="text-sm">What is the primary goal of this project?</Label>
+                    <Textarea id="pf-what-is-the-primary-goal-of-this-project"
                       value={questionnaire.primaryGoal}
                       onChange={(e) => setQuestionnaire(p => ({ ...p, primaryGoal: e.target.value }))}
                       placeholder="Describe what you want to achieve..."
@@ -625,8 +615,8 @@ export default function Portfolio() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-sm">Who is this project for? (target audience)</Label>
-                    <Textarea
+                    <Label htmlFor="pf-who-is-this-project-for-target-audience" className="text-sm">Who is this project for? (target audience)</Label>
+                    <Textarea id="pf-who-is-this-project-for-target-audience"
                       value={questionnaire.targetAudience}
                       onChange={(e) => setQuestionnaire(p => ({ ...p, targetAudience: e.target.value }))}
                       placeholder="e.g. Working professionals aged 25-40 looking for..."
@@ -661,8 +651,8 @@ export default function Portfolio() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-sm">Any websites or brands whose look/feel you like?</Label>
-                    <Textarea
+                    <Label htmlFor="pf-any-websites-or-brands-whose-look-feel-y" className="text-sm">Any websites or brands whose look/feel you like?</Label>
+                    <Textarea id="pf-any-websites-or-brands-whose-look-feel-y"
                       value={questionnaire.designInspiration}
                       onChange={(e) => setQuestionnaire(p => ({ ...p, designInspiration: e.target.value }))}
                       placeholder="Share links or names of sites/brands you admire..."
@@ -687,8 +677,8 @@ export default function Portfolio() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-sm">Do you have any other specific requirements or preferences?</Label>
-                    <Textarea
+                    <Label htmlFor="pf-do-you-have-any-other-specific-requireme" className="text-sm">Do you have any other specific requirements or preferences?</Label>
+                    <Textarea id="pf-do-you-have-any-other-specific-requireme"
                       value={questionnaire.requirements}
                       onChange={(e) => setQuestionnaire(p => ({ ...p, requirements: e.target.value }))}
                       placeholder="Share any details, references, must-haves..."
@@ -728,9 +718,9 @@ export default function Portfolio() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-sm">Expected timeline (in weeks)</Label>
+                    <Label htmlFor="pf-expected-timeline-in-weeks" className="text-sm">Expected timeline (in weeks)</Label>
                     <div className="flex items-center gap-2">
-                      <Input
+                      <Input id="pf-expected-timeline-in-weeks"
                         type="number"
                         min={1}
                         max={104}
@@ -761,8 +751,8 @@ export default function Portfolio() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-sm">Who else will be involved in reviewing or approving this project?</Label>
-                    <Input
+                    <Label htmlFor="pf-who-else-will-be-involved-in-reviewing-o" className="text-sm">Who else will be involved in reviewing or approving this project?</Label>
+                    <Input id="pf-who-else-will-be-involved-in-reviewing-o"
                       value={questionnaire.stakeholders}
                       onChange={(e) => setQuestionnaire(p => ({ ...p, stakeholders: e.target.value }))}
                       placeholder="e.g. Marketing manager, co-founder..."
@@ -872,7 +862,7 @@ export default function Portfolio() {
                 style={{ backgroundColor: `${primaryColor}15` }}>
                 <CheckCircle className="h-8 w-8" style={{ color: primaryColor }} />
               </div>
-              <h3 className="mt-4 text-xl font-semibold text-gray-900">Request Submitted!</h3>
+              <DialogTitle className="mt-4 text-xl font-semibold text-gray-900">Request submitted</DialogTitle>
               <p className="mt-2 text-gray-500 max-w-sm">
                 Thank you for your interest. We'll review your request and get back to you shortly.
               </p>

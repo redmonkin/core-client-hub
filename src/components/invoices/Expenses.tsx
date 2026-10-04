@@ -286,7 +286,7 @@ export function Expenses() {
               <TableBody>
                 {expensesPagination.pageItems.map((expense) => (
                   <TableRow key={expense.id}>
-                    <TableCell className="text-muted-foreground">{format(new Date(expense.expense_date), 'MMM d, yyyy')}</TableCell>
+                    <TableCell className="whitespace-nowrap text-muted-foreground">{format(new Date(expense.expense_date), 'MMM d, yyyy')}</TableCell>
                     <TableCell>{CATEGORY_LABELS[expense.category] || expense.category}</TableCell>
                     <TableCell>{expense.vendor || '—'}</TableCell>
                     <TableCell className="max-w-[280px] truncate text-muted-foreground">{expense.description || '—'}</TableCell>

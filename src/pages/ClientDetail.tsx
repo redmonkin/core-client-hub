@@ -153,7 +153,7 @@ export default function ClientDetail() {
     .slice(0, 2);
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       {/* Back Button + Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -216,13 +216,13 @@ export default function ClientDetail() {
                 </div>
               )}
               {client.billing_address && (
-                <div className="flex items-center gap-2 text-sm">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                <div className="flex items-start gap-2 text-sm">
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                   <a
                     href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(client.billing_address)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-primary hover:underline text-left"
+                    className="whitespace-pre-line text-primary hover:underline text-left"
                   >
                     {client.billing_address}
                   </a>
@@ -251,7 +251,7 @@ export default function ClientDetail() {
 
       {/* Tabs */}
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6">
+        <TabsList className="w-full sm:w-auto">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <Activity className="h-4 w-4" />
             Overview
@@ -521,7 +521,7 @@ export default function ClientDetail() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="address">Company Address</Label>
-                <Input id="address" value={editForm.address} onChange={(e) => setEditForm(prev => ({ ...prev, address: e.target.value }))} />
+                <Textarea id="address" rows={2} value={editForm.address} onChange={(e) => setEditForm(prev => ({ ...prev, address: e.target.value }))} />
               </div>
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="status">Status</Label>

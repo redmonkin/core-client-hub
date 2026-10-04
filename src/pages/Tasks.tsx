@@ -283,7 +283,7 @@ export default function Tasks() {
 
   if (!can('timesheets', 'read')) {
     return (
-      <div className="space-y-6 p-8">
+      <div className="space-y-6 p-4 sm:p-6 lg:p-8">
         <PageHeader title="Tasks" description="Every task assigned across your workspace" />
         <NoAccessState moduleLabel="tasks" />
       </div>
@@ -291,7 +291,7 @@ export default function Tasks() {
   }
 
   return (
-    <div className="space-y-6 p-8">
+    <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       <PageHeader
         title="Tasks"
         description="Every task assigned across your workspace — project-linked or general"
@@ -545,7 +545,7 @@ export default function Tasks() {
                         </Button>
                       </RequirePermission>
                     )}
-                    <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 focus-visible:opacity-100 transition-opacity">
                       <RequirePermission module="timesheets" action="update">
                         <Button
                           variant="ghost"
@@ -578,7 +578,7 @@ export default function Tasks() {
       ) : (
         <EmptyState
           icon={ListTodo}
-          title="No tasks match these filters"
+          title={statusFilter !== ALL_VALUE || assigneeFilter !== ALL_VALUE || projectFilter !== ALL_VALUE || myTasksOnly || dueOnly ? "No tasks match these filters" : "No tasks yet"}
           description="Assign a task to a team member — it can be tied to a project or kept general."
           actionLabel="Assign Task"
           onAction={openAssignDialog}

@@ -51,6 +51,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { projectTypeLabel } from '@/lib/labels';
 
 type ProjectStatus = 'proposal' | 'planned' | 'active' | 'on-hold' | 'completed' | 'cancelled' | 'maintenance' | 'new-request';
 type ProjectType = 'one-time' | 'amc' | 'retainer' | 'hourly';
@@ -188,12 +189,6 @@ export default function Projects() {
     return client?.client_name || 'Unknown Client';
   };
 
-  const projectTypeLabels: Record<string, string> = {
-    'one-time': 'One-time',
-    'amc': 'AMC',
-    'retainer': 'Retainer',
-    'hourly': 'Hourly',
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -242,7 +237,7 @@ export default function Projects() {
 
   if (!can('projects', 'read')) {
     return (
-      <div className="space-y-6 p-8">
+      <div className="space-y-6 p-4 sm:p-6 lg:p-8">
         <PageHeader title="Projects" description="Track and manage all your projects" />
         <NoAccessState moduleLabel="projects" />
       </div>
@@ -250,7 +245,7 @@ export default function Projects() {
   }
 
   return (
-    <div className="space-y-6 p-8">
+    <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       <PageHeader
         title="Projects"
         description="Track and manage all your projects"
@@ -432,7 +427,7 @@ export default function Projects() {
                     <StatusBadge status={project.status as 'proposal' | 'active' | 'planned' | 'on-hold' | 'completed' | 'cancelled' | 'maintenance' | 'new-request'} />
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="More actions">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -471,7 +466,7 @@ export default function Projects() {
                 <div className="min-w-0 flex items-baseline gap-2 lg:block">
                   <span className="text-xs uppercase tracking-wider text-muted-foreground lg:hidden shrink-0">Type</span>
                   <Badge variant="outline" className="font-medium">
-                    {projectTypeLabels[project.project_type]}
+                    {projectTypeLabel(project.project_type)}
                   </Badge>
                 </div>
 
@@ -496,7 +491,7 @@ export default function Projects() {
                 <div className="hidden lg:flex justify-end">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 focus-visible:opacity-100 transition-opacity" aria-label="More actions">
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -544,7 +539,7 @@ export default function Projects() {
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 focus-visible:opacity-100 transition-opacity" aria-label="More actions">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -569,7 +564,7 @@ export default function Projects() {
 
                   <div className="mt-4 flex items-center gap-2">
                     <Badge variant="outline" className="font-medium">
-                      {projectTypeLabels[project.project_type]}
+                      {projectTypeLabel(project.project_type)}
                     </Badge>
                     <StatusBadge status={project.status as 'proposal' | 'active' | 'planned' | 'on-hold' | 'completed' | 'cancelled' | 'maintenance' | 'new-request'} />
                   </div>

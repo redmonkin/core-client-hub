@@ -21,9 +21,12 @@ interface ProposalPreviewDialogProps {
   onOpenChange: (open: boolean) => void;
   template: Template | null;
   proposalData: ProposalData;
+  /** Wording in the legend; the same dialog previews contracts. */
+  documentLabel?: 'proposal' | 'contract';
 }
 
 export function ProposalPreviewDialog({
+  documentLabel = 'proposal',
   open,
   onOpenChange,
   template,
@@ -88,14 +91,14 @@ export function ProposalPreviewDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[90vw] w-full h-[90vh] flex flex-col p-0 gap-0 [&>button]:hidden">
         {/* Header */}
-        <DialogHeader className="flex-shrink-0 px-6 py-4 border-b">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Eye className="h-5 w-5 text-primary" />
-              <div>
+        <DialogHeader className="flex-shrink-0 px-4 py-4 text-left sm:px-6 border-b">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 items-start gap-3">
+              <Eye className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+              <div className="min-w-0">
                 <DialogTitle>{proposalData.title}</DialogTitle>
                 <DialogDescription asChild>
-                  <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-sm text-muted-foreground">
                     Preview using template:{' '}
                     <Badge variant="secondary" className="bg-primary/10 text-primary text-xs">
                       {template.name}
@@ -104,37 +107,41 @@ export function ProposalPreviewDialog({
                 </DialogDescription>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            {/* Icon-only export buttons on phones so the row fits. */}
+            <div className="flex shrink-0 items-center gap-1 sm:gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleExportWord}
                 disabled={isExportingDocx}
+                aria-label="Export Word"
               >
                 {isExportingDocx ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin sm:mr-2" />
                 ) : (
-                  <FileText className="mr-2 h-4 w-4" />
+                  <FileText className="h-4 w-4 sm:mr-2" />
                 )}
-                Export Word
+                <span className="hidden sm:inline">Export Word</span>
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleExportPdf}
                 disabled={isExporting}
+                aria-label="Export PDF"
               >
                 {isExporting ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin sm:mr-2" />
                 ) : (
-                  <Download className="mr-2 h-4 w-4" />
+                  <Download className="h-4 w-4 sm:mr-2" />
                 )}
-                Export PDF
+                <span className="hidden sm:inline">Export PDF</span>
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8"
+                className="h-9 w-9"
+                aria-label="Close preview"
                 onClick={() => onOpenChange(false)}
               >
                 <X className="h-4 w-4" />
@@ -144,15 +151,15 @@ export function ProposalPreviewDialog({
         </DialogHeader>
 
         {/* Legend */}
-        <div className="flex-shrink-0 mx-6 mt-4 rounded-lg bg-muted/50 p-3 text-sm">
+        <div className="flex-shrink-0 mx-3 mt-3 rounded-lg bg-muted/50 p-3 text-sm sm:mx-6 sm:mt-4">
           <p className="text-muted-foreground">
             <span className="bg-primary/20 text-primary px-1 rounded font-medium">Highlighted text</span>
-            {' '}shows actual data filled from your proposal and client details.
+            {' '}shows actual data filled from your {documentLabel} and client details.
           </p>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto mx-6 my-4 rounded-lg border bg-card p-8">
+        <div className="flex-1 overflow-y-auto mx-3 my-3 rounded-lg border bg-card p-4 sm:mx-6 sm:my-4 sm:p-8">
           <div
             className="prose prose-sm max-w-none dark:prose-invert
               prose-headings:text-foreground

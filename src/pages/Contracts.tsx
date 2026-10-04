@@ -55,7 +55,12 @@ import { useToast } from "@/hooks/use-toast";
 import { toast } from "sonner";
 import { ContractStatus } from "@/lib/types";
 import { getOrCreateContractPortalAccess, regenerateContractPortalAccess } from "@/lib/contract-portal-access";
+import { contractTitle, contractTypeLabel, renewalLabel } from '@/lib/labels';
 import { getContractExpiryInfo } from "@/lib/contract-alerts";
+
+// "Aug 24 – Oct 28, 2026", but "Oct 28, 2026 – Oct 28, 2027" when the years differ.
+const formatDateRange = (start: Date, end: Date) =>
+  `${format(start, start.getFullYear() === end.getFullYear() ? "MMM dd" : "MMM dd, yyyy")} – ${format(end, "MMM dd, yyyy")}`;
 
 type Contract = {
   id: string;
@@ -354,6 +359,9 @@ export default function Contracts() {
     return project?.project_name || "Unknown Project";
   };
 
+  const contractTitleFor = (contract: Contract) =>
+    contractTitle(contract.contract_type, contract.project_id ? getProjectName(contract.project_id) : getClientName(contract.client_id));
+
   const filteredContracts = contracts.filter((contract) => {
     const clientName = getClientName(contract.client_id).toLowerCase();
     const projectName = getProjectName(contract.project_id).toLowerCase();
@@ -378,7 +386,7 @@ export default function Contracts() {
     const client = clients.find(c => c.id === contract.client_id);
     const project = projects.find(p => p.id === contract.project_id);
     return {
-      title: contractTypeLabels[contract.contract_type] || contract.contract_type,
+      title: contractTypeLabel(contract.contract_type),
       clientName: client?.primary_contact_name || client?.client_name || '',
       clientDesignation: client?.designation || '',
       clientEmail: client?.email || '',
@@ -456,7 +464,7 @@ export default function Contracts() {
     }
     const reminder = contract.status !== 'draft';
     const clientName = getClientName(contract.client_id);
-    const contractTitle = contractTypeLabels[contract.contract_type] || contract.contract_type;
+    const contractTitle = contractTypeLabel(contract.contract_type);
     setSelectedContract(contract);
     setSelectedCcEmails([]);
     setRegenerateBeforeSend(false);
@@ -500,19 +508,7 @@ export default function Contracts() {
         .eq('user_id', user?.id)
         .maybeSingle();
 
-      const contractTypeLabelsLocal: Record<string, string> = {
-        amc: "Annual Maintenance Contract",
-        fixed: "Fixed Contract",
-        retainer: "Retainer Contract",
-      };
 
-      const renewalLabelsLocal: Record<string, string> = {
-        '1-month': '1 Month',
-        '3-months': '3 Months',
-        '6-months': '6 Months',
-        '1-year': '1 Year',
-        '3-years': '3 Years',
-      };
 
       const formatCurrency = (amount: number): string => {
         return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(amount);
@@ -525,12 +521,12 @@ export default function Contracts() {
           recipientName: clientName,
           data: {
             contractId: selectedContract.id,
-            contractTitle: contractTypeLabelsLocal[selectedContract.contract_type] || selectedContract.contract_type,
+            contractTitle: contractTypeLabel(selectedContract.contract_type),
             contractType: selectedContract.contract_type,
             startDate: selectedContract.start_date,
             endDate: selectedContract.end_date,
             totalAmount: selectedContract.value ? formatCurrency(selectedContract.value) : null,
-            renewalFrequency: renewalLabelsLocal[selectedContract.renewal_frequency] || selectedContract.renewal_frequency,
+            renewalFrequency: renewalLabel(selectedContract.renewal_frequency),
             senderName: user?.user_metadata?.full_name || 'Your Team',
             senderCompany: brandingData?.company_name || null,
             supportEmail: brandingData?.support_email || null,
@@ -632,22 +628,7 @@ export default function Contracts() {
     toast.success('Link copied to clipboard!');
   };
 
-  const contractTypeLabels: Record<string, string> = {
-    amc: "Annual Maintenance Contract",
-    fixed: "Fixed Contract",
-    retainer: "Retainer",
-  };
 
-  const renewalLabels: Record<string, string> = {
-    '1-month': "1 Month",
-    '3-months': "3 Months",
-    '6-months': "6 Months",
-    '1-year': "1 Year",
-    '3-years': "3 Years",
-    monthly: "Monthly",
-    quarterly: "Quarterly",
-    yearly: "Yearly",
-  };
 
   const getEditInitialData = () => {
     if (!selectedContract) return undefined;
@@ -679,7 +660,7 @@ export default function Contracts() {
 
   if (!can('contracts', 'read')) {
     return (
-      <div className="space-y-6 p-4 sm:p-8">
+      <div className="space-y-6 p-4 sm:p-6 lg:p-8">
         <PageHeader title="Contracts" description="Manage contracts, annual maintenance agreements, master service agreements, work orders" />
         <NoAccessState moduleLabel="contracts" />
       </div>
@@ -688,7 +669,7 @@ export default function Contracts() {
 
   return (
     <TooltipProvider delayDuration={150}>
-    <div className="space-y-6 p-4 sm:p-8">
+    <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       <PageHeader
         title="Contracts"
         description="Manage contracts, annual maintenance agreements, master service agreements, work orders"
@@ -725,6 +706,7 @@ export default function Contracts() {
             <SelectItem value="change_requested">Change Requested</SelectItem>
             <SelectItem value="active">Active</SelectItem>
             <SelectItem value="expired">Expired</SelectItem>
+            <SelectItem value="ended">Ended</SelectItem>
             <SelectItem value="pending-renewal">Pending Renewal</SelectItem>
           </SelectContent>
         </Select>
@@ -764,7 +746,7 @@ export default function Contracts() {
                       <Link to={`/contracts/${contract.id}`}>
                         <h3 className="font-medium text-foreground group-hover:text-primary transition-colors cursor-pointer flex items-center gap-2 min-w-0">
                           <span className="truncate">
-                            {contractTypeLabels[contract.contract_type] || contract.contract_type}
+                            {contractTitleFor(contract)}
                           </span>
                           {contract.is_external && (
                             <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5 shrink-0">
@@ -789,7 +771,7 @@ export default function Contracts() {
                         </h3>
                       </Link>
                       <p className="mt-0.5 text-xs text-muted-foreground">
-                        Renewal: {renewalLabels[contract.renewal_frequency] || contract.renewal_frequency}
+                        Renewal: {renewalLabel(contract.renewal_frequency)}
                       </p>
                     </div>
                     {/* Mobile-only inline status + actions */}
@@ -797,7 +779,7 @@ export default function Contracts() {
                       <StatusBadge status={contract.status as ContractStatus} />
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="More actions">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -877,7 +859,7 @@ export default function Contracts() {
                       <span className="text-xs uppercase tracking-wider text-muted-foreground lg:hidden shrink-0">Duration</span>
                       <Calendar className="h-3.5 w-3.5 shrink-0 text-muted-foreground hidden lg:block" />
                       <span className={`truncate ${isExpiringSoon ? "text-destructive font-medium" : "text-muted-foreground"}`}>
-                        {format(startDate, "MMM dd")} – {format(endDate, "MMM dd, yyyy")}
+                        {formatDateRange(startDate, endDate)}
                       </span>
                     </div>
                     {isExpiringSoon && (
@@ -897,8 +879,7 @@ export default function Contracts() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
+                          className="h-8 w-8 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 focus-visible:opacity-100 transition-opacity" aria-label="More actions">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -963,7 +944,7 @@ export default function Contracts() {
                         <Link to={`/contracts/${contract.id}`} className="block">
                           <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors flex items-center gap-2 min-w-0">
                             <span className="truncate">
-                              {contractTypeLabels[contract.contract_type] || contract.contract_type}
+                              {contractTitleFor(contract)}
                             </span>
                             {contract.is_external && (
                               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5 shrink-0">
@@ -996,7 +977,7 @@ export default function Contracts() {
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 md:opacity-0 md:group-hover:opacity-100 transition-opacity" aria-label="More actions">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -1045,7 +1026,7 @@ export default function Contracts() {
                     <div className="mt-4 flex items-center gap-2">
                       <StatusBadge status={contract.status as ContractStatus} />
                       <Badge variant="outline" className="text-xs">
-                        {renewalLabels[contract.renewal_frequency] || contract.renewal_frequency}
+                        {renewalLabel(contract.renewal_frequency)}
                       </Badge>
                     </div>
 
@@ -1059,7 +1040,7 @@ export default function Contracts() {
                       <div className="flex items-center gap-1.5 text-sm">
                         <Calendar className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                         <span className={`truncate ${isExpiringSoon ? "text-destructive font-medium" : "text-muted-foreground"}`}>
-                          {format(startDate, "MMM dd")} – {format(endDate, "MMM dd, yyyy")}
+                          {formatDateRange(startDate, endDate)}
                         </span>
                       </div>
                       {isExpiringSoon && (
@@ -1075,7 +1056,7 @@ export default function Contracts() {
       ) : (
         <EmptyState
           icon={FileSignature}
-          title="No contracts found"
+          title={searchQuery || statusFilter !== "all" ? "No matching contracts" : "No contracts yet"}
           description={
             searchQuery || statusFilter !== "all"
               ? "Try adjusting your filters"
@@ -1372,6 +1353,7 @@ export default function Contracts() {
 
       {/* Contract Preview Dialog */}
       <ProposalPreviewDialog
+        documentLabel="contract"
         open={isPreviewOpen}
         onOpenChange={setIsPreviewOpen}
         template={previewTemplate}

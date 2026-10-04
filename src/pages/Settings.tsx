@@ -181,7 +181,7 @@ export default function Settings() {
   }
 
   return (
-    <div className="space-y-6 p-8">
+    <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       <PageHeader
         title="Workspace Settings"
         description="Manage your workspace, team, and client portal branding"

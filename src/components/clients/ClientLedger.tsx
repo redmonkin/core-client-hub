@@ -194,7 +194,7 @@ export function ClientLedger({ clientId }: ClientLedgerProps) {
             <Card>
               <CardContent className="p-6">
                 <p className="text-sm font-medium text-muted-foreground">Received</p>
-                <p className="mt-2 text-2xl font-bold text-green-600">{formatInvoiceCurrency(totalReceived)}</p>
+                <p className="mt-2 text-2xl font-bold text-green-700">{formatInvoiceCurrency(totalReceived)}</p>
               </CardContent>
             </Card>
             <Card>
@@ -228,7 +228,7 @@ export function ClientLedger({ clientId }: ClientLedgerProps) {
                   <TableBody>
                     {entriesPagination.pageItems.map((e) => (
                       <TableRow key={e.id}>
-                        <TableCell className="text-muted-foreground">{format(new Date(e.date), 'MMM d, yyyy')}</TableCell>
+                        <TableCell className="whitespace-nowrap text-muted-foreground">{format(new Date(e.date), 'MMM d, yyyy')}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             {e.type === 'invoice' ? (
@@ -244,7 +244,7 @@ export function ClientLedger({ clientId }: ClientLedgerProps) {
                           </div>
                         </TableCell>
                         <TableCell className="text-right font-medium">{e.debit > 0 ? formatInvoiceCurrency(e.debit) : '—'}</TableCell>
-                        <TableCell className="text-right font-medium text-green-600">{e.credit > 0 ? formatInvoiceCurrency(e.credit) : '—'}</TableCell>
+                        <TableCell className="text-right font-medium text-green-700">{e.credit > 0 ? formatInvoiceCurrency(e.credit) : '—'}</TableCell>
                         <TableCell className="text-right text-muted-foreground">{formatInvoiceCurrency(e.balance)}</TableCell>
                       </TableRow>
                     ))}

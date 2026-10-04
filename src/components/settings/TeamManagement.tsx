@@ -78,10 +78,10 @@ const MODULE_LABELS: Record<PermissionModule, string> = {
 };
 
 const ACTION_LABELS: Record<PermissionAction, string> = {
-  create: 'C',
-  read: 'R',
-  update: 'U',
-  delete: 'D',
+  create: 'Create',
+  read: 'View',
+  update: 'Edit',
+  delete: 'Delete',
 };
 
 function PermissionMatrixEditor({
@@ -92,12 +92,14 @@ function PermissionMatrixEditor({
   onChange: (module: PermissionModule, action: PermissionAction, value: boolean) => void;
 }) {
   return (
-    <Table>
+    // Scrolls inside its container on narrow screens instead of clipping the last column.
+    <div className="overflow-x-auto">
+    <Table className="min-w-[340px]">
       <TableHeader>
         <TableRow>
           <TableHead className="h-8 text-xs">Module</TableHead>
           {PERMISSION_ACTIONS.map((action) => (
-            <TableHead key={action} className="h-8 w-12 text-center text-xs" title={action}>
+            <TableHead key={action} className="h-8 w-14 text-center text-xs">
               {ACTION_LABELS[action]}
             </TableHead>
           ))}
@@ -119,6 +121,7 @@ function PermissionMatrixEditor({
         ))}
       </TableBody>
     </Table>
+    </div>
   );
 }
 
@@ -429,7 +432,7 @@ export function TeamManagement() {
               />
             </div>
             <Select value={invitePreset} onValueChange={(value) => handleInvitePresetChange(value as AssignableRole)}>
-              <SelectTrigger className="sm:w-36">
+              <SelectTrigger className="capitalize sm:w-36">
                 <SelectValue placeholder="Role" />
               </SelectTrigger>
               <SelectContent>

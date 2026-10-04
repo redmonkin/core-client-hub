@@ -16,7 +16,7 @@ import {
   Zap,
   Code2,
   Database,
-  Receipt,
+  ReceiptIndianRupee,
   Clock,
   UsersRound,
   Globe,
@@ -45,7 +45,7 @@ const features = [
     description: "Clients sign contracts online. Renewal reminders go out before anything expires.",
   },
   {
-    icon: Receipt,
+    icon: ReceiptIndianRupee,
     title: "Invoices & Accounts",
     description: "Recurring invoices, expenses, payments, TDS tracking and a per-client ledger, in ₹.",
   },
@@ -181,11 +181,11 @@ export default function Landing() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Clientra on GitHub"
-              className="rounded-md p-2 text-muted-foreground hover:text-foreground transition-colors"
+              className="hidden rounded-md p-2 text-muted-foreground hover:text-foreground transition-colors sm:inline-flex"
             >
               <Github className="h-5 w-5" />
             </a>
-            <Button variant="ghost" asChild className="hidden sm:inline-flex">
+            <Button variant="ghost" asChild className="px-3 sm:px-4">
               <Link to="/auth">Sign In</Link>
             </Button>
             <Button asChild>

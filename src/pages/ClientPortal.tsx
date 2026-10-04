@@ -226,6 +226,8 @@ export default function ClientPortal() {
       if (!response.ok) throw new Error(result.error || 'Failed to update proposal');
       setResponded(true);
       setProposal(prev => prev ? { ...prev, status: result.status } : null);
+      // The status banner is at the top of the page; bring it into view.
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       const docLabel = documentType === 'contract' ? 'Contract' : 'Proposal';
       const messages: Record<string, string> = {
         approve: `${docLabel} approved successfully!`,
@@ -280,7 +282,7 @@ export default function ClientPortal() {
         {portalHead}
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-10 w-10 animate-spin" style={{ color: primaryColor }} />
-          <p className="text-muted-foreground text-sm">Loading proposal...</p>
+          <p className="text-muted-foreground text-sm">Loading…</p>
         </div>
       </div>
     );
@@ -297,8 +299,9 @@ export default function ClientPortal() {
                 <AlertCircle className="h-8 w-8 text-destructive" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-foreground">Unable to Load Proposal</h2>
-                <p className="text-muted-foreground mt-2 text-sm">{error}</p>
+                <h2 className="text-xl font-semibold text-foreground">This link can't be opened</h2>
+                <p className="text-muted-foreground mt-2 text-sm">{/[.!?]$/.test(error) ? error : `${error}.`}</p>
+                <p className="text-muted-foreground mt-3 text-sm">Please ask the sender to share a new link.</p>
               </div>
             </div>
           </CardContent>
@@ -318,14 +321,19 @@ export default function ClientPortal() {
                 <Lock className="h-8 w-8 text-primary" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-foreground">Password Required</h2>
+                {branding?.company_name && (
+                  <p className="mb-1 text-sm font-medium text-muted-foreground">{branding.company_name}</p>
+                )}
+                <h2 className="text-xl font-semibold text-foreground">Password required</h2>
                 <p className="text-muted-foreground mt-2 text-sm">
-                  Enter the password provided by the sender to view this proposal.
+                  Enter the access password from the email you received.
                 </p>
               </div>
               <div className="w-full space-y-3">
                 <Input
-                  type="text"
+                  type="password"
+                  aria-label="Access password"
+                  autoComplete="off"
                   placeholder="Enter password"
                   value={password}
                   onChange={(e) => { setPassword(e.target.value); setPasswordError(''); }}
@@ -342,7 +350,7 @@ export default function ClientPortal() {
                       Verifying...
                     </>
                   ) : (
-                    'Access Proposal'
+                    'Continue'
                   )}
                 </Button>
               </div>
@@ -397,6 +405,7 @@ export default function ClientPortal() {
             onClick={handlePostComment}
             disabled={!commentText.trim() || postingComment}
             className="self-end"
+            aria-label="Post comment"
             style={{ backgroundColor: primaryColor }}
           >
             {postingComment ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendIcon className="h-4 w-4" />}
@@ -410,9 +419,27 @@ export default function ClientPortal() {
     if (!invoice) return null;
 
     const { tableHtml } = buildInvoiceLineItemsHtml(invoice.cost_breakdown, invoice.currency || 'INR');
+    const portalTableHtml = buildInvoiceLineItemsHtml(invoice.cost_breakdown, invoice.currency || 'INR', primaryColor).tableHtml;
     const formatCurrency = (amount: number) => formatInvoiceCurrency(amount, invoice.currency || 'INR');
     const balanceDue = invoice.total_amount != null ? invoice.total_amount - (invoice.amount_paid ?? 0) : null;
     const paymentTermsLabel: Record<string, string> = { net15: 'Net 15', net30: 'Net 30', net45: 'Net 45', net60: 'Net 60', custom: 'Custom' };
+    const isOverdue = ['sent', 'partial'].includes(invoice.status) && !!invoice.due_date && new Date(invoice.due_date) < new Date();
+    const statusBadge = isOverdue
+      ? { label: 'Overdue', className: 'bg-red-50 text-red-700 ring-red-200' }
+      : ({
+          paid: { label: 'Paid', className: 'bg-green-50 text-green-700 ring-green-200' },
+          partial: { label: 'Partially paid', className: 'bg-amber-50 text-amber-800 ring-amber-200' },
+          sent: { label: 'Awaiting payment', className: 'bg-sky-50 text-sky-800 ring-sky-200' },
+          void: { label: 'Void', className: 'bg-muted text-muted-foreground ring-border' },
+        } as Record<string, { label: string; className: string }>)[invoice.status]
+        ?? { label: invoice.status.replace(/[_-]/g, ' ').replace(/^./, (c) => c.toUpperCase()), className: 'bg-muted text-muted-foreground ring-border' };
+    const paymentDetails = [
+      invoiceSettings?.bank_account_name && ['Account name', invoiceSettings.bank_account_name],
+      invoiceSettings?.account_number && ['Account number', invoiceSettings.account_number],
+      invoiceSettings?.ifsc_code && ['IFSC', invoiceSettings.ifsc_code],
+      invoiceSettings?.swift_code && ['SWIFT', invoiceSettings.swift_code],
+      invoiceSettings?.upi_id && ['UPI', invoiceSettings.upi_id],
+    ].filter(Boolean) as [string, string][];
 
     const handleExportInvoicePdf = async () => {
       setIsExporting(true);
@@ -489,24 +516,24 @@ export default function ClientPortal() {
     };
 
     return (
-      <div className="min-h-screen" style={{ background: `linear-gradient(180deg, ${primaryColor}06 0%, #ffffff 40%)` }}>
+      <div className="min-h-screen" style={{ background: `linear-gradient(180deg, ${primaryColor}06 0%, hsl(var(--background)) 40%)` }}>
         {portalHead}
         <div className="mx-auto max-w-2xl px-4 py-10">
           {branding?.company_name && (
             <p className="mb-6 text-center text-sm font-medium text-muted-foreground">{branding.company_name}</p>
           )}
           <Card className="shadow-lg">
-            <CardContent className="space-y-6 p-8">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h1 className="text-2xl font-bold text-foreground">Invoice {invoice.invoice_number}</h1>
+            <CardContent className="space-y-6 p-4 sm:p-6 lg:p-8">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <h1 className="text-2xl font-bold text-foreground">Invoice <span className="whitespace-nowrap">{invoice.invoice_number}</span></h1>
                   <p className="mt-1 text-sm text-muted-foreground">
                     Issued {format(new Date(invoice.issued_date), 'MMMM d, yyyy')}
                     {invoice.due_date && ` · Due ${format(new Date(invoice.due_date), 'MMMM d, yyyy')}`}
                   </p>
                 </div>
-                <span className="rounded-full px-3 py-1 text-xs font-medium capitalize" style={{ background: `${primaryColor}15`, color: primaryColor }}>
-                  {invoice.status}
+                <span className={`shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset ${statusBadge.className}`}>
+                  {statusBadge.label}
                 </span>
               </div>
 
@@ -518,13 +545,44 @@ export default function ClientPortal() {
               {invoice.cost_breakdown && (
                 <div
                   className="overflow-x-auto text-sm [&_table]:w-full"
-                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(tableHtml) }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(portalTableHtml) }}
                 />
               )}
 
               {balanceDue != null && (
-                <div className="flex justify-end border-t pt-4">
-                  <p className="text-lg font-bold text-foreground">Balance Due: {formatCurrency(balanceDue)}</p>
+                <div className="ml-auto w-full max-w-xs space-y-1.5 border-t pt-4 text-sm">
+                  {(invoice.amount_paid ?? 0) > 0 && (
+                    <>
+                      <div className="flex justify-between text-muted-foreground">
+                        <span>Invoice total</span><span>{formatCurrency(invoice.total_amount!)}</span>
+                      </div>
+                      <div className="flex justify-between text-muted-foreground">
+                        <span>Paid</span><span>−{formatCurrency(invoice.amount_paid ?? 0)}</span>
+                      </div>
+                    </>
+                  )}
+                  <div className="flex justify-between text-base font-bold text-foreground">
+                    <span>Balance due</span><span>{formatCurrency(balanceDue)}</span>
+                  </div>
+                </div>
+              )}
+
+              {balanceDue != null && balanceDue > 0 && invoice.status !== 'void' && (paymentDetails.length > 0 || invoiceSettings?.payment_instructions) && (
+                <div className="rounded-lg border bg-muted/30 p-4 text-sm">
+                  <p className="mb-2 font-semibold text-foreground">How to pay</p>
+                  {invoiceSettings?.payment_instructions && (
+                    <p className="mb-2 text-muted-foreground">{invoiceSettings.payment_instructions}</p>
+                  )}
+                  {paymentDetails.length > 0 && (
+                    <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+                      {paymentDetails.map(([label, value]) => (
+                        <div key={label} className="contents">
+                          <dt className="text-muted-foreground">{label}</dt>
+                          <dd className="break-all font-medium text-foreground">{value}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  )}
                 </div>
               )}
 
@@ -600,7 +658,7 @@ export default function ClientPortal() {
   };
 
   return (
-    <div className="min-h-screen" style={{ background: `linear-gradient(180deg, ${primaryColor}06 0%, #ffffff 40%)` }}>
+    <div className="min-h-screen" style={{ background: `linear-gradient(180deg, ${primaryColor}06 0%, hsl(var(--background)) 40%)` }}>
       <Helmet>
         <title>{proposal?.title ? `${proposal.title} — Client Portal` : 'Client Portal — Clientra'}</title>
         <meta name="description" content="Secure client portal to review and respond to the proposal or contract shared with you." />
@@ -621,7 +679,7 @@ export default function ClientPortal() {
             ) : (
               <div className="flex items-center gap-2">
                 <FileText className="h-5 w-5" style={{ color: primaryColor }} />
-                <span className="text-lg font-semibold text-foreground">Proposal</span>
+                <span className="text-lg font-semibold text-foreground capitalize">{documentType}</span>
               </div>
             )}
             {branding?.tagline && (
@@ -663,17 +721,17 @@ export default function ClientPortal() {
             {proposal.status === 'approved' ? (
               <>
                 <ShieldCheck className="h-5 w-5" />
-                <span>This proposal has been approved</span>
+                <span>{documentType === 'contract' ? 'This contract has been signed' : 'This proposal has been approved'}</span>
               </>
             ) : proposal.status === 'change_requested' ? (
               <>
                 <Clock className="h-5 w-5" />
-                <span>Changes have been requested for this proposal</span>
+                <span>Changes have been requested for this {documentType}</span>
               </>
             ) : (
               <>
                 <ShieldX className="h-5 w-5" />
-                <span>This proposal has been declined</span>
+                <span>This {documentType} has been declined</span>
               </>
             )}
           </div>
@@ -689,7 +747,7 @@ export default function ClientPortal() {
             }}
           >
             <Clock className="h-5 w-5" />
-            <span>This proposal has expired</span>
+            <span>This {documentType} has expired</span>
           </div>
         )}
 
@@ -705,7 +763,7 @@ export default function ClientPortal() {
                   prose-li:text-foreground/90
                   prose-td:text-foreground/80
                   prose-th:text-foreground
-                  [&_table]:w-full [&_table]:border-collapse [&_table]:text-sm
+                  [&_table]:w-full [&_table]:border-collapse [&_table]:text-sm max-sm:[&_table]:block max-sm:[&_table]:overflow-x-auto
                   [&_th]:bg-muted/30 [&_th]:border-b-2 [&_th]:border-border [&_th]:py-2.5 [&_th]:px-3
                   [&_td]:border-b [&_td]:border-border/40 [&_td]:py-2.5 [&_td]:px-3
                   [&_tfoot_td]:font-semibold [&_tfoot_td]:border-t-2 [&_tfoot_td]:border-border
@@ -754,13 +812,12 @@ export default function ClientPortal() {
               style={{ backgroundColor: `${primaryColor}04` }}
             >
               <p className="text-sm text-muted-foreground text-center sm:text-left">
-                Please review the proposal above and approve or decline.
+                Please review the {documentType} above and approve or decline.
               </p>
-              <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+              <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:items-center sm:gap-3">
                 <Button
                   onClick={() => setConfirmAction('reject')}
                   variant="outline"
-                  className="flex-1 sm:flex-none"
                   disabled={submitting}
                 >
                   <X className="mr-1.5 h-4 w-4" />
@@ -769,7 +826,6 @@ export default function ClientPortal() {
                 <Button
                   onClick={() => setConfirmAction('request_changes')}
                   variant="outline"
-                  className="flex-1 sm:flex-none"
                   disabled={submitting}
                 >
                   <Clock className="mr-1.5 h-4 w-4" />
@@ -777,7 +833,7 @@ export default function ClientPortal() {
                 </Button>
                 <Button
                   onClick={() => setConfirmAction('approve')}
-                  className="flex-1 sm:flex-none sm:px-6 text-white font-semibold shadow-md hover:shadow-lg transition-shadow"
+                  className="col-span-2 order-first sm:order-none sm:px-6 text-white font-semibold shadow-md hover:shadow-lg transition-shadow"
                   style={{ backgroundColor: primaryColor }}
                   disabled={submitting}
                 >
@@ -840,10 +896,11 @@ export default function ClientPortal() {
                     : `Are you sure you want to decline this ${documentType}? The sender will be notified of your decision.`}
                 </p>
                 {confirmAction === 'approve' && documentType === 'contract' && (
-                  <div className="space-y-3">
+                  <div className="space-y-3 text-left">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-foreground">Your Full Name (as signature) *</label>
+                      <label htmlFor="portal-signature-name" className="text-sm font-medium text-foreground">Your full name (as signature) *</label>
                       <Input
+                        id="portal-signature-name"
                         placeholder="Enter your full name"
                         value={signatureName}
                         onChange={(e) => setSignatureName(e.target.value)}
@@ -853,7 +910,7 @@ export default function ClientPortal() {
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium text-foreground">Draw your signature (optional)</label>
+                        <span className="text-sm font-medium text-foreground">Draw your signature (optional)</span>
                         <Button type="button" variant="ghost" size="sm" onClick={() => signaturePadRef.current?.clear()}>
                           <Eraser className="mr-1 h-3 w-3" />
                           Clear
@@ -892,7 +949,7 @@ export default function ClientPortal() {
               className={confirmAction === 'reject' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}
             >
               {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {confirmAction === 'approve' ? 'Yes, Approve' : confirmAction === 'request_changes' ? 'Send Request' : 'Yes, Decline'}
+              {confirmAction === 'approve' ? (documentType === 'contract' ? 'Sign contract' : 'Approve proposal') : confirmAction === 'request_changes' ? 'Send request' : 'Decline'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

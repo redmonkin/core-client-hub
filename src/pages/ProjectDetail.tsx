@@ -16,15 +16,11 @@ import { Label } from '@/components/ui/label';
 import { ProjectTimesheets } from '@/components/timesheets/ProjectTimesheets';
 import { ProjectNotes } from '@/components/notes/ProjectNotes';
 import { toast } from 'sonner';
+import { contractTypeLabel, projectTypeLabel } from '@/lib/labels';
 
 const formatCurrency = (amount: number): string =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(amount);
 
-const CONTRACT_TYPE_LABELS: Record<string, string> = {
-  amc: 'Annual Maintenance Contract',
-  retainer: 'Retainer Contract',
-  fixed: 'Fixed Contract',
-};
 
 type DocumentItem = {
   id: string;
@@ -187,7 +183,7 @@ export default function ProjectDetail() {
     ...projectContracts.map((c): DocumentItem => ({
       id: c.id,
       kind: 'contract',
-      title: CONTRACT_TYPE_LABELS[c.contract_type] || c.contract_type,
+      title: contractTypeLabel(c.contract_type),
       subtitle: `${canViewFinancials ? formatCurrency(Number(c.value)) : '••••••'} · ${format(new Date(c.start_date), 'MMM d')} – ${format(new Date(c.end_date), 'MMM d, yyyy')}`,
       status: c.status,
       href: `/contracts/${c.id}`,
@@ -318,19 +314,19 @@ export default function ProjectDetail() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-4 sm:p-6 lg:p-8">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+        <Button variant="ghost" size="icon" asChild aria-label="Back to projects">
           <Link to="/projects">
             <ArrowLeft className="h-5 w-5" />
           </Link>
         </Button>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <h1 className="text-2xl font-semibold text-foreground">{project.project_name}</h1>
             <StatusBadge status={project.status as any} />
-            <Badge variant="secondary" className="capitalize">{project.project_type}</Badge>
+            <span className="text-sm text-muted-foreground">{projectTypeLabel(project.project_type)}</span>
           </div>
         </div>
         <Button

@@ -174,7 +174,7 @@ export function TaxDeductions() {
                 <TableBody>
                   {rowsPagination.pageItems.map((r) => (
                     <TableRow key={r.id}>
-                      <TableCell className="text-muted-foreground">{format(new Date(r.payment_date), 'MMM d, yyyy')}</TableCell>
+                      <TableCell className="whitespace-nowrap text-muted-foreground">{format(new Date(r.payment_date), 'MMM d, yyyy')}</TableCell>
                       <TableCell className="font-medium">{r.invoice_number}</TableCell>
                       <TableCell>{r.client_name}</TableCell>
                       <TableCell className="text-right">{formatInvoiceCurrency(r.amount)}</TableCell>
