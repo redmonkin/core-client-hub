@@ -1,15 +1,38 @@
 # Clientra
 
-> Open-source client management for freelancers and agencies. Track clients, projects, proposals, and contracts in one place.
+> Clientra is free, open-source client management software for freelancers and agencies. It covers clients, projects, proposals, e-signed contracts, invoices, timesheets and a client portal in one web app. It is licensed under AGPL-3.0 and can be used on the hosted instance at https://clientra.redmonk.in or self-hosted on Supabase.
 
-Clientra is a self-hostable web application that helps independent professionals and small agencies manage their client workflow end to end — from first conversation to signed contract and renewal.
+## What Clientra does
 
-## Pages
+- Clients and projects: contacts, notes, files and history per client.
+- Proposals: built from reusable templates with scope and pricing; export to PDF or Word.
+- Contracts: clients sign online; renewal reminders go out before contracts expire.
+- Invoices and accounts: recurring invoices, expenses, payments, TDS tracking and a per-client ledger in Indian rupees (₹), with payment reminders before the due date.
+- Tasks and timesheets: hours per project, CSV and Excel import and export.
+- Client portal: proposals, contracts and invoices shared through password-protected, expiring links; clients don't need an account.
+- Team workspace: invite teammates with roles, including control over who sees financial figures.
+- Public portfolio: a public page of featured work with a "start a project" enquiry form.
 
-- [Home](/): Product overview, features, and options to use the hosted app or self-host.
-- [Sign In or Sign Up](/auth): Create a Clientra account or log in.
+## Security and privacy
 
-## Optional
+- Each workspace's data is isolated in the database with Postgres row-level security.
+- New passwords are checked against known data breaches using k-anonymity (only a 5-character hash prefix leaves the browser).
+- No advertising or analytics scripts; a strict Content Security Policy.
+- Security issues are reported privately: https://github.com/redmonkin/core-client-hub/blob/main/SECURITY.md
 
-- [Client Portal](/portal): Secure, token-gated page where clients review proposals and contracts shared with them. Requires an access link from a Clientra user.
-- [Public Portfolio](/portfolio/example): Public-facing project showcase rendered for any Clientra user who has published a portfolio slug.
+## Who it is for
+
+Freelancers, consultants, studios and small agencies who want proposals, contracts and invoicing in one place, and who prefer open-source software they can audit or run on their own infrastructure. It is an open-source alternative to tools such as HoneyBook, Bonsai and Dubsado.
+
+## Tech stack
+
+React, TypeScript, Vite, Tailwind CSS and shadcn/ui on the frontend; Supabase (Postgres, Auth, Storage, Edge Functions) on the backend.
+
+## Links
+
+- [Home](https://clientra.redmonk.in/): Product overview, features, security and FAQ.
+- [Sign up or sign in](https://clientra.redmonk.in/auth): Create an account on the hosted instance.
+- [Source code](https://github.com/redmonkin/core-client-hub): GitHub repository.
+- [Self-hosting guide](https://github.com/redmonkin/core-client-hub#self-hosting): Run your own copy on Supabase plus any static host.
+- [License](https://github.com/redmonkin/core-client-hub/blob/main/LICENSE): AGPL-3.0.
+- [Contributing](https://github.com/redmonkin/core-client-hub/blob/main/CONTRIBUTING.md): How to report issues and send pull requests.

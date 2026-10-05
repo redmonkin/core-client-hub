@@ -6,12 +6,14 @@
 
 **Open-source client management for freelancers and agencies.**
 
-Clients, projects, proposals, contracts, invoices and a client portal, in one app you can use hosted or run yourself.
+Clients, projects, proposals, contracts, invoices and a client portal, in one app you can use hosted or run yourself. A self-hostable, open-source alternative to tools like HoneyBook, Bonsai and Dubsado, built on React and Supabase.
 
 [Website](https://clientra.redmonk.in) · [Self-hosting](#self-hosting) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
 
 [![CI](https://github.com/redmonkin/core-client-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/redmonkin/core-client-hub/actions/workflows/ci.yml)
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-0284C7.svg)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/redmonkin/core-client-hub?style=flat&color=0284C7)](https://github.com/redmonkin/core-client-hub/stargazers)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-0284C7.svg)](CONTRIBUTING.md)
 
 </div>
 
@@ -121,7 +123,7 @@ Set the variables from [`.env.example`](.env.example) in your hosting provider, 
 npm run build   # outputs dist/
 ```
 
-Serve `dist/` as a single-page app, rewriting every path to `/index.html`. `vercel.json` already does this on Vercel. Netlify, Cloudflare Pages and plain nginx work too.
+Serve `dist/` as a single-page app: `/` serves `index.html` (the landing page, pre-rendered at build time so search engines and AI crawlers can read it) and every other path is rewritten to `/app.html`. `vercel.json` already does this on Vercel. Netlify, Cloudflare Pages and plain nginx work too; set `VITE_SITE_URL` so canonical links, the sitemap and `llms.txt` point at your domain.
 
 ## Project structure
 

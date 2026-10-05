@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState, type CSSProperties } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, Loader2, Check, CheckCircle2, FileText, Github, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,7 +12,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import clientraLogoLight from '@/assets/clientra-light.svg';
 import clientraLogoDark from '@/assets/clientra-dark.svg';
-import { CONTACT_EMAIL, SITE_URL } from '@/lib/site';
+import { CONTACT_EMAIL, REPO_URL, SITE_URL } from '@/lib/site';
+import { Backdrop } from '@/components/landing/Backdrop';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { PASSWORD_HINT, checkNewPassword } from '@/lib/password-policy';
 
@@ -163,59 +164,87 @@ export default function Auth() {
         <meta property="og:url" content={`${SITE_URL}/auth`} />
       </Helmet>
       {/* Left side - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between bg-primary p-12">
-        <div className="flex items-center gap-3">
-          <img src={clientraLogoLight} alt="Clientra Logo" className="h-10 w-10" />
-          <span className="text-2xl font-bold text-primary-foreground">Clientra</span>
-        </div>
-        
-        <div className="space-y-6">
-          <h1 className="text-4xl font-bold leading-tight text-primary-foreground">
-            Manage your clients,<br />
-            projects & contracts<br />
-            in one place.
-          </h1>
-          <p className="text-lg text-primary-foreground/80">
-            Streamline your workflow with intelligent document management,
-            automated renewals, and professional templates.
-          </p>
-          
-          <div className="grid gap-4 pt-4">
-            <div className="flex items-center gap-3 text-primary-foreground/90">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-foreground/20">
-                <ArrowRight className="h-4 w-4" />
+      <div className="relative hidden overflow-hidden bg-gradient-to-br from-primary via-sky-600 to-sky-800 p-12 lg:flex lg:w-1/2 lg:flex-col lg:justify-between">
+        <Backdrop tone="light" className="opacity-60" />
+        <Link to="/" className="relative flex w-fit items-center gap-3">
+          <img src={clientraLogoLight} alt="" className="h-10 w-10" />
+          <span className="text-2xl font-bold text-white">Clientra</span>
+        </Link>
+
+        <div className="relative space-y-8">
+          <div className="space-y-4">
+            <h1 className="text-4xl font-bold leading-tight text-white xl:text-5xl">
+              Welcome to a calmer
+              <br />
+              client workflow.
+            </h1>
+            <p className="max-w-md text-lg text-white/80">
+              Clients, proposals, contracts and invoices in one place. Open source,
+              and secure by default.
+            </p>
+          </div>
+
+          {/* Floating preview cards */}
+          <div aria-hidden="true" className="motion-decor relative h-48 max-w-lg [perspective:1200px]">
+            <div className="preserve-3d absolute inset-0 [transform:rotateX(14deg)_rotateY(-14deg)]">
+              <div className="absolute left-0 top-0 w-60 animate-float rounded-xl bg-white/95 p-4 text-slate-900 shadow-2xl" style={{ '--z': '30px' } as CSSProperties}>
+                <div className="mb-2 flex items-center gap-2 text-xs font-medium text-slate-500">
+                  <FileText className="h-3.5 w-3.5 text-primary" /> Proposal · Website redesign
+                </div>
+                <div className="mb-3 space-y-1.5">
+                  <div className="h-1.5 w-full rounded bg-slate-200" />
+                  <div className="h-1.5 w-4/5 rounded bg-slate-200" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-bold">₹1,20,000</span>
+                  <span className="flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                    <CheckCircle2 className="h-3 w-3" /> Approved
+                  </span>
+                </div>
               </div>
-              <span>Track client relationships effortlessly</span>
-            </div>
-            <div className="flex items-center gap-3 text-primary-foreground/90">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-foreground/20">
-                <ArrowRight className="h-4 w-4" />
+              <div className="absolute right-0 top-[5.5rem] w-52 animate-float-slow rounded-xl border border-white/30 bg-white/15 p-3 text-white shadow-2xl backdrop-blur-md" style={{ '--z': '80px', animationDelay: '-2s' } as CSSProperties}>
+                <div className="mb-1 flex items-center gap-1.5 text-[11px] text-white/80">
+                  <ShieldCheck className="h-3.5 w-3.5" /> Secure client link
+                </div>
+                <p className="text-sm font-semibold">Password-protected · expires in 14 days</p>
               </div>
-              <span>Generate proposals & contracts from templates</span>
-            </div>
-            <div className="flex items-center gap-3 text-primary-foreground/90">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-foreground/20">
-                <ArrowRight className="h-4 w-4" />
-              </div>
-              <span>Never miss a contract renewal</span>
             </div>
           </div>
+
+          <ul className="grid gap-3">
+            {[
+              'Your workspace is isolated at the database level',
+              'Clients approve and sign without creating an account',
+              'Free and open source — host it yourself any time',
+            ].map((item) => (
+              <li key={item} className="flex items-center gap-3 text-white/90">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/25">
+                  <Check className="h-4 w-4" />
+                </span>
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
         </div>
-        
-        <p className="text-sm text-primary-foreground/60">
-          © {new Date().getFullYear()} Clientra. Open source under the AGPL-3.0 license.
-        </p>
+
+        <div className="relative flex items-center justify-between gap-4 text-sm text-white/70">
+          <p>© {new Date().getFullYear()} Clientra · AGPL-3.0</p>
+          <a href={REPO_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:text-white">
+            <Github className="h-4 w-4" /> View the code
+          </a>
+        </div>
       </div>
       
       {/* Right side - Auth form */}
-      <div className="flex w-full flex-col items-center justify-center bg-background p-6 lg:w-1/2 lg:p-12">
-        <div className="w-full max-w-md space-y-8">
+      <div className="relative flex w-full flex-col items-center justify-center overflow-hidden bg-background p-6 lg:w-1/2 lg:p-12">
+        <Backdrop className="opacity-70 lg:opacity-40" />
+        <div className="relative w-full max-w-md space-y-8">
           {/* Mobile logo */}
-          <div className="flex items-center justify-center gap-3 lg:hidden">
-            <img src={clientraLogoDark} alt="Clientra Logo" className="h-10 w-10 dark:hidden" />
-            <img src={clientraLogoLight} alt="Clientra Logo" className="h-10 w-10 hidden dark:block" />
+          <Link to="/" className="flex items-center justify-center gap-3 lg:hidden">
+            <img src={clientraLogoDark} alt="" className="h-10 w-10 dark:hidden" />
+            <img src={clientraLogoLight} alt="" className="h-10 w-10 hidden dark:block" />
             <span className="text-2xl font-bold text-foreground">Clientra</span>
-          </div>
+          </Link>
           
           <Card className="border-0 shadow-lg lg:border lg:shadow-sm">
             <CardHeader className="space-y-1 pb-4 text-center">
@@ -445,6 +474,13 @@ export default function Auth() {
             </CardContent>
           </Card>
 
+          <p className="flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
+            <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+            Secured with database-level access rules ·{' '}
+            <Link to="/" className="underline-offset-4 hover:text-foreground hover:underline">
+              Back to home
+            </Link>
+          </p>
         </div>
       </div>
     </div>

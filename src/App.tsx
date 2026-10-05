@@ -3,29 +3,34 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { lazy, Suspense } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useAuth } from "@/hooks/useAuth";
 import Landing from "./pages/Landing";
-import Dashboard from "./pages/Dashboard";
-import Clients from "./pages/Clients";
-import ClientDetail from "./pages/ClientDetail";
-import Projects from "./pages/Projects";
-import ProjectDetail from "./pages/ProjectDetail";
-import Tasks from "./pages/Tasks";
-import Proposals from "./pages/Proposals";
-import ProposalDetail from "./pages/ProposalDetail";
-import Contracts from "./pages/Contracts";
-import ContractDetail from "./pages/ContractDetail";
-import Invoices from "./pages/Invoices";
-import Templates from "./pages/Templates";
-import Briefs from "./pages/Briefs";
-import Settings from "./pages/Settings";
-import Profile from "./pages/Profile";
 import Auth from "./pages/Auth";
-import ResetPassword from "./pages/ResetPassword";
-import ClientPortal from "./pages/ClientPortal";
-import Portfolio from "./pages/Portfolio";
 import NotFound from "./pages/NotFound";
+import { PageLoader } from "@/components/shared/PageLoader";
+
+// Public entry pages load eagerly; everything else is split per route so the
+// landing page doesn't download the whole app.
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Clients = lazy(() => import("./pages/Clients"));
+const ClientDetail = lazy(() => import("./pages/ClientDetail"));
+const Projects = lazy(() => import("./pages/Projects"));
+const ProjectDetail = lazy(() => import("./pages/ProjectDetail"));
+const Tasks = lazy(() => import("./pages/Tasks"));
+const Proposals = lazy(() => import("./pages/Proposals"));
+const ProposalDetail = lazy(() => import("./pages/ProposalDetail"));
+const Contracts = lazy(() => import("./pages/Contracts"));
+const ContractDetail = lazy(() => import("./pages/ContractDetail"));
+const Invoices = lazy(() => import("./pages/Invoices"));
+const Templates = lazy(() => import("./pages/Templates"));
+const Briefs = lazy(() => import("./pages/Briefs"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Profile = lazy(() => import("./pages/Profile"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const ClientPortal = lazy(() => import("./pages/ClientPortal"));
+const Portfolio = lazy(() => import("./pages/Portfolio"));
 
 const queryClient = new QueryClient();
 
@@ -33,14 +38,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   if (!isAuthenticated) {
@@ -54,14 +52,7 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   if (isAuthenticated) {
@@ -77,6 +68,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route
@@ -243,6 +235,7 @@ const App = () => (
           />
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </Suspense>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

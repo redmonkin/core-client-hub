@@ -161,3 +161,68 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+/* Public pages (landing, sign-in, 404): decorative motion and 3D helpers. */
+@layer utilities {
+  .preserve-3d {
+    transform-style: preserve-3d;
+  }
+
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, hsl(var(--border) / 0.55) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--border) / 0.55) 1px, transparent 1px);
+    background-size: 44px 44px;
+  }
+
+  .bg-grid-light {
+    background-image:
+      linear-gradient(to right, hsl(0 0% 100% / 0.09) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(0 0% 100% / 0.09) 1px, transparent 1px);
+    background-size: 44px 44px;
+  }
+
+  .mask-fade-y {
+    mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 40%, transparent 100%);
+  }
+
+  .text-shimmer {
+    background-image: linear-gradient(
+      100deg,
+      hsl(var(--primary)) 20%,
+      hsl(199 89% 62%) 40%,
+      hsl(var(--primary)) 60%
+    );
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+
+/* Elements revealed on scroll start hidden only when JS and motion are both
+   available, so content is never stuck invisible. */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1), transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .motion-decor,
+  .motion-decor * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
