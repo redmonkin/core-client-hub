@@ -23,6 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspaceUser } from "@/hooks/useWorkspaceUser";
+import { PASSWORD_HINT, checkNewPassword } from "@/lib/password-policy";
 import { Loader2, User, Building2, Phone, Briefcase, Mail, Upload, Trash2, Camera, CheckCircle2, Circle, Link, Copy, Lock, Bell, Eye, CheckCircle, XCircle, Calendar, AlertTriangle } from "lucide-react";
 
 interface NotificationPreferences {
@@ -66,6 +67,7 @@ export default function Profile() {
   const [portfolioSlug, setPortfolioSlug] = useState<string>("");
 
   // Password state
+  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
@@ -308,18 +310,33 @@ export default function Profile() {
       return;
     }
 
-    if (newPassword.length < 6) {
-      toast({ title: "Error", description: "Password must be at least 6 characters", variant: "destructive" });
-      return;
-    }
+    if (!user?.email) return;
 
     setSavingPassword(true);
 
     try {
+      const passwordError = await checkNewPassword(newPassword);
+      if (passwordError) {
+        toast({ title: "Error", description: passwordError, variant: "destructive" });
+        return;
+      }
+
+      // Confirm it's really the account holder (not someone at an unlocked
+      // computer) by checking the current password first.
+      const { error: verifyError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword,
+      });
+      if (verifyError) {
+        toast({ title: "Error", description: "Your current password is incorrect", variant: "destructive" });
+        return;
+      }
+
       const { error } = await supabase.auth.updateUser({ password: newPassword });
 
       if (error) throw error;
 
+      setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
 
@@ -662,12 +679,29 @@ export default function Profile() {
         <CardContent>
           <form onSubmit={handleUpdatePassword} className="space-y-4">
             <div className="space-y-2">
+              <Label htmlFor="currentPassword">Current Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="currentPassword"
+                  type="password"
+                  autoComplete="current-password"
+                  placeholder="Enter current password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="pl-10"
+                  required
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="newPassword">New Password</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="newPassword"
                   type="password"
+                  autoComplete="new-password"
                   placeholder="Enter new password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
@@ -675,6 +709,7 @@ export default function Profile() {
                   required
                 />
               </div>
+              <p className="text-xs text-muted-foreground">{PASSWORD_HINT}</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm New Password</Label>

@@ -26,3 +26,8 @@ verify_jwt = false
 
 [functions.invoice-due-reminders]
 verify_jwt = false
+
+# Public "start a project" form on the portfolio page, called by anonymous
+# visitors; the function rate-limits and validates the target itself.
+[functions.portfolio-onboard]
+verify_jwt = false

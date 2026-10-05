@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { openedFromRecoveryLink } from '@/lib/auth-recovery';
+import { PASSWORD_HINT, checkNewPassword } from '@/lib/password-policy';
 import { toast } from 'sonner';
 import clientraLogoLight from '@/assets/clientra-light.svg';
 import clientraLogoDark from '@/assets/clientra-dark.svg';
@@ -47,14 +48,15 @@ export default function ResetPassword() {
       return;
     }
 
-    if (newPassword.length < 6) {
-      toast.error('Password must be at least 6 characters');
-      return;
-    }
-
     setIsLoading(true);
 
     try {
+      const passwordError = await checkNewPassword(newPassword);
+      if (passwordError) {
+        toast.error(passwordError);
+        return;
+      }
+
       const { error } = await supabase.auth.updateUser({ password: newPassword });
 
       if (error) {
@@ -125,6 +127,7 @@ export default function ResetPassword() {
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
+                  <p className="text-xs text-muted-foreground">{PASSWORD_HINT}</p>
                 </div>
 
                 <div className="space-y-2">

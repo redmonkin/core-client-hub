@@ -107,7 +107,13 @@ supabase functions deploy
 
 In **Authentication → URL Configuration**, set the Site URL to your frontend's URL. Add `https://<your-domain>/dashboard` and `https://<your-domain>/reset-password` to the redirect URLs.
 
-### 6. Build and deploy the frontend
+### 6. Optional: sign-up and team limits
+
+`supabase db push` creates a single-row `app_settings` table with `max_workspaces = 10` and `max_members_per_workspace = 5` (the hosted free plan). For your own install, set either column to `NULL` in the Table Editor for no limit. Set `VITE_CONTACT_EMAIL` to show a contact link when sign-ups are full.
+
+In **Authentication → Providers → Email**, set the minimum password length to 10 and require lowercase, uppercase and digits, to match the app's password rules.
+
+### 7. Build and deploy the frontend
 
 Set the variables from [`.env.example`](.env.example) in your hosting provider, then build:
 
