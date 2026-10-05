@@ -196,6 +196,21 @@ In **Sign In / Providers → Email**:
 
 The migrations create a one-row `app_settings` table with `max_workspaces = 10` and `max_members_per_workspace = 5`, the limits of the upstream hosted free plan. For your own install you probably want no limits: in **Table Editor → app_settings**, set both columns to `NULL`.
 
+### 4.5 Optional: CAPTCHA against bot sign-ups
+
+If your sign-up page is public, add a CAPTCHA so bots can't create accounts, guess passwords or send password-reset emails in bulk. Clientra supports [Cloudflare Turnstile](https://www.cloudflare.com/application-services/products/turnstile/), which is free and usually invisible to people.
+
+Only accounts that confirm their email count toward the workspace limit in 4.4, so with **Confirm email** on, fake sign-ups can't use up your free seats even without a CAPTCHA.
+
+Do these steps **in this order**. If Supabase starts requiring a CAPTCHA before the website sends one, nobody can sign in.
+
+1. In the [Cloudflare dashboard](https://dash.cloudflare.com), open **Turnstile → Add widget**. Name it, add your website's domain (and `localhost` if you develop locally), choose **Managed** mode, and create it. Copy the **Site key** and the **Secret key**.
+2. Add the site key to your website as `VITE_TURNSTILE_SITE_KEY` (Part 5) and redeploy. The sign-in, sign-up and password-reset forms, and the password change on the Profile page, now show the check.
+3. In Supabase, open **Authentication → Attack Protection**, turn on **Enable CAPTCHA protection**, choose **Turnstile by Cloudflare**, paste the **Secret key**, and save.
+4. Sign out and sign back in to check it works.
+
+To turn it off, reverse the order: disable it in Supabase first, then remove `VITE_TURNSTILE_SITE_KEY`.
+
 ## Part 5: Deploy the website
 
 ### On Vercel
@@ -212,6 +227,7 @@ The migrations create a one-row `app_settings` table with `max_workspaces = 10` 
    | `VITE_SITE_URL` | your website's address, for example `https://clientra.example.com` |
    | `VITE_REPO_URL` | optional: your repository's URL, for the landing page's GitHub links |
    | `VITE_CONTACT_EMAIL` | optional: shown when sign-ups are full |
+   | `VITE_TURNSTILE_SITE_KEY` | optional: Cloudflare Turnstile site key, see [4.5](#45-optional-captcha-against-bot-sign-ups) |
 
    Every `VITE_` value is visible to anyone who opens the site, so never put a secret here. The full list is in [`.env.example`](../.env.example).
 
@@ -248,7 +264,7 @@ npx supabase db push              # applies any new migrations
 npx supabase functions deploy     # redeploys the server functions
 ```
 
-Then redeploy the website (Vercel does this automatically when you push to your repository). Read the release notes first: they mention any new secret or setting.
+Then redeploy the website (Vercel does this automatically when you push to your repository). Read [`CHANGELOG.md`](../CHANGELOG.md) first: each version's **Upgrade notes** list any new secret or setting.
 
 ## Troubleshooting
 
@@ -263,6 +279,8 @@ Then redeploy the website (Vercel does this automatically when you push to your 
 **Emails go to spam.** Make sure the SPF and DKIM records show as verified in Resend, add a DMARC record ([2.1](#21-add-and-verify-your-sending-domain)), and send from a subdomain rather than your main domain.
 
 **Clicking the confirmation link opens the wrong site, or says the link is invalid.** Check the Site URL and Redirect URLs in [4.1](#41-website-address-and-redirects).
+
+**"The security check didn't pass" or "Please wait for the security check".** The CAPTCHA is misconfigured: check that `VITE_TURNSTILE_SITE_KEY` and the secret key in Supabase come from the same Turnstile widget, and that the widget lists your domain ([4.5](#45-optional-captcha-against-bot-sign-ups)).
 
 **"Free access is full" on the sign-up page.** The workspace limit in `app_settings` is reached. Set it to `NULL` ([4.4](#44-optional-sign-up-and-team-limits)).
 
@@ -279,8 +297,8 @@ Then redeploy the website (Vercel does this automatically when you push to your 
 | [Supabase](https://supabase.com) | Database, sign-in, file storage, server functions and scheduled jobs | Yes |
 | [Resend](https://resend.com) | All email: app email through its API, account email through its SMTP server | Yes, for any email. Without it the app works but nothing is emailed |
 | Static hosting (Vercel, Netlify, Cloudflare Pages, nginx...) | Serving the website | Yes, any of them |
+| [Cloudflare Turnstile](https://www.cloudflare.com/application-services/products/turnstile/) | CAPTCHA on sign-in, sign-up and password reset | Optional, only if `VITE_TURNSTILE_SITE_KEY` is set |
 | [Have I Been Pwned](https://haveibeenpwned.com/API/v3#PwnedPasswords) | Checking new passwords against known breaches. Only the first 5 characters of the password's SHA-1 hash leave the browser; no account or key is needed | Called automatically; sign-up still works if it's unreachable |
-| Google Fonts | The Inter, Poppins and Hurricane typefaces, loaded by the browser | Called automatically |
 | GitHub (`raw.githubusercontent.com`) | The Poppins font in invoice PDFs made by the recurring-invoice job | Called automatically; falls back to a built-in font |
 
 Clientra uses no analytics, advertising or tracking services.

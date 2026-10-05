@@ -17,6 +17,20 @@ Team & Permissions ships first so its role model and financial-visibility tier e
 - Multi-currency, partial payments/installments, GST/tax compliance fields, credit notes/refunds, recurring auto-charging, auto-renewal-draft.
 - Global cross-entity search, notification digest mode — independent, low-effort additions that can land anytime; not part of this roadmap's three areas.
 
+## To do: hosted instance and operations
+
+Not features, but needed before the hosted instance (clientra.redmonk.in) grows. Status as of 2026-10-06.
+
+- [ ] **Privacy policy and terms of service.** `/privacy` and `/terms` pages, linked from the footer and the sign-up form. Needed for India's DPDP Act 2023 (and GDPR for EU users). Draft, then have a lawyer review. Self-hosters should be able to point the links at their own documents (e.g. `VITE_PRIVACY_URL` / `VITE_TERMS_URL`).
+- [ ] **Database backups.** The Supabase free plan has none. Move to Pro (daily backups, no pausing) or run `npx supabase db dump` on a schedule to private storage. Don't use GitHub Actions artifacts: on a public repository they can be downloaded by others.
+- [ ] **Uptime and error monitoring.** A free uptime monitor (e.g. UptimeRobot) on the home page and one edge function; error tracking (e.g. Sentry) later, which needs a CSP update.
+- [ ] **Branded auth emails.** Customise Supabase's sign-up confirmation and password-reset templates (Authentication → Emails → Templates) to match Clientra.
+- [ ] **Free-plan pausing.** Supabase pauses free projects after about a week without activity; another reason to move to Pro.
+- [ ] **Auth email delivery.** Confirm custom SMTP through Resend is on for the live project (Authentication → Emails → SMTP Settings); see [the guide](self-hosting.md#42-send-account-email-through-resend).
+- [ ] **CAPTCHA.** Create a Cloudflare Turnstile widget, set `VITE_TURNSTILE_SITE_KEY` on Vercel and redeploy, then enable CAPTCHA in Supabase Auth, in that order ([guide](self-hosting.md#45-optional-captcha-against-bot-sign-ups)).
+- [ ] **Remove the unused `LOVABLE_API_KEY`** edge function secret.
+- [ ] **Publish the v0.1.0 GitHub release** from [`CHANGELOG.md`](../CHANGELOG.md) once it is merged.
+
 ## Cross-area dependencies
 
 - **F → A**: invoice RLS write policies and financial-figure access are built with F's `get_workspace_role`/`can_view_financials` from the start.
