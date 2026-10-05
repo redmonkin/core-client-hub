@@ -9,3 +9,6 @@ export const REPO_URL = (import.meta.env.VITE_REPO_URL || "https://github.com/re
 
 export const SELF_HOST_GUIDE_URL = `${REPO_URL}#self-hosting`;
 export const LICENSE_URL = `${REPO_URL}/blob/main/LICENSE`;
+
+/** Shown when free sign-ups are full ("contact us"). Optional. */
+export const CONTACT_EMAIL = (import.meta.env.VITE_CONTACT_EMAIL || "").trim();

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Loader2 } from 'lucide-react';
@@ -12,7 +12,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import clientraLogoLight from '@/assets/clientra-light.svg';
 import clientraLogoDark from '@/assets/clientra-dark.svg';
-import { SITE_URL } from '@/lib/site';
+import { CONTACT_EMAIL, SITE_URL } from '@/lib/site';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { PASSWORD_HINT, checkNewPassword } from '@/lib/password-policy';
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -28,6 +30,15 @@ export default function Auth() {
   const [signupEmail, setSignupEmail] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
   const [signupConfirmPassword, setSignupConfirmPassword] = useState('');
+
+  // Free sign-ups are capped (app_settings.max_workspaces). People invited to
+  // an existing workspace can still sign up, so the form stays usable.
+  const [signupsOpen, setSignupsOpen] = useState(true);
+  useEffect(() => {
+    supabase.rpc('free_signups_open').then(({ data, error }) => {
+      if (!error && data === false) setSignupsOpen(false);
+    });
+  }, []);
 
   // Forgot password state
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
@@ -95,14 +106,15 @@ export default function Auth() {
       return;
     }
     
-    if (signupPassword.length < 6) {
-      toast.error('Password must be at least 6 characters');
-      return;
-    }
-    
     setIsLoading(true);
-    
+
     try {
+      const passwordError = await checkNewPassword(signupPassword);
+      if (passwordError) {
+        toast.error(passwordError);
+        return;
+      }
+
       const redirectUrl = `${window.location.origin}/dashboard`;
       
       const { error } = await supabase.auth.signUp({
@@ -119,12 +131,20 @@ export default function Auth() {
       if (error) {
         if (error.message.includes('already registered')) {
           toast.error('This email is already registered');
+          return;
+        }
+        // The seat limit is enforced by a database trigger, which Supabase
+        // reports as a generic "Database error saving new user".
+        const { data: open } = await supabase.rpc('free_signups_open');
+        if (open === false) {
+          setSignupsOpen(false);
+          toast.error('Free access is full right now. Please contact us to get access.');
         } else {
           toast.error(error.message);
         }
         return;
       }
-      
+
       toast.success('Account created! Please check your email to verify.');
     } catch (error) {
       toast.error('An unexpected error occurred');
@@ -316,6 +336,25 @@ export default function Auth() {
                 </TabsContent>
                 
                 <TabsContent value="signup">
+                  {!signupsOpen && (
+                    <Alert className="mb-4">
+                      <AlertTitle>Free access is full</AlertTitle>
+                      <AlertDescription className="space-y-2">
+                        <p>
+                          We have limited seats for free access. Please{' '}
+                          {CONTACT_EMAIL ? (
+                            <a href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent('Clientra access')}`} className="font-medium text-primary underline underline-offset-4">
+                              contact us
+                            </a>
+                          ) : (
+                            'contact us'
+                          )}{' '}
+                          to get access.
+                        </p>
+                        <p className="text-xs">Invited to a team? You can still sign up with the email address the invite was sent to.</p>
+                      </AlertDescription>
+                    </Alert>
+                  )}
                   <form onSubmit={handleSignup} className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="signup-name">Full Name</Label>
@@ -371,6 +410,7 @@ export default function Auth() {
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
+                      <p className="text-xs text-muted-foreground">{PASSWORD_HINT}</p>
                     </div>
                     
                     <div className="space-y-2">

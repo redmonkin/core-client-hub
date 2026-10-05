@@ -1787,6 +1787,7 @@ export type Database = {
         Returns: string
       }
       get_accessible_user_ids: { Args: { _user_id: string }; Returns: string[] }
+      free_signups_open: { Args: never; Returns: boolean }
       get_owner_id: { Args: { _user_id: string }; Returns: string }
       get_team_roster: {
         Args: never
@@ -1812,6 +1813,10 @@ export type Database = {
       is_valid_timesheet_assignee: {
         Args: { _assignee: string; _owner_id: string }
         Returns: boolean
+      }
+      my_workspace_seats: {
+        Args: never
+        Returns: { seat_limit: number | null; seats_used: number }[]
       }
       record_invoice_payment: {
         Args: {

@@ -15,6 +15,7 @@ import {
   readOnlyMatrix,
 } from '@/hooks/useWorkspaceUser';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { CONTACT_EMAIL } from '@/lib/site';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -153,6 +154,21 @@ export function TeamManagement() {
     enabled: !!user && !!workspaceUserId && canManageTeam && !isRoleLoading,
   });
 
+  // Seat limit (app_settings.max_members_per_workspace): the owner plus active
+  // and pending invitations. Keyed under 'team-members' so every invalidation
+  // of the team list refreshes it too.
+  const { data: seats } = useQuery({
+    queryKey: ['team-members', 'seats', workspaceUserId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('my_workspace_seats');
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      return row as { seats_used: number; seat_limit: number | null } | undefined;
+    },
+    enabled: !!user && !!workspaceUserId && canManageTeam && !isRoleLoading,
+  });
+  const seatsFull = !!seats && seats.seat_limit != null && seats.seats_used >= seats.seat_limit;
+
   const { data: permissionsByMember = {} } = useQuery({
     queryKey: ['team-member-permissions', workspaceUserId, teamMembers.map((m) => m.id).join(',')],
     queryFn: async () => {
@@ -209,6 +225,9 @@ export function TeamManagement() {
 
       if (error) {
         if (error.code === '23505') throw new Error('This email has already been invited');
+        if (error.message?.includes('seat_limit_reached')) {
+          throw new Error('Your workspace has reached its team member limit.');
+        }
         throw error;
       }
 
@@ -415,8 +434,27 @@ export function TeamManagement() {
         <CardDescription>
           Invite team members and control exactly what they can create, view, edit, and delete in your workspace
         </CardDescription>
+        {seats?.seat_limit != null && (
+          <p className="text-sm text-muted-foreground">
+            {seats.seats_used} of {seats.seat_limit} seats used, including you
+          </p>
+        )}
       </CardHeader>
       <CardContent className="space-y-6">
+        {seatsFull && (
+          <div className="rounded-lg border bg-muted/50 p-3 text-sm text-muted-foreground">
+            You've reached the limit of {seats?.seat_limit} people per workspace on free access. Remove someone to
+            invite another person, or{' '}
+            {CONTACT_EMAIL ? (
+              <a href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent('More team seats')}`} className="font-medium text-primary underline underline-offset-4">
+                contact us
+              </a>
+            ) : (
+              'contact us'
+            )}{' '}
+            for more seats.
+          </div>
+        )}
         {/* Invite Form */}
         <form onSubmit={handleInvite} className="space-y-3">
           <div className="flex flex-col sm:flex-row gap-3">
@@ -443,7 +481,7 @@ export function TeamManagement() {
                 ))}
               </SelectContent>
             </Select>
-            <Button type="submit" disabled={inviteMutation.isPending || !inviteEmail.trim()}>
+            <Button type="submit" disabled={inviteMutation.isPending || !inviteEmail.trim() || seatsFull}>
               {inviteMutation.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : (
