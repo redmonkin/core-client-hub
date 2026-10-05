@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type ElementType, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ElementType, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 interface RevealProps {
@@ -9,15 +9,21 @@ interface RevealProps {
   delay?: number;
 }
 
+// useLayoutEffect warns when the page is pre-rendered on the server.
+const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
+
 /** Fades its content up the first time it scrolls into view. */
 export function Reveal({ children, as: Tag = "div", className, delay = 0 }: RevealProps) {
   const ref = useRef<HTMLElement | null>(null);
-  const [visible, setVisible] = useState(false);
+  // Pre-rendered HTML shows everything, for crawlers and visitors without JS.
+  const [visible, setVisible] = useState(typeof window === "undefined");
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const node = ref.current;
     if (!node) return;
-    if (typeof IntersectionObserver === "undefined") {
+    // Already on screen at mount (e.g. replacing the pre-rendered page): show it
+    // before the first paint instead of fading it in a second time.
+    if (typeof IntersectionObserver === "undefined" || node.getBoundingClientRect().top < window.innerHeight) {
       setVisible(true);
       return;
     }

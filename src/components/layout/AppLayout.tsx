@@ -1,3 +1,5 @@
+import { Suspense } from 'react';
+import { PageLoader } from '@/components/shared/PageLoader';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { NotificationsDropdown } from '@/components/notifications/NotificationsDropdown';
@@ -26,7 +28,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             </div>
           </header>
           <main className="flex-1 overflow-y-auto overflow-x-hidden">
-            {children}
+            <Suspense fallback={<PageLoader fullScreen={false} />}>{children}</Suspense>
           </main>
         </SidebarInset>
       </div>

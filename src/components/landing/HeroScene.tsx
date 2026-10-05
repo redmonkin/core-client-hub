@@ -25,7 +25,7 @@ const nav = [LayoutDashboard, Users, FileText, FileSignature, ReceiptIndianRupee
  * toward the pointer on devices with a fine pointer, and stays still when the
  * visitor prefers reduced motion. No WebGL, so it costs nothing to load.
  */
-export function HeroScene() {
+export function HeroScene({ intro = true }: { intro?: boolean }) {
   const stageRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -118,7 +118,7 @@ export function HeroScene() {
                     {bars.map((height, i) => (
                       <span
                         key={i}
-                        className="flex-1 origin-bottom rounded-sm bg-gradient-to-t from-primary/70 to-primary animate-fade-up"
+                        className={`flex-1 origin-bottom rounded-sm bg-gradient-to-t from-primary/70 to-primary ${intro ? "animate-fade-up" : ""}`}
                         style={{ height: `${height}%`, animationDelay: `${300 + i * 80}ms` }}
                       />
                     ))}

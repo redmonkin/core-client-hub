@@ -2,7 +2,9 @@
 // fallbacks point at the upstream project.
 
 /** Public origin of this deployment, used for canonical / og:url tags. */
-export const SITE_URL = (import.meta.env.VITE_SITE_URL || window.location.origin).replace(/\/$/, "");
+export const SITE_URL = (
+  import.meta.env.VITE_SITE_URL || (typeof window !== "undefined" ? window.location.origin : "")
+).replace(/\/$/, "");
 
 /** Source repository linked from the landing page. */
 export const REPO_URL = (import.meta.env.VITE_REPO_URL || "https://github.com/redmonkin/core-client-hub").replace(/\/$/, "");
