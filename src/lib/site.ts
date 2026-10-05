@@ -9,7 +9,7 @@ export const SITE_URL = (
 /** Source repository linked from the landing page. */
 export const REPO_URL = (import.meta.env.VITE_REPO_URL || "https://github.com/redmonkin/core-client-hub").replace(/\/$/, "");
 
-export const SELF_HOST_GUIDE_URL = `${REPO_URL}#self-hosting`;
+export const SELF_HOST_GUIDE_URL = `${REPO_URL}/blob/main/docs/self-hosting.md`;
 export const LICENSE_URL = `${REPO_URL}/blob/main/LICENSE`;
 
 /** Shown when free sign-ups are full ("contact us"). Optional. */

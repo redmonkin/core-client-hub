@@ -111,7 +111,7 @@ React, TypeScript, Vite, Tailwind CSS and shadcn/ui on the frontend; Supabase (P
 - [Home](${BASE_URL}/): Product overview, features, security and FAQ.
 - [Sign up or sign in](${BASE_URL}/auth): Create an account on the hosted instance.
 - [Source code](${REPO_URL}): GitHub repository.
-- [Self-hosting guide](${REPO_URL}#self-hosting): Run your own copy on Supabase plus any static host.
+- [Self-hosting guide](${REPO_URL}/blob/main/docs/self-hosting.md): Run your own copy on Supabase plus any static host.
 - [License](${REPO_URL}/blob/main/LICENSE): AGPL-3.0.
 - [Contributing](${REPO_URL}/blob/main/CONTRIBUTING.md): How to report issues and send pull requests.
 `;

@@ -33,6 +33,6 @@ React, TypeScript, Vite, Tailwind CSS and shadcn/ui on the frontend; Supabase (P
 - [Home](https://clientra.redmonk.in/): Product overview, features, security and FAQ.
 - [Sign up or sign in](https://clientra.redmonk.in/auth): Create an account on the hosted instance.
 - [Source code](https://github.com/redmonkin/core-client-hub): GitHub repository.
-- [Self-hosting guide](https://github.com/redmonkin/core-client-hub#self-hosting): Run your own copy on Supabase plus any static host.
+- [Self-hosting guide](https://github.com/redmonkin/core-client-hub/blob/main/docs/self-hosting.md): Run your own copy on Supabase plus any static host.
 - [License](https://github.com/redmonkin/core-client-hub/blob/main/LICENSE): AGPL-3.0.
 - [Contributing](https://github.com/redmonkin/core-client-hub/blob/main/CONTRIBUTING.md): How to report issues and send pull requests.
