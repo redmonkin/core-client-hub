@@ -14,3 +14,6 @@ export const LICENSE_URL = `${REPO_URL}/blob/main/LICENSE`;
 
 /** Shown when free sign-ups are full ("contact us"). Optional. */
 export const CONTACT_EMAIL = (import.meta.env.VITE_CONTACT_EMAIL || "").trim();
+
+/** Cloudflare Turnstile site key; enables the CAPTCHA on auth forms (optional). */
+export const TURNSTILE_SITE_KEY = (import.meta.env.VITE_TURNSTILE_SITE_KEY || "").trim();

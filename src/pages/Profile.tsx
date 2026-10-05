@@ -24,6 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspaceUser } from "@/hooks/useWorkspaceUser";
 import { PASSWORD_HINT, checkNewPassword } from "@/lib/password-policy";
+import { CAPTCHA_ENABLED, CAPTCHA_ERROR, CAPTCHA_FAILED_MESSAGE, CAPTCHA_PENDING_MESSAGE, Captcha, type CaptchaHandle } from "@/components/auth/Captcha";
 import { Loader2, User, Building2, Phone, Briefcase, Mail, Upload, Trash2, Camera, CheckCircle2, Circle, Link, Copy, Lock, Bell, Eye, CheckCircle, XCircle, Calendar, AlertTriangle } from "lucide-react";
 
 interface NotificationPreferences {
@@ -71,6 +72,8 @@ export default function Profile() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
+  const [passwordCaptcha, setPasswordCaptcha] = useState<string | null>(null);
+  const passwordCaptchaRef = useRef<CaptchaHandle>(null);
 
   // Notification state
   const [preferences, setPreferences] = useState<NotificationPreferences>(defaultPreferences);
@@ -312,6 +315,11 @@ export default function Profile() {
 
     if (!user?.email) return;
 
+    if (CAPTCHA_ENABLED && !passwordCaptcha) {
+      toast({ title: "Error", description: CAPTCHA_PENDING_MESSAGE, variant: "destructive" });
+      return;
+    }
+
     setSavingPassword(true);
 
     try {
@@ -326,9 +334,11 @@ export default function Profile() {
       const { error: verifyError } = await supabase.auth.signInWithPassword({
         email: user.email,
         password: currentPassword,
+        options: { captchaToken: passwordCaptcha ?? undefined },
       });
       if (verifyError) {
-        toast({ title: "Error", description: "Your current password is incorrect", variant: "destructive" });
+        const description = CAPTCHA_ERROR.test(verifyError.message) ? CAPTCHA_FAILED_MESSAGE : "Your current password is incorrect";
+        toast({ title: "Error", description, variant: "destructive" });
         return;
       }
 
@@ -345,6 +355,7 @@ export default function Profile() {
       console.error("Error updating password:", error);
       toast({ title: "Error", description: error.message || "Failed to update password", variant: "destructive" });
     } finally {
+      passwordCaptchaRef.current?.reset();
       setSavingPassword(false);
     }
   };
@@ -726,6 +737,7 @@ export default function Profile() {
                 />
               </div>
             </div>
+            <Captcha ref={passwordCaptchaRef} onToken={setPasswordCaptcha} />
             <Button type="submit" disabled={savingPassword}>
               {savingPassword ? (
                 <>
