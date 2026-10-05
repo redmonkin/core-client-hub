@@ -10,7 +10,7 @@ Thanks for helping improve Clientra. This guide covers how to get set up and wha
 
 ## Development setup
 
-Follow [Local development](README.md#local-development) in the README. You'll need your own Supabase project. [Self-hosting](README.md#self-hosting) covers applying the migrations and deploying the edge functions to it.
+Follow [Local development](README.md#local-development) in the README. You'll need your own Supabase project. The [self-hosting guide](docs/self-hosting.md) covers applying the migrations and deploying the edge functions to it.
 
 ## Making changes
 

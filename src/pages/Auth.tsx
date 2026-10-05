@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Eye, EyeOff, Mail, Lock, User, Loader2, Check, CheckCircle2, FileText, Github, ShieldCheck } from 'lucide-react';
@@ -16,6 +16,14 @@ import { CONTACT_EMAIL, REPO_URL, SITE_URL } from '@/lib/site';
 import { Backdrop } from '@/components/landing/Backdrop';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { PASSWORD_HINT, checkNewPassword } from '@/lib/password-policy';
+import {
+  CAPTCHA_ENABLED,
+  CAPTCHA_ERROR,
+  CAPTCHA_FAILED_MESSAGE,
+  CAPTCHA_PENDING_MESSAGE,
+  Captcha,
+  type CaptchaHandle,
+} from '@/components/auth/Captcha';
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -41,6 +49,14 @@ export default function Auth() {
     });
   }, []);
 
+  // CAPTCHA tokens (single-use), one widget per form.
+  const [loginCaptcha, setLoginCaptcha] = useState<string | null>(null);
+  const [signupCaptcha, setSignupCaptcha] = useState<string | null>(null);
+  const [resetCaptcha, setResetCaptcha] = useState<string | null>(null);
+  const loginCaptchaRef = useRef<CaptchaHandle>(null);
+  const signupCaptchaRef = useRef<CaptchaHandle>(null);
+  const resetCaptchaRef = useRef<CaptchaHandle>(null);
+
   // Forgot password state
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
@@ -48,16 +64,24 @@ export default function Auth() {
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    // The dialog is rendered inside the sign-in form, and React bubbles the
+    // submit through the portal to it; don't also attempt a sign-in.
+    e.stopPropagation();
+    if (CAPTCHA_ENABLED && !resetCaptcha) {
+      toast.error(CAPTCHA_PENDING_MESSAGE);
+      return;
+    }
     setIsSendingReset(true);
 
     try {
       const redirectUrl = `${window.location.origin}/reset-password`;
       const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail, {
         redirectTo: redirectUrl,
+        captchaToken: resetCaptcha ?? undefined,
       });
 
       if (error) {
-        toast.error(error.message);
+        toast.error(CAPTCHA_ERROR.test(error.message) ? CAPTCHA_FAILED_MESSAGE : error.message);
         return;
       }
 
@@ -67,23 +91,31 @@ export default function Auth() {
     } catch (error) {
       toast.error('An unexpected error occurred');
     } finally {
+      resetCaptchaRef.current?.reset();
       setIsSendingReset(false);
     }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (CAPTCHA_ENABLED && !loginCaptcha) {
+      toast.error(CAPTCHA_PENDING_MESSAGE);
+      return;
+    }
     setIsLoading(true);
     
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email: loginEmail,
         password: loginPassword,
+        options: { captchaToken: loginCaptcha ?? undefined },
       });
       
       if (error) {
         if (error.message.includes('Invalid login credentials')) {
           toast.error('Invalid email or password');
+        } else if (CAPTCHA_ERROR.test(error.message)) {
+          toast.error(CAPTCHA_FAILED_MESSAGE);
         } else {
           toast.error(error.message);
         }
@@ -95,6 +127,7 @@ export default function Auth() {
     } catch (error) {
       toast.error('An unexpected error occurred');
     } finally {
+      loginCaptchaRef.current?.reset();
       setIsLoading(false);
     }
   };
@@ -104,6 +137,10 @@ export default function Auth() {
     
     if (signupPassword !== signupConfirmPassword) {
       toast.error('Passwords do not match');
+      return;
+    }
+    if (CAPTCHA_ENABLED && !signupCaptcha) {
+      toast.error(CAPTCHA_PENDING_MESSAGE);
       return;
     }
     
@@ -122,6 +159,7 @@ export default function Auth() {
         email: signupEmail,
         password: signupPassword,
         options: {
+          captchaToken: signupCaptcha ?? undefined,
           emailRedirectTo: redirectUrl,
           data: {
             full_name: signupName,
@@ -132,6 +170,10 @@ export default function Auth() {
       if (error) {
         if (error.message.includes('already registered')) {
           toast.error('This email is already registered');
+          return;
+        }
+        if (CAPTCHA_ERROR.test(error.message)) {
+          toast.error(CAPTCHA_FAILED_MESSAGE);
           return;
         }
         // The seat limit is enforced by a database trigger, which Supabase
@@ -150,6 +192,7 @@ export default function Auth() {
     } catch (error) {
       toast.error('An unexpected error occurred');
     } finally {
+      signupCaptchaRef.current?.reset();
       setIsLoading(false);
     }
   };
@@ -333,6 +376,7 @@ export default function Auth() {
                                   />
                                 </div>
                               </div>
+                              <Captcha ref={resetCaptchaRef} onToken={setResetCaptcha} />
                               <DialogFooter>
                                 <Button type="submit" className="w-full" disabled={isSendingReset}>
                                   {isSendingReset ? (
@@ -351,6 +395,7 @@ export default function Auth() {
                       </div>
                     </div>
 
+                    <Captcha ref={loginCaptchaRef} onToken={setLoginCaptcha} />
                     <Button type="submit" className="w-full" disabled={isLoading}>
                       {isLoading ? (
                         <>
@@ -458,6 +503,7 @@ export default function Auth() {
                       </div>
                     </div>
                     
+                    <Captcha ref={signupCaptchaRef} onToken={setSignupCaptcha} />
                     <Button type="submit" className="w-full" disabled={isLoading}>
                       {isLoading ? (
                         <>

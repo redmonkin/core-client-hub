@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useWorkspaceUser } from "@/hooks/useWorkspaceUser";
 import { Loader2, Upload, Trash2, Palette, Globe, Building2, Mail, MapPin } from "lucide-react";
 import { TeamManagement } from "@/components/settings/TeamManagement";
+import { DataExport } from "@/components/settings/DataExport";
 import { InvoiceSettings } from "@/components/settings/InvoiceSettings";
 import { Textarea } from "@/components/ui/textarea";
 import { normalizeWebsiteUrl } from "@/lib/sanitize";
@@ -487,6 +488,9 @@ export default function Settings() {
           </form>
         </CardContent>
       </Card>
+
+      {/* Data export (owner only) */}
+      <DataExport />
     </div>
   );
 }

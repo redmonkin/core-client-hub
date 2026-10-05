@@ -44,7 +44,7 @@ The browser talks to Supabase directly. Row-level security scopes every table to
 
 ## Local development
 
-Requirements: Node.js 20+ and a Supabase project (the free tier is fine). [Self-hosting](#self-hosting) below explains how to set the project up.
+Requirements: Node.js 20+ and a Supabase project (the free tier is fine). The [self-hosting guide](docs/self-hosting.md) explains how to set the project up.
 
 ```sh
 git clone https://github.com/redmonkin/core-client-hub.git clientra
@@ -67,63 +67,15 @@ CI runs lint, typecheck and build on every pull request.
 
 ## Self-hosting
 
-Clientra runs on a single Supabase project plus any static hosting for the frontend. You'll need the [Supabase CLI](https://supabase.com/docs/guides/cli) and a [Resend](https://resend.com) account with a verified sending domain.
+Clientra runs on a single [Supabase](https://supabase.com) project, [Resend](https://resend.com) for email, and any static host for the website. **[The self-hosting guide](docs/self-hosting.md)** walks through every step:
 
-### 1. Create and link a Supabase project
+1. Create a Supabase project, add two Vault secrets and apply the migrations (`supabase db push`).
+2. Verify a sending domain in Resend and create an API key.
+3. Set the function secrets (`RESEND_API_KEY`, `EMAIL_FROM_ADDRESS`, `APP_URL`) and deploy the edge functions (`supabase functions deploy`).
+4. Configure Supabase Auth: site and redirect URLs, custom SMTP through Resend, and password rules.
+5. Build the frontend with the variables from [`.env.example`](.env.example) and deploy it (Vercel works out of the box with `vercel.json`).
 
-```sh
-supabase login
-supabase link --project-ref <project-ref>
-```
-
-### 2. Add two Vault secrets (before running migrations)
-
-The scheduled jobs (reminders, recurring invoices and expenses) call your edge functions using these. In the SQL editor:
-
-```sql
-select vault.create_secret('https://<project-ref>.supabase.co', 'project_url');
-select vault.create_secret('<your service_role key>', 'service_role_key');
-```
-
-The migrations refuse to schedule the jobs until both secrets exist.
-
-### 3. Apply the database migrations
-
-```sh
-supabase db push
-```
-
-This creates the schema, RLS policies, storage buckets, `pg_cron` / `pg_net` extensions and cron jobs.
-
-### 4. Configure and deploy edge functions
-
-```sh
-cp supabase/functions/.env.example supabase/functions/.env   # fill it in
-supabase secrets set --env-file supabase/functions/.env
-supabase functions deploy
-```
-
-`supabase/config.toml` marks the functions that must be publicly callable (`verify_jwt = false`). Each of those checks its caller itself: the client portal uses its access token, and cron functions require the service role key.
-
-### 5. Configure Auth
-
-In **Authentication → URL Configuration**, set the Site URL to your frontend's URL. Add `https://<your-domain>/dashboard` and `https://<your-domain>/reset-password` to the redirect URLs.
-
-### 6. Optional: sign-up and team limits
-
-`supabase db push` creates a single-row `app_settings` table with `max_workspaces = 10` and `max_members_per_workspace = 5` (the hosted free plan). For your own install, set either column to `NULL` in the Table Editor for no limit. Set `VITE_CONTACT_EMAIL` to show a contact link when sign-ups are full.
-
-In **Authentication → Providers → Email**, set the minimum password length to 10 and require lowercase, uppercase and digits, to match the app's password rules.
-
-### 7. Build and deploy the frontend
-
-Set the variables from [`.env.example`](.env.example) in your hosting provider, then build:
-
-```sh
-npm run build   # outputs dist/
-```
-
-Serve `dist/` as a single-page app: `/` serves `index.html` (the landing page, pre-rendered at build time so search engines and AI crawlers can read it) and every other path is rewritten to `/app.html`. `vercel.json` already does this on Vercel. Netlify, Cloudflare Pages and plain nginx work too; set `VITE_SITE_URL` so canonical links, the sitemap and `llms.txt` point at your domain.
+It also covers checking that email works, updating to a new version, troubleshooting, and the [third-party services](docs/self-hosting.md#third-party-services) Clientra uses.
 
 ## Project structure
 
