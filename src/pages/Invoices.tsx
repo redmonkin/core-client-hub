@@ -1505,6 +1505,8 @@ export default function Invoices() {
           {previewInvoice && (
             <iframe
               title="Invoice preview"
+              // No scripts, and a unique origin: the preview can't reach the app's session.
+              sandbox=""
               srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0;">${buildInvoicePdfHtml(previewInvoice)}</body></html>`}
               className="w-full flex-1 min-h-0 border rounded-md bg-white"
             />

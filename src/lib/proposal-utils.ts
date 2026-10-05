@@ -1,6 +1,16 @@
 import { format } from 'date-fns';
 import { humanize } from '@/lib/labels';
 
+// Client-supplied values (names, signatures, line items) reach the PDF export
+// and previews as HTML, so escape everything that isn't meant to be markup.
+const escapeHtml = (value: unknown): string =>
+  String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
 export interface ProposalData {
   title: string;
   clientName: string;
@@ -66,10 +76,10 @@ function buildSinglePlanHtml(plan: CostPlanLike, options: { showHeading: boolean
     .map(
       (item) => `
     <tr style="border-bottom:1px solid #e5e7eb;">
-      <td style="padding:8px 12px;">${item.description || ''}</td>
-      <td style="padding:8px 12px; text-align:right;">${item.quantity}</td>
+      <td style="padding:8px 12px;">${escapeHtml(item.description)}</td>
+      <td style="padding:8px 12px; text-align:right;">${escapeHtml(item.quantity)}</td>
       <td style="padding:8px 12px; text-align:right;">${formatCurrency(item.unitPrice)}</td>
-      <td style="padding:8px 12px; text-align:right;">${item.discount}%</td>
+      <td style="padding:8px 12px; text-align:right;">${escapeHtml(item.discount)}%</td>
       <td style="padding:8px 12px; text-align:right;">${formatCurrency(calculateLineTotal(item))}</td>
     </tr>`
     )
@@ -84,7 +94,7 @@ function buildSinglePlanHtml(plan: CostPlanLike, options: { showHeading: boolean
   if (additionalDiscount > 0) {
     footerRows += `
     <tr>
-      <td colspan="4" style="padding:8px 12px; text-align:right; font-weight:600;">Discount (${additionalDiscount}%)</td>
+      <td colspan="4" style="padding:8px 12px; text-align:right; font-weight:600;">Discount (${escapeHtml(additionalDiscount)}%)</td>
       <td style="padding:8px 12px; text-align:right;">-${formatCurrency(additionalDiscountAmount)}</td>
     </tr>`;
   }
@@ -92,7 +102,7 @@ function buildSinglePlanHtml(plan: CostPlanLike, options: { showHeading: boolean
   if (taxRate > 0) {
     footerRows += `
     <tr>
-      <td colspan="4" style="padding:8px 12px; text-align:right; font-weight:600;">Tax (${taxRate}%)</td>
+      <td colspan="4" style="padding:8px 12px; text-align:right; font-weight:600;">Tax (${escapeHtml(taxRate)}%)</td>
       <td style="padding:8px 12px; text-align:right;">${formatCurrency(taxAmount)}</td>
     </tr>`;
   }
@@ -104,11 +114,11 @@ function buildSinglePlanHtml(plan: CostPlanLike, options: { showHeading: boolean
     </tr>`;
 
   const heading = options.showHeading && plan.name
-    ? `<h3 style="margin:1.5em 0 0.5em 0; font-size:1.15em; font-weight:600; color:#111827;">${plan.name}</h3>`
+    ? `<h3 style="margin:1.5em 0 0.5em 0; font-size:1.15em; font-weight:600; color:#111827;">${escapeHtml(plan.name)}</h3>`
     : '';
 
   const notesHtml = plan.notes
-    ? `<p style="margin:0.25em 0 1em 0; font-size:0.9em; color:#6b7280; font-style:italic;">${plan.notes}</p>`
+    ? `<p style="margin:0.25em 0 1em 0; font-size:0.9em; color:#6b7280; font-style:italic;">${escapeHtml(plan.notes)}</p>`
     : '';
 
   const tableHtml = `
@@ -274,27 +284,30 @@ export function replacePlaceholders(content: string, data: ProposalData, highlig
     '{{startDate}}': startDateFormatted,
     '{{endDate}}': endDateFormatted,
     '{{clientSignature}}': data.clientSignatureImageUrl
-      ? `<img src="${data.clientSignatureImageUrl.replace(/"/g, '&quot;')}" alt="Signature" style="max-height:80px;max-width:280px;" />`
+      ? `<img src="${escapeHtml(data.clientSignatureImageUrl)}" alt="Signature" style="max-height:80px;max-width:280px;" />`
       : data.clientSignature
-      ? `<span style="font-family:'Hurricane',cursive;font-size:2em;color:#1a1a1a;">${data.clientSignature}</span>`
+      ? `<span style="font-family:'Hurricane',cursive;font-size:2em;color:#1a1a1a;">${escapeHtml(data.clientSignature)}</span>`
       : '',
     '{{mySignature}}': data.mySignature
-      ? `<span style="font-family:'Hurricane',cursive;font-size:2em;color:#1a1a1a;">${data.mySignature}</span>`
+      ? `<span style="font-family:'Hurricane',cursive;font-size:2em;color:#1a1a1a;">${escapeHtml(data.mySignature)}</span>`
       : '',
   };
 
   let result = content;
   for (const [placeholder, value] of Object.entries(placeholderMap)) {
     const escaped = placeholder.replace(/[{}]/g, '\\$&');
+    // Function replacers so a "$&" or "$1" in a value is inserted literally.
     if (HTML_PLACEHOLDERS.has(placeholder)) {
-      result = result.replace(new RegExp(escaped, 'g'), value);
+      result = result.replace(new RegExp(escaped, 'g'), () => value);
     } else if (highlight) {
+      const shown = value ? escapeHtml(value) : '<em>Not provided</em>';
       result = result.replace(
         new RegExp(escaped, 'g'),
-        `<span class="bg-primary/20 text-primary px-1 rounded font-medium">${value || '<em>Not provided</em>'}</span>`
+        () => `<span class="bg-primary/20 text-primary px-1 rounded font-medium">${shown}</span>`
       );
     } else {
-      result = result.replace(new RegExp(escaped, 'g'), value || '');
+      const text = escapeHtml(value || '');
+      result = result.replace(new RegExp(escaped, 'g'), () => text);
     }
   }
   return result;

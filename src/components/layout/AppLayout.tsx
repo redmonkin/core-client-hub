@@ -14,13 +14,14 @@ export function AppLayout({ children }: AppLayoutProps) {
         <AppSidebar />
         <SidebarInset className="flex-1">
           {/* Mobile top bar: menu, logo, notifications (desktop has them in the sidebar). */}
-          <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b bg-background/95 px-3 backdrop-blur md:hidden">
-            <SidebarTrigger className="h-10 w-10" aria-label="Open menu" />
+          {/* Equal side columns keep the logo centred on the screen, not between the buttons. */}
+          <header className="sticky top-0 z-20 grid h-14 grid-cols-[1fr_auto_1fr] items-center gap-2 border-b bg-background/95 px-3 backdrop-blur md:hidden">
+            <SidebarTrigger className="h-10 w-10 justify-self-start" aria-label="Open menu" />
             <div className="flex items-center gap-2">
               <img src={clientraLogoDark} alt="" className="h-7 w-7" />
               <span className="font-semibold text-foreground">Clientra</span>
             </div>
-            <div className="ml-auto">
+            <div className="justify-self-end">
               <NotificationsDropdown />
             </div>
           </header>

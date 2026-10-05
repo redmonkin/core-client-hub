@@ -1762,6 +1762,7 @@ export type Database = {
       }
     }
     Functions: {
+      accept_team_invitations: { Args: never; Returns: number }
       can_view_financials: {
         Args: { _owner_id: string; _user_id: string }
         Returns: boolean

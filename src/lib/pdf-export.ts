@@ -13,9 +13,11 @@ function preserveWordSpacing(root: HTMLElement) {
     const text = element.textContent || '';
     if (!text.includes(' ')) return;
 
-    // Replace spaces with non-breaking spaces + zero-width space
-    // This forces html2canvas to preserve word gaps
-    element.innerHTML = text.replace(/ /g, '&nbsp; ');
+    // Replace spaces with non-breaking space + space so html2canvas keeps the
+    // word gaps. Set as text, never innerHTML: textContent has already decoded
+    // any escaped markup, and re-parsing it would bring that markup back to
+    // life after sanitisation.
+    element.textContent = text.replace(/ /g, '\u00A0 ');
   });
 }
 

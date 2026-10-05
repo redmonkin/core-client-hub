@@ -13,6 +13,7 @@ import { replacePlaceholders, ProposalData } from '@/lib/proposal-utils';
 import { buildInvoiceLineItemsHtml, formatInvoiceCurrency, numberToIndianWords, escapeInvoiceHtml } from '@/lib/invoice-utils';
 import { exportToPdf } from '@/lib/pdf-export';
 import { Textarea } from '@/components/ui/textarea';
+import { safeHexColor, safeHttpUrl } from '@/lib/sanitize';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -123,8 +124,8 @@ export default function ClientPortal() {
   const [verifyingPassword, setVerifyingPassword] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
 
-  const primaryColor = branding?.primary_color || '#0284C7';
-  const accentColor = branding?.accent_color || '#0EA5E9';
+  const primaryColor = safeHexColor(branding?.primary_color, '#0284C7');
+  const accentColor = safeHexColor(branding?.accent_color, '#0EA5E9');
 
   useEffect(() => {
     if (!token) {
@@ -860,9 +861,9 @@ export default function ClientPortal() {
                   {branding.support_email}
                 </a>
               )}
-              {branding.website_url && (
+              {safeHttpUrl(branding.website_url) && (
                 <a
-                  href={branding.website_url}
+                  href={safeHttpUrl(branding.website_url)!}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"

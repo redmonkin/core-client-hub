@@ -19,9 +19,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { toast } from 'sonner';
 import { ClientContacts } from '@/components/clients/ClientContacts';
 import { ClientLedger } from '@/components/clients/ClientLedger';
+import { useWorkspaceUser } from '@/hooks/useWorkspaceUser';
 
 export default function ClientDetail() {
   const { id } = useParams();
+  const { canViewFinancials } = useWorkspaceUser();
   const queryClient = useQueryClient();
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -338,7 +340,7 @@ export default function ClientDetail() {
                     date: c.start_date || c.created_at,
                     type: 'contract',
                     title: `Contract: ${label}`,
-                    subtitle: `₹${Number(c.value).toLocaleString('en-IN')} • ${format(new Date(c.start_date), 'MMM dd, yyyy')} – ${format(new Date(c.end_date), 'MMM dd, yyyy')}`,
+                    subtitle: `${canViewFinancials ? `₹${Number(c.value).toLocaleString('en-IN')}` : '••••••'} • ${format(new Date(c.start_date), 'MMM dd, yyyy')} – ${format(new Date(c.end_date), 'MMM dd, yyyy')}`,
                     status: c.status,
                     href: `/contracts/${c.id}`,
                   });
@@ -465,7 +467,7 @@ export default function ClientDetail() {
                         {contract.contract_type === 'amc' ? 'Annual Maintenance Contract' : contract.contract_type === 'retainer' ? 'Retainer Contract' : contract.contract_type === 'fixed' ? 'Fixed Contract' : contract.contract_type}
                       </p>
                     <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
-                      <span>₹{Number(contract.value).toLocaleString('en-IN')}</span>
+                      <span>{canViewFinancials ? `₹${Number(contract.value).toLocaleString('en-IN')}` : '••••••'}</span>
                       <span>•</span>
                       <span>
                         {format(new Date(contract.start_date), 'MMM dd')} - {format(new Date(contract.end_date), 'MMM dd, yyyy')}

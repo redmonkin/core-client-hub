@@ -449,10 +449,6 @@ const handler = async (req: Request): Promise<Response> => {
       }
 
       // Password verified — return the full document data (same as GET with valid password)
-      // Re-use GET logic by constructing internal URL with verified hash
-      const internalUrl = new URL(req.url);
-      internalUrl.searchParams.set("ph", computedHash);
-      // Fetch document data directly
       if (documentType === "invoice") {
         const { data: invoice, error: invoiceError } = await supabase
           .from("invoices")
@@ -685,6 +681,14 @@ const handler = async (req: Request): Promise<Response> => {
       const { data: currentDoc } = await supabase.from(tableName).select("status, user_id, client_id, title").eq("id", documentId).single();
       const previousStatus = currentDoc?.status || "sent";
 
+      // A decision is final: once approved/rejected (or a contract is running
+      // or over) the link can no longer flip it or overwrite the signature.
+      // The owner re-sends the document to reopen it.
+      const FINAL_STATUSES = ["approved", "rejected", "active", "expired", "ended"];
+      if (!currentDoc || FINAL_STATUSES.includes(previousStatus)) {
+        return new Response(JSON.stringify({ error: `This ${documentType} has already been ${previousStatus === "rejected" ? "declined" : "finalised"}` }), { status: 409, headers: { "Content-Type": "application/json", ...corsHeaders } });
+      }
+
       // Update status (and signature for contracts)
       const updatePayload: any = { status: newStatus };
       if (documentType === "contract" && action === "approve" && signature_name) {
@@ -772,7 +776,7 @@ const handler = async (req: Request): Promise<Response> => {
                 request_changes: `<strong>${safeClientName}</strong> has requested changes to your ${documentType} <strong>"${safeDocTitle}"</strong>.`,
               };
               const notesHtml = action === "request_changes" && notes ? `<div style="background:#fffbeb;border-left:4px solid #f59e0b;padding:16px;margin:20px 0;border-radius:0 8px 8px 0;"><h4 style="margin:0 0 8px;color:#92400e;font-size:13px;text-transform:uppercase;">Client's Notes</h4><p style="margin:0;color:#78350f;">${escapeHtml(notes).replace(/\n/g, "<br>")}</p></div>` : "";
-              const ownerName = ownerData?.user?.user_metadata?.full_name || ownerEmail.split("@")[0];
+              const ownerName = escapeHtml(ownerData?.user?.user_metadata?.full_name || ownerEmail.split("@")[0]);
 
               await resend.emails.send({
                 from: emailFrom("Notifications"),

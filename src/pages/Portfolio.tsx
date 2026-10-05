@@ -21,6 +21,7 @@ import { Globe, Building2, Send, CheckCircle, Loader2, Mail, Paperclip, X } from
 import { toast } from 'sonner';
 import { SITE_URL } from '@/lib/site';
 import NotFound from './NotFound';
+import { safeHexColor, safeHttpUrl } from '@/lib/sanitize';
 
 const BUDGET_OPTIONS = [
   { value: '10k-25k', label: '₹10,000 – ₹25,000' },
@@ -347,9 +348,10 @@ export default function Portfolio() {
   }
 
   // Default to the Clientra primary blue when the owner hasn't set brand colors.
-  const primaryColor = branding?.primary_color || '#0284C7';
-  const accentColor = branding?.accent_color || '#38BDF8';
+  const primaryColor = safeHexColor(branding?.primary_color, '#0284C7');
+  const accentColor = safeHexColor(branding?.accent_color, '#38BDF8');
   const companyName = branding?.company_name || 'Our Portfolio';
+  const websiteUrl = safeHttpUrl(branding?.website_url);
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#fafafa' }}>
@@ -401,15 +403,15 @@ export default function Portfolio() {
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-4 text-white/80 text-sm">
-              {branding?.website_url && (
+              {websiteUrl && (
                 <a
-                  href={branding.website_url}
+                  href={websiteUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 hover:text-white transition-colors bg-white/10 rounded-full px-4 py-1.5 backdrop-blur-sm"
                 >
                   <Globe className="h-4 w-4" />
-                  {branding.website_url.replace(/^https?:\/\//, '')}
+                  {websiteUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')}
                 </a>
               )}
               {branding?.support_email && (

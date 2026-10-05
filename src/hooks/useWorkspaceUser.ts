@@ -104,7 +104,7 @@ export function useWorkspaceUser() {
           isTeamMember: true,
           ownerInfo: branding?.support_email || branding?.company_name || null,
           role: (membership?.role as WorkspaceRole) || 'viewer',
-          canViewFinancials: membership?.can_view_financials ?? true,
+          canViewFinancials: membership?.can_view_financials ?? false,
           permissions,
         };
       } catch (err) {
