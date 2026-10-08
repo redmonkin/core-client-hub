@@ -210,9 +210,9 @@ export function ContractFormDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-            <TabsList className={`grid w-full ${formData.is_external ? 'grid-cols-1' : 'grid-cols-3'} mb-4`}>
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <TabsList className={`grid w-full shrink-0 ${formData.is_external ? 'grid-cols-1' : 'grid-cols-3'} mb-4`}>
               <TabsTrigger value="details" className="gap-2">
                 <Settings className="hidden h-4 w-4 sm:block" />
                 <span>Details</span>
@@ -231,7 +231,7 @@ export function ContractFormDialog({
               )}
             </TabsList>
 
-            <div className="flex-1 overflow-y-auto pr-1">
+            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
               <TabsContent value="details" className="mt-0 space-y-4">
                 {/* Contract source toggle */}
                 <div className="flex items-center justify-between rounded-lg border bg-muted/30 p-3">
@@ -468,7 +468,7 @@ export function ContractFormDialog({
             </div>
           </Tabs>
 
-          <DialogFooter className="mt-4 pt-4 border-t">
+          <DialogFooter className="mt-4 shrink-0 border-t pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
