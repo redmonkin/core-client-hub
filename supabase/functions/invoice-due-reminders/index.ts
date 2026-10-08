@@ -9,8 +9,10 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { emailFrom } from "../_shared/email.ts";
+import { senderBrand } from "../_shared/email-template.ts";
+import { invoiceDueReminderEmail } from "../_shared/emails.ts";
 import { renderInvoicePdfBase64 } from "../_shared/invoice-pdf.ts";
-import { getOrCreateInvoicePortalLink, isSafeHttpUrl } from "../_shared/invoice-portal.ts";
+import { getOrCreateInvoicePortalLink } from "../_shared/invoice-portal.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -22,9 +24,6 @@ const corsHeaders = {
 
 const REMINDER_DAYS_BEFORE_DUE = 3;
 
-const escapeHtml = (s: string): string =>
-  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-
 const isoDate = (d: Date) => d.toISOString().split("T")[0];
 
 function addDays(date: string, days: number): string {
@@ -35,94 +34,6 @@ function addDays(date: string, days: number): string {
 
 const formatInr = (n: number) =>
   new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
-
-const formatLongDate = (d: string) =>
-  new Date(d + "T00:00:00Z").toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
-
-function buildReminderEmail(data: {
-  recipientName: string;
-  fromName: string;
-  invoiceNumber: string;
-  balanceDue: string;
-  dueDate: string;
-  portalLink?: string | null;
-  portalPassword?: string | null;
-}): { subject: string; html: string } {
-  const subject = `Payment Reminder: Invoice ${data.invoiceNumber} is due on ${data.dueDate}`;
-  return {
-    subject,
-    html: `
-      <!DOCTYPE html>
-      <html>
-        <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${escapeHtml(subject)}</title></head>
-        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #1f2937; margin: 0; padding: 0; background-color: #f3f4f6;">
-          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f3f4f6; padding: 32px 16px;">
-            <tr>
-              <td align="center">
-                <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 520px; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
-                  <tr>
-                    <td style="background-color: #b45309; padding: 32px; text-align: center;">
-                      <h1 style="color: #ffffff; margin: 0 0 6px; font-size: 22px; font-weight: 700;">Payment Reminder</h1>
-                      <p style="color: #fef3c7; margin: 0; font-size: 14px;">from ${escapeHtml(data.fromName)}</p>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 32px;">
-                      <p style="margin: 0 0 16px; font-size: 15px; color: #374151;">Hi ${escapeHtml(data.recipientName)},</p>
-                      <p style="margin: 0 0 24px; font-size: 15px; color: #374151;">This is a friendly reminder that invoice <strong>${escapeHtml(data.invoiceNumber)}</strong> is due on <strong>${escapeHtml(data.dueDate)}</strong>. Please arrange payment by then.</p>
-
-                      <table width="100%" cellpadding="0" cellspacing="0" style="background: #f9fafb; border-radius: 10px; border: 1px solid #e5e7eb; margin-bottom: 24px;">
-                        <tr>
-                          <td style="padding: 20px 24px;">
-                            <div style="font-size: 12px; text-transform: uppercase; color: #6b7280; font-weight: 600; padding-bottom: 4px;">Amount Due</div>
-                            <div style="font-size: 26px; font-weight: 700; color: #111827; margin-bottom: 16px;">${escapeHtml(data.balanceDue)}</div>
-                            <table width="100%" cellpadding="0" cellspacing="0">
-                              <tr>
-                                <td style="width: 50%; vertical-align: top;">
-                                  <div style="font-size: 11px; text-transform: uppercase; color: #6b7280; font-weight: 600; padding-bottom: 4px;">Invoice No.</div>
-                                  <div style="font-size: 14px; color: #111827; font-weight: 600;">${escapeHtml(data.invoiceNumber)}</div>
-                                </td>
-                                <td style="width: 50%; vertical-align: top;">
-                                  <div style="font-size: 11px; text-transform: uppercase; color: #6b7280; font-weight: 600; padding-bottom: 4px;">Due Date</div>
-                                  <div style="font-size: 14px; color: #111827;">${escapeHtml(data.dueDate)}</div>
-                                </td>
-                              </tr>
-                            </table>
-                          </td>
-                        </tr>
-                      </table>
-
-                      ${isSafeHttpUrl(data.portalLink) ? `
-                      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
-                        <tr><td align="center">
-                          <a href="${escapeHtml(data.portalLink)}" style="display: inline-block; background-color: #16a34a; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 700; padding: 14px 40px; border-radius: 8px;">VIEW INVOICE</a>
-                        </td></tr>
-                      </table>
-                      ${data.portalPassword ? `
-                      <p style="margin: 0 0 24px; font-size: 13px; color: #6b7280; text-align: center;">
-                        Access Password: <strong style="color: #111827; font-family: monospace; letter-spacing: 2px;">${escapeHtml(data.portalPassword)}</strong>
-                      </p>` : `
-                      <p style="margin: 0 0 24px; font-size: 13px; color: #6b7280; text-align: center;">Use the access password from your original invoice email.</p>`}
-                      ` : ""}
-
-                      <p style="margin: 0; font-size: 14px; color: #6b7280;">If you've already made this payment, please ignore this reminder.</p>
-                      <p style="margin: 16px 0 0; font-size: 14px; color: #374151;">Regards,<br>${escapeHtml(data.fromName)}</p>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 20px 32px; border-top: 1px solid #e5e7eb; background: #f9fafb;">
-                      <p style="margin: 0; font-size: 13px; color: #9ca3af; text-align: center;">Sent by ${escapeHtml(data.fromName)}</p>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-          </table>
-        </body>
-      </html>
-    `,
-  };
-}
 
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
@@ -205,7 +116,7 @@ const handler = async (req: Request): Promise<Response> => {
           const [{ data: ownerUser }, { data: branding }, { data: settings }] = await Promise.all([
             supabase.auth.admin.getUserById(invoice.user_id),
             supabase.from("branding_settings")
-              .select("company_name, company_logo_url, company_address, support_email")
+              .select("company_name, company_logo_url, company_address, support_email, primary_color")
               .eq("user_id", invoice.user_id).maybeSingle(),
             supabase.from("invoice_settings")
               .select("bank_account_name, account_number, swift_code, ifsc_code, pan, upi_id, payment_instructions, terms_and_conditions")
@@ -214,12 +125,13 @@ const handler = async (req: Request): Promise<Response> => {
 
           const fromName = branding?.company_name || ownerUser?.user?.user_metadata?.full_name || "Clientra";
           const portal = await getOrCreateInvoicePortalLink(supabase, invoice.id, appUrl);
-          const email = buildReminderEmail({
+          const email = invoiceDueReminderEmail({
+            brand: senderBrand(branding, fromName),
             recipientName: client.primary_contact_name || client.client_name || "",
             fromName,
             invoiceNumber: invoice.invoice_number,
             balanceDue: formatInr(balance),
-            dueDate: formatLongDate(invoice.due_date),
+            dueDate: invoice.due_date,
             portalLink: portal?.link,
             portalPassword: portal?.password,
           });

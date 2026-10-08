@@ -1,8 +1,10 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { createInvoicePortalToken, isSafeHttpUrl } from "../_shared/invoice-portal.ts";
+import { createInvoicePortalToken } from "../_shared/invoice-portal.ts";
 import { emailFrom } from "../_shared/email.ts";
+import { senderBrand } from "../_shared/email-template.ts";
+import { invoiceEmail } from "../_shared/emails.ts";
 import { getInvoiceTotals, parseInvoiceLineItems, renderInvoicePdfBase64 } from "../_shared/invoice-pdf.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
@@ -12,9 +14,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
-
-const escapeHtml = (s: string): string =>
-  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
 
 // -- Payment terms -> fixed day offset, mirrored from src/pages/Invoices.tsx --
@@ -41,98 +40,6 @@ function advanceRunDate(current: string, frequency: string, dayOfMonth: number):
 // -- Invoice email, mirrored from send-notification-email's buildInvoiceEmail
 // (kept in sync by hand -- each edge function in this repo is self-contained
 // with no shared module between them). --
-function buildInvoiceEmail(recipientName: string, data: Record<string, any>): { subject: string; html: string } {
-  const fromName = data.senderCompany || data.senderName || "Your Team";
-  const subject = `Invoice ${data.invoiceNumber} from ${fromName}`;
-  const formatDate = (d: string | null | undefined) =>
-    d ? new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : null;
-  const formattedIssuedDate = formatDate(data.issuedDate);
-  const formattedDueDate = formatDate(data.dueDate);
-
-  return {
-    subject,
-    html: `
-      <!DOCTYPE html>
-      <html>
-        <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #1f2937; margin: 0; padding: 0; background-color: #f3f4f6;">
-          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f3f4f6; padding: 32px 16px;">
-            <tr>
-              <td align="center">
-                <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 520px; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
-                  <tr>
-                    <td style="background-color: #0284C5; padding: 32px; text-align: center;">
-                      <h1 style="color: #ffffff; margin: 0 0 6px; font-size: 22px; font-weight: 700;">New Invoice</h1>
-                      <p style="color: #e0f2fe; margin: 0; font-size: 14px;">from ${escapeHtml(fromName)}</p>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 32px;">
-                      <p style="margin: 0 0 16px; font-size: 15px; color: #374151;">Hi ${escapeHtml(recipientName || "")},</p>
-                      <p style="margin: 0 0 24px; font-size: 15px; color: #374151;">The following invoice has been raised for the services rendered. This is a recurring invoice generated automatically for your ongoing engagement.</p>
-
-                      <table width="100%" cellpadding="0" cellspacing="0" style="background: #f9fafb; border-radius: 10px; border: 1px solid #e5e7eb; margin-bottom: 24px;">
-                        <tr>
-                          <td style="padding: 20px 24px;">
-                            ${data.totalAmount ? `
-                            <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 16px;">
-                              <tr><td style="font-size: 12px; text-transform: uppercase; color: #6b7280; font-weight: 600; padding-bottom: 4px;">Amount Due</td></tr>
-                              <tr><td style="font-size: 26px; font-weight: 700; color: #111827;">${escapeHtml(String(data.totalAmount))}</td></tr>
-                            </table>` : ""}
-                            <table width="100%" cellpadding="0" cellspacing="0">
-                              <tr>
-                                <td style="width: 33%; vertical-align: top;">
-                                  <div style="font-size: 11px; text-transform: uppercase; color: #6b7280; font-weight: 600; padding-bottom: 4px;">Invoice No.</div>
-                                  <div style="font-size: 14px; color: #111827; font-weight: 600;">${escapeHtml(data.invoiceNumber || "")}</div>
-                                </td>
-                                ${formattedIssuedDate ? `
-                                <td style="width: 33%; vertical-align: top;">
-                                  <div style="font-size: 11px; text-transform: uppercase; color: #6b7280; font-weight: 600; padding-bottom: 4px;">Invoice Date</div>
-                                  <div style="font-size: 14px; color: #111827;">${escapeHtml(formattedIssuedDate)}</div>
-                                </td>` : ""}
-                                ${formattedDueDate ? `
-                                <td style="width: 33%; vertical-align: top;">
-                                  <div style="font-size: 11px; text-transform: uppercase; color: #6b7280; font-weight: 600; padding-bottom: 4px;">Due Date</div>
-                                  <div style="font-size: 14px; color: #111827;">${escapeHtml(formattedDueDate)}</div>
-                                </td>` : ""}
-                              </tr>
-                            </table>
-                          </td>
-                        </tr>
-                      </table>
-
-                      ${isSafeHttpUrl(data.portalLink) ? `
-                      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
-                        <tr><td align="center">
-                          <a href="${escapeHtml(data.portalLink)}" style="display: inline-block; background-color: #16a34a; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 700; padding: 14px 40px; border-radius: 8px;">VIEW INVOICE</a>
-                        </td></tr>
-                      </table>
-                      ${data.portalPassword ? `
-                      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 24px;">
-                        <tr><td align="center" style="font-size: 13px; color: #6b7280;">
-                          Access Password: <strong style="color: #111827; font-family: monospace; letter-spacing: 2px;">${escapeHtml(data.portalPassword)}</strong>
-                        </td></tr>
-                      </table>` : ""}
-                      ` : ""}
-
-                      <p style="margin: 24px 0 0; font-size: 14px; color: #374151;">Thank you for your business.</p>
-                      <p style="margin: 4px 0 0; font-size: 14px; color: #374151;">Regards,<br>${escapeHtml(fromName)}</p>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 20px 32px; border-top: 1px solid #e5e7eb; background: #f9fafb;">
-                      <p style="margin: 0; font-size: 13px; color: #9ca3af; text-align: center;">Sent by ${escapeHtml(fromName)}</p>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-          </table>
-        </body>
-      </html>
-    `,
-  };
-}
 
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
@@ -235,7 +142,7 @@ const handler = async (req: Request): Promise<Response> => {
           const { data: ownerUser } = await supabase.auth.admin.getUserById(schedule.user_id);
           const { data: brandingRow } = await supabase
             .from("branding_settings")
-            .select("company_name, company_logo_url, company_address, support_email")
+            .select("company_name, company_logo_url, company_address, support_email, primary_color")
             .eq("user_id", schedule.user_id)
             .maybeSingle();
           const { data: invoiceSettings } = await supabase
@@ -249,8 +156,11 @@ const handler = async (req: Request): Promise<Response> => {
             console.log(`APP_URL not configured -- sending invoice ${invoiceNumber} without a portal link`);
           }
 
-          const emailContent = buildInvoiceEmail(clientRow.primary_contact_name || clientRow.client_name, {
-            invoiceId: invoiceRow.id,
+          const fromName = brandingRow?.company_name || ownerUser?.user?.user_metadata?.full_name || "Your team";
+          const emailContent = invoiceEmail({
+            brand: senderBrand(brandingRow, fromName),
+            fromName,
+            recipientName: clientRow.primary_contact_name || clientRow.client_name,
             invoiceNumber,
             totalAmount: totalAmount
               ? new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalAmount)
@@ -259,12 +169,10 @@ const handler = async (req: Request): Promise<Response> => {
             dueDate,
             portalLink: portal?.link,
             portalPassword: portal?.password,
-            senderName: ownerUser?.user?.user_metadata?.full_name || null,
-            senderCompany: brandingRow?.company_name || null,
           });
 
           const emailPayload: Record<string, unknown> = {
-            from: emailFrom(brandingRow?.company_name || "Notifications"),
+            from: emailFrom(fromName),
             to: [clientRow.email],
             subject: emailContent.subject,
             html: emailContent.html,
