@@ -15,6 +15,21 @@ export default {
   		}
   	},
   	extend: {
+  		typography: {
+  			DEFAULT: {
+  				css: {
+  					// Show inline code as a chip, without the plugin's literal backticks.
+  					'code::before': { content: 'none' },
+  					'code::after': { content: 'none' },
+  					code: {
+  						backgroundColor: 'hsl(var(--muted))',
+  						borderRadius: '0.25rem',
+  						padding: '0.125rem 0.375rem',
+  						fontWeight: '500'
+  					}
+  				}
+  			}
+  		},
   		colors: {
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',

@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { verifyPortalPassword } from "../_shared/portal-password.ts";
 import { emailFrom } from "../_shared/email.ts";
+import { documentStatusEmail } from "../_shared/emails.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,9 +11,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
   "Access-Control-Allow-Methods": "GET, POST, PUT, OPTIONS",
 };
-
-const escapeHtml = (s: string): string =>
-  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
 // Checks a portal password against a token's stored hash, counting the attempt
 // toward the token's lockout (see claim_portal_password_attempt). Returns an
@@ -766,23 +764,23 @@ const handler = async (req: Request): Promise<Response> => {
             const { data: ownerData } = await supabase.auth.admin.getUserById(currentDoc.user_id);
             const ownerEmail = ownerData?.user?.email;
             if (ownerEmail) {
-              const subjectMap: Record<string, string> = { approve: `${documentType === "contract" ? "Contract" : "Proposal"} Approved!`, reject: `${documentType === "contract" ? "Contract" : "Proposal"} Declined`, request_changes: "Changes Requested" };
-              const colorMap: Record<string, string> = { approve: "#22c55e", reject: "#ef4444", request_changes: "#f59e0b" };
-              const safeClientName = escapeHtml(clientName);
-              const safeDocTitle = escapeHtml(docTitle);
-              const messageMap: Record<string, string> = {
-                approve: `<strong>${safeClientName}</strong> has approved your ${documentType} <strong>"${safeDocTitle}"</strong>.`,
-                reject: `<strong>${safeClientName}</strong> has declined your ${documentType} <strong>"${safeDocTitle}"</strong>.`,
-                request_changes: `<strong>${safeClientName}</strong> has requested changes to your ${documentType} <strong>"${safeDocTitle}"</strong>.`,
-              };
-              const notesHtml = action === "request_changes" && notes ? `<div style="background:#fffbeb;border-left:4px solid #f59e0b;padding:16px;margin:20px 0;border-radius:0 8px 8px 0;"><h4 style="margin:0 0 8px;color:#92400e;font-size:13px;text-transform:uppercase;">Client's Notes</h4><p style="margin:0;color:#78350f;">${escapeHtml(notes).replace(/\n/g, "<br>")}</p></div>` : "";
-              const ownerName = escapeHtml(ownerData?.user?.user_metadata?.full_name || ownerEmail.split("@")[0]);
+              const ownerName = ownerData?.user?.user_metadata?.full_name || ownerEmail.split("@")[0];
+              const actions = { approve: "approved", reject: "declined", request_changes: "changes_requested" } as const;
+              const email = documentStatusEmail({
+                ownerName,
+                documentType: documentType === "contract" ? "contract" : "proposal",
+                documentId,
+                documentTitle: docTitle,
+                clientName,
+                action: actions[action as keyof typeof actions],
+                notes: action === "request_changes" ? notes : null,
+              });
 
               await resend.emails.send({
-                from: emailFrom("Notifications"),
+                from: emailFrom("Clientra"),
                 to: [ownerEmail],
-                subject: `${emojiMap[action]} ${subjectMap[action]} — ${docTitle}`,
-                html: `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.6;color:#333;max-width:600px;margin:0 auto;padding:20px;"><div style="background:${colorMap[action]};padding:30px;border-radius:10px 10px 0 0;text-align:center;"><div style="font-size:48px;margin-bottom:8px;">${emojiMap[action]}</div><h1 style="color:white;margin:0;font-size:24px;">${subjectMap[action]}</h1></div><div style="background:#f9fafb;padding:30px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 10px 10px;"><p style="margin-top:0;">Hi ${ownerName},</p><p>${messageMap[action]}</p>${notesHtml}<p style="color:#6b7280;font-size:14px;margin-bottom:0;">Log in to your dashboard to take the next steps.</p></div></body></html>`,
+                subject: email.subject,
+                html: email.html,
               });
             }
           } catch (emailErr: any) {
