@@ -151,6 +151,10 @@ const handler = async (req: Request): Promise<Response> => {
             .eq("user_id", schedule.user_id)
             .maybeSingle();
 
+          const { data: projectRow } = schedule.project_id
+            ? await supabase.from("projects").select("project_name").eq("id", schedule.project_id).maybeSingle()
+            : { data: null };
+
           const portal = await createInvoicePortalToken(supabase, invoiceRow.id, appUrl);
           if (!portal) {
             console.log(`APP_URL not configured -- sending invoice ${invoiceNumber} without a portal link`);
@@ -162,6 +166,7 @@ const handler = async (req: Request): Promise<Response> => {
             fromName,
             recipientName: clientRow.primary_contact_name || clientRow.client_name,
             invoiceNumber,
+            projectName: projectRow?.project_name || null,
             totalAmount: totalAmount
               ? new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalAmount)
               : null,

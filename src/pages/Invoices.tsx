@@ -96,7 +96,24 @@ interface Invoice {
   notes: string | null;
 }
 
-type InvoiceSortKey = 'invoice_number' | 'client' | 'status' | 'due_date' | 'issued_date' | 'amount';
+type InvoiceAmount = { invoice_id: string; total_amount: number; amount_paid: number };
+type InvoicePayment = { invoice_id: string; amount: number; tax_deducted_amount: number; payment_date: string };
+type PaymentSummary = { paid: number; taxDeducted: number; lastPaymentDate: string; count: number };
+
+function summarizePayments(payments: InvoicePayment[]): Map<string, PaymentSummary> {
+  const byInvoice = new Map<string, PaymentSummary>();
+  for (const p of payments) {
+    const existing = byInvoice.get(p.invoice_id) || { paid: 0, taxDeducted: 0, lastPaymentDate: p.payment_date, count: 0 };
+    existing.paid += p.amount;
+    existing.taxDeducted += p.tax_deducted_amount || 0;
+    existing.count += 1;
+    if (p.payment_date > existing.lastPaymentDate) existing.lastPaymentDate = p.payment_date;
+    byInvoice.set(p.invoice_id, existing);
+  }
+  return byInvoice;
+}
+
+type InvoiceSortKey ='invoice_number' | 'client' | 'status' | 'due_date' | 'issued_date' | 'amount';
 
 interface InvoiceFormState {
   invoice_number: string;
@@ -187,7 +204,7 @@ export default function Invoices() {
     queryFn: async () => {
       const { data, error } = await supabase.from('invoice_amounts').select('*');
       if (error) throw error;
-      return data as { invoice_id: string; total_amount: number; amount_paid: number }[];
+      return data as InvoiceAmount[];
     },
     enabled: !!workspaceUserId,
   });
@@ -200,19 +217,11 @@ export default function Invoices() {
     queryFn: async () => {
       const { data, error } = await supabase.from('invoice_payments').select('invoice_id, amount, tax_deducted_amount, payment_date');
       if (error) throw error;
-      return data as { invoice_id: string; amount: number; tax_deducted_amount: number; payment_date: string }[];
+      return data as InvoicePayment[];
     },
     enabled: !!workspaceUserId,
   });
-  const paymentSummaryByInvoice = new Map<string, { paid: number; taxDeducted: number; lastPaymentDate: string; count: number }>();
-  for (const p of payments) {
-    const existing = paymentSummaryByInvoice.get(p.invoice_id) || { paid: 0, taxDeducted: 0, lastPaymentDate: p.payment_date, count: 0 };
-    existing.paid += p.amount;
-    existing.taxDeducted += p.tax_deducted_amount || 0;
-    existing.count += 1;
-    if (p.payment_date > existing.lastPaymentDate) existing.lastPaymentDate = p.payment_date;
-    paymentSummaryByInvoice.set(p.invoice_id, existing);
-  }
+  const paymentSummaryByInvoice = summarizePayments(payments);
 
   const { data: clients = [] } = useQuery({
     queryKey: ['clients-list', workspaceUserId],
@@ -551,12 +560,31 @@ export default function Invoices() {
       });
 
       if (willSendThankYou) {
+        // Attach the invoice as it stands after this payment, stamped PAID (or
+        // PARTIALLY PAID). Best-effort, like the invoice email: a rendering
+        // failure shouldn't hold back the thank-you note.
+        let pdfAttachment: { filename: string; content: string } | null = null;
+        try {
+          const [{ data: freshAmount }, { data: freshPayments }] = await Promise.all([
+            supabase.from('invoice_amounts').select('*').eq('invoice_id', payingInvoice.id).maybeSingle(),
+            supabase.from('invoice_payments').select('invoice_id, amount, tax_deducted_amount, payment_date').eq('invoice_id', payingInvoice.id),
+          ]);
+          const base64 = await getPdfBase64(buildInvoicePdfHtml(payingInvoice, {
+            amount: (freshAmount as InvoiceAmount | null) ?? undefined,
+            paymentSummary: summarizePayments((freshPayments || []) as InvoicePayment[]).get(payingInvoice.id),
+          }));
+          pdfAttachment = { filename: `${payingInvoice.invoice_number}.pdf`, content: base64 };
+        } catch (pdfError) {
+          console.error('Failed to attach paid invoice PDF, sending without it:', pdfError);
+        }
+
         const { error } = await supabase.functions.invoke('send-notification-email', {
           body: {
             type: 'invoice_paid',
             recipientEmail: '',
             recipientName: '',
             ccEmails: user?.email ? [user.email] : [],
+            attachments: pdfAttachment ? [pdfAttachment] : undefined,
             data: {
               invoiceId: payingInvoice.id,
               invoiceNumber: payingInvoice.invoice_number,
@@ -719,13 +747,26 @@ export default function Invoices() {
     }
   };
 
-  const buildInvoicePdfHtml = (invoice: Invoice): string => {
+  // `fresh` passes amounts read straight after recording a payment, before the
+  // cached queries above have refetched.
+  const buildInvoicePdfHtml = (invoice: Invoice, fresh?: { amount?: InvoiceAmount; paymentSummary?: PaymentSummary }): string => {
     const client = getClient(invoice.client_id);
-    const amount = amountsByInvoice.get(invoice.id);
+    const amount = fresh?.amount ?? amountsByInvoice.get(invoice.id);
     const { tableHtml } = buildInvoiceLineItemsHtml(invoice.cost_breakdown, invoice.currency);
     const balanceDue = amount ? amount.total_amount - amount.amount_paid : null;
-    const paymentSummary = paymentSummaryByInvoice.get(invoice.id);
+    const paymentSummary = fresh?.paymentSummary ?? paymentSummaryByInvoice.get(invoice.id);
     const fmt = (n: number) => formatCurrency(n, invoice.currency);
+    const isPaid = !!amount && amount.amount_paid > 0 && (balanceDue ?? 0) <= 0.005;
+    const stamp = amount && amount.amount_paid > 0
+      ? (() => {
+          const color = isPaid ? '#16a34a' : '#d97706';
+          const date = paymentSummary ? format(new Date(paymentSummary.lastPaymentDate), 'dd MMM yyyy') : '';
+          return `<div style="display:inline-block; margin-top:14px; transform:rotate(-8deg); border:3px solid ${color}; border-radius:8px; padding:4px 16px; color:${color}; text-align:center;">
+            <div style="font-size:20px; font-weight:800; letter-spacing:3px; line-height:1.2;">${isPaid ? 'PAID' : 'PARTIALLY PAID'}</div>
+            ${date ? `<div style="font-size:10px; font-weight:600; letter-spacing:1px;">${date}</div>` : ''}
+          </div>`;
+        })()
+      : '';
 
     const bankRows = [
       invoiceSettings?.bank_account_name ? `<div>${escapeInvoiceHtml(invoiceSettings.bank_account_name)}</div>` : '',
@@ -752,6 +793,7 @@ export default function Invoices() {
             <div style="font-size:20px; font-weight:700;"># ${escapeInvoiceHtml(invoice.invoice_number)}</div>
             <div style="margin-top:12px; color:#6b7280; font-size:11px; text-transform:uppercase; letter-spacing:0.5px;">Balance Due</div>
             <div style="font-size:22px; font-weight:700; color:#c0392b;">${balanceDue != null ? formatCurrency(balanceDue, invoice.currency) : '—'}</div>
+            ${stamp}
           </div>
         </div>
 

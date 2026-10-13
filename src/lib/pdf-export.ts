@@ -122,7 +122,11 @@ async function renderPdf(html: string) {
         MARGIN_MM,
         MARGIN_MM,
         CONTENT_WIDTH_MM,
-        sliceHeightMm
+        sliceHeightMm,
+        undefined,
+        // Lossless deflate; without it jsPDF stores the page bitmaps raw and
+        // a two-page invoice weighs ~10MB, too heavy for an email attachment.
+        'FAST'
       );
     }
 

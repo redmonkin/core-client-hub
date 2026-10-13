@@ -49,7 +49,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Fetch proposals with validity_date matching 7-day or 1-day window
     const { data: proposals, error: proposalsError } = await supabase
       .from("proposals")
-      .select("id, title, client_id, user_id, validity_date, cost_breakdown, customer_goals, status")
+      .select("id, title, client_id, project_id, user_id, validity_date, cost_breakdown, customer_goals, status")
       .in("status", ["draft", "sent"])
       .not("validity_date", "is", null)
       .gte("validity_date", todayStr)
@@ -81,6 +81,12 @@ const handler = async (req: Request): Promise<Response> => {
       .select("id, client_name, email")
       .in("id", clientIds);
     const clientMap = new Map(clients?.map((c) => [c.id, c]) || []);
+
+    const projectIds = [...new Set(relevantProposals.map((p) => p.project_id).filter(Boolean))];
+    const { data: projects } = projectIds.length
+      ? await supabase.from("projects").select("id, project_name").in("id", projectIds)
+      : { data: [] };
+    const projectMap = new Map((projects || []).map((p) => [p.id, p.project_name as string]));
 
     // Group by user
     const userIds = [...new Set(relevantProposals.map((p) => p.user_id))];
@@ -127,6 +133,7 @@ const handler = async (req: Request): Promise<Response> => {
         userProposals.map((proposal) => ({
           title: proposal.title,
           client: clientMap.get(proposal.client_id)?.client_name || "Unknown client",
+          project: proposal.project_id ? projectMap.get(proposal.project_id) : null,
           value: calculateTotal(proposal.cost_breakdown),
           expires: proposal.validity_date!,
           daysLeft: Math.ceil((new Date(proposal.validity_date!).getTime() - today.getTime()) / (1000 * 60 * 60 * 24)),

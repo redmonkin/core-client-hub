@@ -72,6 +72,7 @@ export function proposalEmail(d: {
   fromName: string;
   recipientName: string | null;
   proposalTitle: string;
+  projectName?: string | null;
   totalAmount?: string | null;
   objectives?: string | null;
   validUntil?: string | null;
@@ -94,7 +95,7 @@ export function proposalEmail(d: {
     ) +
     summary({
       highlight: d.totalAmount ? { label: "Total investment", value: d.totalAmount } : null,
-      rows: [["Objectives", d.objectives], ["Valid until", validUntil]],
+      rows: [["Project", d.projectName], ["Objectives", d.objectives], ["Valid until", validUntil]],
     }) +
     button(d.portalLink, "View proposal", d.brand) +
     portalPassword(d.portalLink ? d.portalPassword : null) +
@@ -119,6 +120,7 @@ export function contractEmail(d: {
   fromName: string;
   recipientName: string | null;
   contractTitle: string;
+  projectName?: string | null;
   totalAmount?: string | null;
   startDate?: string | null;
   endDate?: string | null;
@@ -127,6 +129,8 @@ export function contractEmail(d: {
   portalPassword?: string | null;
   supportEmail?: string | null;
   isReminder?: boolean;
+  /** A PDF copy of the contract is attached to the email. */
+  pdfAttached?: boolean;
   customSubject?: string | null;
   customIntro?: string | null;
 }): Email {
@@ -143,10 +147,11 @@ export function contractEmail(d: {
     ) +
     summary({
       highlight: d.totalAmount ? { label: "Total value", value: d.totalAmount } : null,
-      rows: [["Duration", start && end ? `${start} – ${end}` : null], ["Renewal", d.renewal]],
+      rows: [["Project", d.projectName], ["Duration", start && end ? `${start} – ${end}` : null], ["Renewal", d.renewal]],
     }) +
     button(d.portalLink, d.isReminder ? "Review and sign" : "View contract", d.brand) +
     portalPassword(d.portalLink ? d.portalPassword : null) +
+    (d.pdfAttached ? paragraphHtml("A PDF copy of the contract is attached for your records.", { small: true, muted: true }) : "") +
     questions(d.supportEmail) +
     signoff(d.fromName);
   return {
@@ -222,6 +227,7 @@ export function invoiceDueReminderEmail(d: {
   fromName: string;
   recipientName: string | null;
   invoiceNumber: string;
+  projectName?: string | null;
   balanceDue: string;
   dueDate: string;
   portalLink?: string | null;
@@ -233,7 +239,7 @@ export function invoiceDueReminderEmail(d: {
     paragraphHtml(`A friendly reminder that invoice ${strong(d.invoiceNumber)} is due on ${strong(due)}. The PDF is attached.`) +
     summary({
       highlight: { label: "Amount due", value: d.balanceDue },
-      rows: [["Invoice number", d.invoiceNumber], ["Due date", due]],
+      rows: [["Invoice number", d.invoiceNumber], ["Project", d.projectName], ["Due date", due]],
     }) +
     button(d.portalLink, "View invoice", d.brand) +
     portalPassword(d.portalLink ? d.portalPassword : null, d.portalLink ? "Use the access password from your original invoice email." : undefined) +
@@ -258,8 +264,11 @@ export function invoicePaidEmail(d: {
   fromName: string;
   recipientName: string | null;
   invoiceNumber: string;
+  projectName?: string | null;
   totalAmount?: string | null;
   thankYouMessage?: string | null;
+  /** The paid invoice PDF is attached to the email. */
+  pdfAttached?: boolean;
 }): Email {
   const message = clean(d.thankYouMessage);
   const content =
@@ -267,8 +276,9 @@ export function invoicePaidEmail(d: {
     (message ? paragraphs(message) : paragraphHtml(`Thank you! We've received your payment for invoice ${strong(d.invoiceNumber)} in full.`)) +
     summary({
       highlight: d.totalAmount ? { label: "Amount paid", value: d.totalAmount } : null,
-      rows: [["Invoice number", d.invoiceNumber]],
+      rows: [["Invoice number", d.invoiceNumber], ["Project", d.projectName]],
     }) +
+    (d.pdfAttached ? paragraphHtml("A copy of the paid invoice is attached for your records.", { small: true, muted: true }) : "") +
     paragraphHtml("We appreciate your business.") +
     signoff(d.fromName);
   return {
@@ -296,6 +306,7 @@ export function documentStatusEmail(d: {
   documentType: "proposal" | "contract";
   documentId?: string | null;
   documentTitle: string;
+  projectName?: string | null;
   clientName: string;
   action: DocumentAction;
   notes?: string | null;
@@ -308,7 +319,9 @@ export function documentStatusEmail(d: {
   const link = d.documentId ? appLink(`/${d.documentType}s/${d.documentId}`) : appLink(`/${d.documentType}s`);
   const content =
     greeting(d.ownerName) +
-    paragraphHtml(`${strong(d.clientName)} has ${verb} your ${d.documentType} ${strong(d.documentTitle)}.`) +
+    paragraphHtml(
+      `${strong(d.clientName)} has ${verb} your ${d.documentType} ${strong(d.documentTitle)}${clean(d.projectName) ? ` for the project ${strong(d.projectName)}` : ""}.`,
+    ) +
     (d.action === "changes_requested" && clean(d.notes) ? note("Client's notes", d.notes!, "warning") : "") +
     button(link, `Open ${d.documentType}`, brand) +
     (d.action === "approved" ? paragraphHtml("You can go ahead with the next steps.", { small: true, muted: true }) : "");
@@ -347,7 +360,7 @@ export function teamInviteEmail(d: { recipientName: string | null; inviterName: 
   };
 }
 
-export function proposalExpiryDigest(items: Array<{ title: string; client: string; value: string; expires: string; daysLeft: number }>): Email {
+export function proposalExpiryDigest(items: Array<{ title: string; client: string; project?: string | null; value: string; expires: string; daysLeft: number }>): Email {
   const brand = clientraBrand();
   const n = items.length;
   const content =
@@ -355,7 +368,7 @@ export function proposalExpiryDigest(items: Array<{ title: string; client: strin
     itemList(
       items.map((p) => ({
         title: p.title,
-        meta: [p.client, p.value, `Expires ${formatDate(p.expires) || p.expires}`],
+        meta: [p.client, p.project || "", p.value, `Expires ${formatDate(p.expires) || p.expires}`],
         badge: { text: p.daysLeft <= 1 ? "Expires tomorrow" : `${p.daysLeft} days left`, tone: p.daysLeft <= 1 ? "danger" : "warning" },
       })),
       brand,
@@ -376,7 +389,7 @@ export function proposalExpiryDigest(items: Array<{ title: string; client: strin
   };
 }
 
-export function contractRenewalDigest(items: Array<{ client: string; type: string; value: string; expires: string; daysLeft: number }>): Email {
+export function contractRenewalDigest(items: Array<{ client: string; project?: string | null; type: string; value: string; expires: string; daysLeft: number }>): Email {
   const brand = clientraBrand();
   const n = items.length;
   const content =
@@ -384,7 +397,7 @@ export function contractRenewalDigest(items: Array<{ client: string; type: strin
     itemList(
       items.map((c) => ({
         title: c.client,
-        meta: [c.type, c.value, `Ends ${formatDate(c.expires) || c.expires}`],
+        meta: [c.project || "", c.type, c.value, `Ends ${formatDate(c.expires) || c.expires}`],
         badge: { text: `${c.daysLeft} day${c.daysLeft === 1 ? "" : "s"} left`, tone: c.daysLeft <= 7 ? "danger" : c.daysLeft <= 14 ? "warning" : "brand" },
       })),
       brand,
