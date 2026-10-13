@@ -61,7 +61,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     const { data: invoices, error } = await supabase
       .from("invoices")
-      .select("id, user_id, client_id, invoice_number, issued_date, due_date, payment_terms, notes, cost_breakdown, due_reminder_sent_for")
+      .select("id, user_id, client_id, project_id, invoice_number, issued_date, due_date, payment_terms, notes, cost_breakdown, due_reminder_sent_for")
       .in("status", ["sent", "partial"])
       .gt("due_date", today)
       .lte("due_date", windowEnd);
@@ -113,7 +113,7 @@ const handler = async (req: Request): Promise<Response> => {
         if (!claimed || claimed.length === 0) continue;
 
         try {
-          const [{ data: ownerUser }, { data: branding }, { data: settings }] = await Promise.all([
+          const [{ data: ownerUser }, { data: branding }, { data: settings }, { data: project }] = await Promise.all([
             supabase.auth.admin.getUserById(invoice.user_id),
             supabase.from("branding_settings")
               .select("company_name, company_logo_url, company_address, support_email, primary_color")
@@ -121,6 +121,9 @@ const handler = async (req: Request): Promise<Response> => {
             supabase.from("invoice_settings")
               .select("bank_account_name, account_number, swift_code, ifsc_code, pan, upi_id, payment_instructions, terms_and_conditions")
               .eq("user_id", invoice.user_id).maybeSingle(),
+            invoice.project_id
+              ? supabase.from("projects").select("project_name").eq("id", invoice.project_id).maybeSingle()
+              : Promise.resolve({ data: null }),
           ]);
 
           const fromName = branding?.company_name || ownerUser?.user?.user_metadata?.full_name || "Clientra";
@@ -130,6 +133,7 @@ const handler = async (req: Request): Promise<Response> => {
             recipientName: client.primary_contact_name || client.client_name || "",
             fromName,
             invoiceNumber: invoice.invoice_number,
+            projectName: project?.project_name || null,
             balanceDue: formatInr(balance),
             dueDate: invoice.due_date,
             portalLink: portal?.link,

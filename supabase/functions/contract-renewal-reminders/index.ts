@@ -50,6 +50,7 @@ const handler = async (req: Request): Promise<Response> => {
         renewal_frequency,
         status,
         client_id,
+        project_id,
         user_id
       `)
       .eq("status", "active")
@@ -96,6 +97,12 @@ const handler = async (req: Request): Promise<Response> => {
 
     const clientMap = new Map(clients?.map((c) => [c.id, c]) || []);
 
+    const projectIds = [...new Set(contracts.map((c) => c.project_id).filter(Boolean))];
+    const { data: projects } = projectIds.length
+      ? await supabase.from("projects").select("id, project_name").in("id", projectIds)
+      : { data: [] };
+    const projectMap = new Map((projects || []).map((p) => [p.id, p.project_name as string]));
+
     // Get user emails from auth.users
     for (const userId of userIds) {
       const { data: userData, error: userError } = await supabase.auth.admin.getUserById(userId);
@@ -113,6 +120,7 @@ const handler = async (req: Request): Promise<Response> => {
       const email = contractRenewalDigest(
         userContracts.map((contract) => ({
           client: clientMap.get(contract.client_id)?.client_name || "Unknown client",
+          project: contract.project_id ? projectMap.get(contract.project_id) : null,
           type: typeLabels[contract.contract_type] || contract.contract_type,
           value: formatInr(Number(contract.value) || 0),
           expires: contract.end_date,

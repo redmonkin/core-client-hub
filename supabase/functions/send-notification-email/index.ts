@@ -105,6 +105,8 @@ const handler = async (req: Request): Promise<Response> => {
     let recipientName = bodyRecipientName;
     // Workspace owner whose branding a client-facing email carries.
     let ownerId: string | null = null;
+    // Project the contract/proposal/invoice belongs to, named in the email.
+    let projectId: string | null = null;
 
     if (type === "contract_created" || type === "contract_sent") {
       const contractId = data?.contractId;
@@ -116,7 +118,7 @@ const handler = async (req: Request): Promise<Response> => {
       }
       const { data: contractRow, error: contractError } = await supabase
         .from("contracts")
-        .select("client_id, user_id")
+        .select("client_id, user_id, project_id")
         .eq("id", contractId)
         .maybeSingle();
       if (contractError || !contractRow) {
@@ -153,6 +155,7 @@ const handler = async (req: Request): Promise<Response> => {
       recipientEmail = clientRow.email;
       recipientName = clientRow.primary_contact_name || clientRow.client_name;
       ownerId = (contractRow as any).user_id;
+      projectId = (contractRow as any).project_id;
     } else if (type === "proposal_approved" || type === "proposal_rejected" || type === "proposal_change_requested") {
       const proposalId = data?.proposalId;
       if (!proposalId) {
@@ -163,7 +166,7 @@ const handler = async (req: Request): Promise<Response> => {
       }
       const { data: proposalRow, error: proposalError } = await supabase
         .from("proposals")
-        .select("id, user_id")
+        .select("id, user_id, project_id")
         .eq("id", proposalId)
         .maybeSingle();
       if (proposalError || !proposalRow) {
@@ -187,6 +190,7 @@ const handler = async (req: Request): Promise<Response> => {
       // These types notify the proposal owner about a client's action — send to the
       // caller's own verified email rather than an attacker-supplied address.
       recipientEmail = user.email!;
+      projectId = (proposalRow as any).project_id;
     } else if (type === "team_invite") {
       const normalizedEmail = (bodyRecipientEmail || "").trim().toLowerCase();
       // Resolve the actual workspace owner_id (not just auth.uid()) so an admin —
@@ -217,7 +221,7 @@ const handler = async (req: Request): Promise<Response> => {
       }
       const { data: invoiceRow, error: invoiceError } = await supabase
         .from("invoices")
-        .select("client_id, user_id")
+        .select("client_id, user_id, project_id")
         .eq("id", invoiceId)
         .maybeSingle();
       if (invoiceError || !invoiceRow) {
@@ -252,6 +256,7 @@ const handler = async (req: Request): Promise<Response> => {
       recipientEmail = clientRow.email;
       recipientName = clientRow.primary_contact_name || clientRow.client_name;
       ownerId = (invoiceRow as any).user_id;
+      projectId = (invoiceRow as any).project_id;
     }
 
     if (!recipientEmail) {
@@ -277,6 +282,29 @@ const handler = async (req: Request): Promise<Response> => {
     const fromName: string = brandingRow?.company_name || data.senderCompany || data.senderName || "Your team";
     const brand = senderBrand(brandingRow, fromName);
     const text = (v: unknown) => (v === null || v === undefined || v === "" ? null : String(v));
+    const { data: projectRow } = projectId
+      ? await supabase.from("projects").select("project_name").eq("id", projectId).maybeSingle()
+      : { data: null };
+    const projectName: string | null = projectRow?.project_name || null;
+
+    // The document's PDF rides along on contract, invoice and payment-receipt
+    // emails only, so a caller can't smuggle arbitrary attachments through an
+    // unrelated notification. Base64 content is capped at ~15MB (well under
+    // Resend's 40MB request limit) as a defensive bound, not an expected
+    // real-world size for a document PDF.
+    const ATTACHMENT_TYPES = new Set(["contract_created", "contract_sent", "invoice_sent", "invoice_overdue", "invoice_paid"]);
+    const MAX_BASE64_LENGTH = 15 * 1024 * 1024;
+    // Only real PDFs, always named .pdf, so the slot can't carry an
+    // executable or HTML file dressed up as a document.
+    const validAttachments = ATTACHMENT_TYPES.has(type) && Array.isArray(attachments)
+      ? attachments
+          .filter((a) => a && typeof a.filename === "string" && isPdfBase64(a.content) && a.content.length <= MAX_BASE64_LENGTH)
+          .slice(0, 1)
+          .map((a) => ({
+            filename: `${(a.filename.split(/[\\/]/).pop() || "").replace(/\.pdf$/i, "").replace(/[^\w .-]/g, "").replace(/^[.\s]+/, "").trim().slice(0, 80) || "document"}.pdf`,
+            content: a.content,
+          }))
+      : [];
 
     let emailContent: Email;
     if (type === "contract_created" || type === "contract_sent") {
@@ -289,11 +317,13 @@ const handler = async (req: Request): Promise<Response> => {
         totalAmount: text(data.totalAmount) || (data.value ? formatInr(Number(data.value)) : null),
         startDate: text(data.startDate),
         endDate: text(data.endDate),
+        projectName,
         renewal: text(data.renewalFrequency),
         portalLink: data.portalLink,
         portalPassword: text(data.portalPassword),
         supportEmail: text(data.supportEmail) || brandingRow?.support_email,
         isReminder: !!data.isReminder,
+        pdfAttached: validAttachments.length > 0,
         customSubject: text(data.customSubject),
         customIntro: text(data.customIntro),
       });
@@ -310,7 +340,7 @@ const handler = async (req: Request): Promise<Response> => {
         recipientName,
         invoiceNumber: text(data.invoiceNumber) || "",
         totalAmount: text(data.totalAmount),
-        projectName: text(data.projectName),
+        projectName: projectName || text(data.projectName),
         issuedDate: text(data.issuedDate),
         dueDate: text(data.dueDate),
         portalLink: data.portalLink,
@@ -325,8 +355,10 @@ const handler = async (req: Request): Promise<Response> => {
         fromName,
         recipientName,
         invoiceNumber: text(data.invoiceNumber) || "",
+        projectName,
         totalAmount: text(data.totalAmount),
         thankYouMessage: text(data.thankYouMessage),
+        pdfAttached: validAttachments.length > 0,
       });
     } else {
       const actions = { proposal_approved: "approved", proposal_rejected: "declined", proposal_change_requested: "changes_requested" } as const;
@@ -335,6 +367,7 @@ const handler = async (req: Request): Promise<Response> => {
         documentType: "proposal",
         documentId: text(data.proposalId),
         documentTitle: text(data.proposalTitle) || "Proposal",
+        projectName,
         clientName: text(data.clientName) || "Your client",
         action: actions[type as keyof typeof actions],
         notes: text(data.notes),
@@ -353,29 +386,8 @@ const handler = async (req: Request): Promise<Response> => {
       emailPayload.cc = cc;
     }
 
-    // Only meaningful for invoice_sent/invoice_overdue (attaching the invoice
-    // PDF); ignored for other types so a caller can't smuggle arbitrary
-    // attachments through an unrelated notification. Base64 content is
-    // capped at ~15MB (well under Resend's 40MB request limit) as a
-    // defensive bound, not an expected real-world size for an invoice PDF.
-    if (
-      (type === "invoice_sent" || type === "invoice_overdue") &&
-      Array.isArray(attachments) &&
-      attachments.length > 0
-    ) {
-      const MAX_BASE64_LENGTH = 15 * 1024 * 1024;
-      // Only real PDFs, always named .pdf, so the invoice slot can't carry an
-      // executable or HTML file dressed up as an invoice.
-      const validAttachments = attachments
-        .filter((a) => a && typeof a.filename === "string" && isPdfBase64(a.content) && a.content.length <= MAX_BASE64_LENGTH)
-        .slice(0, 1)
-        .map((a) => ({
-          filename: `${(a.filename.split(/[\\/]/).pop() || "").replace(/\.pdf$/i, "").replace(/[^\w .-]/g, "").replace(/^[.\s]+/, "").trim().slice(0, 80) || "invoice"}.pdf`,
-          content: a.content,
-        }));
-      if (validAttachments.length > 0) {
-        emailPayload.attachments = validAttachments;
-      }
+    if (validAttachments.length > 0) {
+      emailPayload.attachments = validAttachments;
     }
 
     const emailResponse = await resend.emails.send(emailPayload);

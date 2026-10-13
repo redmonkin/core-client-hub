@@ -676,7 +676,7 @@ const handler = async (req: Request): Promise<Response> => {
       const tableName = documentType === "proposal" ? "proposals" : "contracts";
 
       // Get current status
-      const { data: currentDoc } = await supabase.from(tableName).select("status, user_id, client_id, title").eq("id", documentId).single();
+      const { data: currentDoc } = await supabase.from(tableName).select("status, user_id, client_id, project_id, title").eq("id", documentId).single();
       const previousStatus = currentDoc?.status || "sent";
 
       // A decision is final: once approved/rejected (or a contract is running
@@ -766,11 +766,16 @@ const handler = async (req: Request): Promise<Response> => {
             if (ownerEmail) {
               const ownerName = ownerData?.user?.user_metadata?.full_name || ownerEmail.split("@")[0];
               const actions = { approve: "approved", reject: "declined", request_changes: "changes_requested" } as const;
+              const projectId = (currentDoc as any).project_id;
+              const { data: projectRow } = projectId
+                ? await supabase.from("projects").select("project_name").eq("id", projectId).maybeSingle()
+                : { data: null };
               const email = documentStatusEmail({
                 ownerName,
                 documentType: documentType === "contract" ? "contract" : "proposal",
                 documentId,
                 documentTitle: docTitle,
+                projectName: projectRow?.project_name || null,
                 clientName,
                 action: actions[action as keyof typeof actions],
                 notes: action === "request_changes" ? notes : null,

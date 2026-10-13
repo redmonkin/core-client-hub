@@ -32,6 +32,7 @@ import { toast } from 'sonner';
 import { ContractFormDialog } from '@/components/contracts/ContractFormDialog';
 import { ProposalPreviewDialog } from '@/components/proposals/ProposalPreviewDialog';
 import { ProposalData, buildDisplayTemplate } from '@/lib/proposal-utils';
+import { contractPdfAttachment } from '@/lib/contract-pdf';
 import { ContractStatus } from '@/lib/types';
 import { getOrCreateContractPortalAccess, regenerateContractPortalAccess } from '@/lib/contract-portal-access';
 import { getContractExpiryInfo } from '@/lib/contract-alerts';
@@ -311,20 +312,9 @@ export default function ContractDetail() {
     window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
   };
 
-  const handlePreview = () => {
-    if (!contract) return;
-    const contractTemplates = templates.filter(t => t.type === 'contract');
-    if (contractTemplates.length === 0) {
-      toast.error('No contract templates found. Create a template first.');
-      return;
-    }
-
-    const liveTemplate = contract.template_id
-      ? contractTemplates.find((template) => template.id === contract.template_id)
-      : null;
-    const savedTemplate = buildDisplayTemplate((contract as any).content, liveTemplate || contractTemplates[0]);
-
-    setPreviewData({
+  const buildPreviewData = (): ProposalData | null => {
+    if (!contract) return null;
+    return {
       title: contractTypeLabel(contract.contract_type),
       clientName: client?.primary_contact_name || client?.client_name || '',
       clientDesignation: client?.designation || '',
@@ -348,8 +338,26 @@ export default function ContractDetail() {
       clientSignature: (contract as any).client_signature || '',
       clientSignatureImageUrl: signatureImageUrl || '',
       mySignature: user?.user_metadata?.full_name || '',
-    });
-    setPreviewTemplate(savedTemplate);
+    };
+  };
+
+  // The saved contract body (frozen at first send) or the template it uses.
+  const getContractTemplate = () => {
+    const contractTemplates = templates.filter(t => t.type === 'contract');
+    const liveTemplate = contract?.template_id
+      ? contractTemplates.find((template) => template.id === contract.template_id)
+      : null;
+    return buildDisplayTemplate((contract as any)?.content, liveTemplate || contractTemplates[0]);
+  };
+
+  const handlePreview = () => {
+    if (!contract) return;
+    if (!templates.some(t => t.type === 'contract')) {
+      toast.error('No contract templates found. Create a template first.');
+      return;
+    }
+    setPreviewData(buildPreviewData());
+    setPreviewTemplate(getContractTemplate());
     setIsPreviewOpen(true);
   };
 
@@ -385,10 +393,17 @@ export default function ContractDetail() {
         return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(amount);
       };
 
+      // The contract as the client will see it, so they have a copy on file.
+      const pdfData = buildPreviewData();
+      const pdfAttachment = pdfData
+        ? await contractPdfAttachment(getContractTemplate()?.content, pdfData)
+        : null;
+
       const { error } = await supabase.functions.invoke('send-notification-email', {
         body: {
           type: 'contract_sent',
           recipientEmail: client.email,
+          attachments: pdfAttachment ? [pdfAttachment] : undefined,
           recipientName: client.primary_contact_name || client.client_name,
           data: {
             contractId: contract.id,

@@ -6,6 +6,20 @@ When you update a self-hosted copy, read the **Upgrade notes** of every version 
 
 ## Unreleased
 
+### Features
+
+- **Contract emails** now carry the contract as a PDF attachment, rendered exactly as the preview's PDF export.
+- **Payment thank-you emails** attach the invoice PDF, stamped **PAID** (or **PARTIALLY PAID** with the payment date). Invoice PDFs downloaded or emailed after a payment carry the same stamp.
+- **Project names** appear in every email tied to a project: proposals, contracts, invoices, payment reminders and receipts, approval notices and the expiry/renewal digests.
+
+### Fixes
+
+- PDFs made in the browser (exports and email attachments) are now compressed: a two-page invoice drops from about 10 MB to under 300 KB with no visible change.
+
+### Upgrade notes
+
+- Redeploy the edge functions `send-notification-email`, `send-proposal-email`, `client-portal`, `invoice-due-reminders`, `generate-recurring-invoices`, `proposal-expiry-reminders` and `contract-renewal-reminders`. No new migrations or secrets.
+
 ## 0.1.0 - 2026-10-06
 
 The first public version.

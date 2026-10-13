@@ -139,7 +139,7 @@ const handler = async (req: Request): Promise<Response> => {
     // trusting a client-supplied email address.
     const { data: proposalRow, error: proposalError } = await supabase
       .from("proposals")
-      .select("client_id, user_id")
+      .select("client_id, user_id, project_id")
       .eq("id", proposalId)
       .maybeSingle();
 
@@ -193,6 +193,11 @@ const handler = async (req: Request): Promise<Response> => {
       .maybeSingle();
     const fromName = brandingRow?.company_name || senderCompany || senderName || "Clientra";
 
+    const projectId = (proposalRow as any).project_id;
+    const { data: projectRow } = projectId
+      ? await supabase.from("projects").select("project_name").eq("id", projectId).maybeSingle()
+      : { data: null };
+
     // The button may only link back into this app, never to a caller-chosen site.
     const safePortalLink = appLinkOrNull(portalLink);
 
@@ -201,6 +206,7 @@ const handler = async (req: Request): Promise<Response> => {
       fromName,
       recipientName: clientName,
       proposalTitle: proposalTitle || "Proposal",
+      projectName: projectRow?.project_name || null,
       totalAmount,
       objectives: goalsSummary,
       validUntil: validityDate,
