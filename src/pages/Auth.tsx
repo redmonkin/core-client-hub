@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { Eye, EyeOff, Mail, Lock, User, Loader2, Check, CheckCircle2, FileText, Github, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, Loader2, Check, CheckCircle2, FileText, ShieldCheck } from 'lucide-react';
+import { GithubIcon } from '@/components/shared/GithubIcon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -273,7 +274,7 @@ export default function Auth() {
         <div className="relative flex items-center justify-between gap-4 text-sm text-white/70">
           <p>© {new Date().getFullYear()} Clientra · AGPL-3.0</p>
           <a href={REPO_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:text-white">
-            <Github className="h-4 w-4" /> View the code
+            <GithubIcon className="h-4 w-4" /> View the code
           </a>
         </div>
       </div>

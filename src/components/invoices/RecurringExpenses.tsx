@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { Plus, Pencil, Trash2, Loader2, Repeat, Pause, Play, FolderKanban } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { TablesUpdate } from '@/integrations/supabase/types';
 import { useWorkspaceUser } from '@/hooks/useWorkspaceUser';
 import { RequirePermission } from '@/components/shared/RequirePermission';
 import { EmptyState } from '@/components/shared/EmptyState';
@@ -189,7 +190,7 @@ export function RecurringExpenses({ projects }: RecurringExpensesProps) {
       if (!amount || amount <= 0) throw new Error('Enter an amount greater than zero');
       const dayOfMonth = parseInt(f.day_of_month, 10);
 
-      const payload: Record<string, unknown> = {
+      const payload: TablesUpdate<'recurring_expenses'> = {
         category: f.category,
         vendor: f.vendor.trim() || null,
         description: f.description.trim() || null,

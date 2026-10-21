@@ -20,6 +20,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspaceUser } from "@/hooks/useWorkspaceUser";
@@ -152,7 +153,7 @@ export default function Profile() {
 
       const { error } = await supabase
         .from("notification_preferences")
-        .update({ [key]: value })
+        .update({ [key]: value } as TablesUpdate<"notification_preferences">)
         .eq("user_id", currentUser.id);
 
       if (error) throw error;

@@ -4,6 +4,7 @@ import { Plus, Search, FileText, MoreHorizontal, Download, Loader2, Pencil, Tras
 import { format } from 'date-fns';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { TablesUpdate } from '@/integrations/supabase/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useWorkspaceUser } from '@/hooks/useWorkspaceUser';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -550,7 +551,7 @@ export default function Proposals() {
       const liveTemplate = selectedProposal.template_id
         ? proposalTemplates.find(t => t.id === selectedProposal.template_id)
         : proposalTemplates[0];
-      const updatePayload: Record<string, unknown> = {};
+      const updatePayload: TablesUpdate<'proposals'> = {};
       if (previousStatus === 'draft') updatePayload.status = 'sent';
       // Freeze the template content on first send so later template edits don't
       // retroactively change what this proposal shows the client.
