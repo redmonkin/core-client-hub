@@ -29,7 +29,6 @@ Not features, but needed before the hosted instance (clientra.redmonk.in) grows.
 - [ ] **Auth email delivery.** Confirm custom SMTP through Resend is on for the live project (Authentication → Emails → SMTP Settings); see [the guide](self-hosting.md#42-send-account-email-through-resend).
 - [ ] **CAPTCHA.** Create a Cloudflare Turnstile widget, set `VITE_TURNSTILE_SITE_KEY` on Vercel and redeploy, then enable CAPTCHA in Supabase Auth, in that order ([guide](self-hosting.md#45-optional-captcha-against-bot-sign-ups)).
 - [ ] **Remove the unused `LOVABLE_API_KEY`** edge function secret.
-- [ ] **Publish the v0.1.0 GitHub release** from [`CHANGELOG.md`](../CHANGELOG.md) once it is merged.
 
 ## Cross-area dependencies
 

@@ -47,6 +47,7 @@ import {
 import { ContractFormDialog } from "@/components/contracts/ContractFormDialog";
 import { ProposalPreviewDialog } from "@/components/proposals/ProposalPreviewDialog";
 import { ProposalData, buildDisplayTemplate } from "@/lib/proposal-utils";
+import { contractPdfAttachment } from "@/lib/contract-pdf";
 import { useTemplates, Template } from "@/hooks/useTemplates";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -514,10 +515,21 @@ export default function Contracts() {
         return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(amount);
       };
 
+      // The contract as the client will see it, so they have a copy on file.
+      const contractTemplates = templates.filter(t => t.type === 'contract');
+      const liveTemplate = selectedContract.template_id
+        ? contractTemplates.find((template) => template.id === selectedContract.template_id)
+        : contractTemplates[0];
+      const pdfAttachment = await contractPdfAttachment(
+        buildDisplayTemplate(selectedContract.content, liveTemplate || contractTemplates[0])?.content,
+        buildContractPreviewData(selectedContract),
+      );
+
       const { error } = await supabase.functions.invoke('send-notification-email', {
         body: {
           type: 'contract_sent',
           recipientEmail: clientEmail,
+          attachments: pdfAttachment ? [pdfAttachment] : undefined,
           recipientName: clientName,
           data: {
             contractId: selectedContract.id,
@@ -543,10 +555,6 @@ export default function Contracts() {
       if (error) throw error;
 
       const previousStatus = selectedContract.status;
-      const contractTemplates = templates.filter(t => t.type === 'contract');
-      const liveTemplate = selectedContract.template_id
-        ? contractTemplates.find((template) => template.id === selectedContract.template_id)
-        : contractTemplates[0];
       const updatePayload: Record<string, unknown> = {};
       if (previousStatus === 'draft') updatePayload.status = 'sent';
       // Freeze the template content on first send so later template edits don't

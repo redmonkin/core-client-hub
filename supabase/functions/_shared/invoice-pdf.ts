@@ -294,6 +294,11 @@ export async function renderInvoicePdfBase64(input: InvoicePdfInput): Promise<st
   let rightY = write(`# ${input.invoiceNumber}`, right, y, { size: 16, bold: true, align: "right" });
   rightY = write("BALANCE DUE", right, rightY + 4, { size: 8, color: MUTED, align: "right" });
   rightY = write(money(balanceDue), right, rightY + 0.5, { size: 16, bold: true, color: ACCENT, align: "right" });
+  // Payment stamp under the balance due, like the browser-rendered invoice.
+  if ((input.amountPaid ?? 0) > 0) {
+    const paid = balanceDue <= 0.005;
+    rightY = drawStamp(doc, family, paid ? "PAID" : "PARTIALLY PAID", paid ? [22, 163, 74] : [217, 119, 6], right, rightY + 4);
+  }
   y = Math.max(leftY, rightY) + 10;
 
   // Bill to (left) and dates (right)
@@ -419,4 +424,36 @@ export async function renderInvoicePdfBase64(input: InvoicePdfInput): Promise<st
   }
 
   return doc.output("datauristring").split(",")[1];
+}
+
+/**
+ * A slightly rotated rubber-stamp label, right-aligned to `right` with its top
+ * at `top`. Returns the y just below it.
+ */
+function drawStamp(doc: InstanceType<typeof jsPDF>, family: string, label: string, color: RGB, right: number, top: number): number {
+  doc.setFont(family, "bold");
+  doc.setFontSize(15);
+  const w = doc.getTextWidth(label) + 10;
+  const h = 10;
+  const angle = 8; // degrees, counter-clockwise like the HTML version
+  const cx = right - w / 2 - 2;
+  const cy = top + h / 2 + 2;
+  const rad = (angle * Math.PI) / 180;
+  const rot = (x: number, y: number): [number, number] => [
+    cx + x * Math.cos(rad) + y * Math.sin(rad),
+    cy - x * Math.sin(rad) + y * Math.cos(rad),
+  ];
+  const corners = [rot(-w / 2, -h / 2), rot(w / 2, -h / 2), rot(w / 2, h / 2), rot(-w / 2, h / 2)];
+  doc.setDrawColor(...color);
+  doc.setLineWidth(0.9);
+  for (let i = 0; i < 4; i++) {
+    const [x1, y1] = corners[i];
+    const [x2, y2] = corners[(i + 1) % 4];
+    doc.line(x1, y1, x2, y2);
+  }
+  doc.setTextColor(...color);
+  // Text baseline sits a little below centre; start from the rotated left edge.
+  const [tx, ty] = rot(-w / 2 + 5, 2);
+  doc.text(label, tx, ty, { angle });
+  return top + h + 8;
 }

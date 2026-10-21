@@ -49,7 +49,7 @@ Supabase CLI (`supabase/`) manages migrations and edge functions for the linked 
 ## Security conventions
 
 - Sanitize any user-supplied HTML before rendering with DOMPurify (`dompurify` dep).
-- Escape HTML manually when building email bodies in edge functions (see `escapeHtml` helper pattern in `supabase/functions/*/index.ts`).
+- Every email body comes from `supabase/functions/_shared/emails.ts`, built on the shared layout and blocks in `_shared/email-template.ts` (which escape all text). Add new emails there rather than writing HTML in a function: client-facing emails use `senderBrand(branding_settings)`, emails to Clientra users use `clientraBrand()`.
 - New tables must ship with RLS policies from the start — never rely on client-side filtering alone. Use `get_accessible_user_ids()` for read policies so team members are covered.
 - Inserts must use the workspace owner's id (`useWorkspaceUser`), not `auth.uid()`/`user.id` directly, or team-member writes will be misattributed/invisible to the owner.
 - A new workspace-scoped table that references `clients`/`projects`/`contracts` by id must also get the `enforce_same_workspace_refs` trigger (see `20261004100000_security_hardening.sql`), so a row can't point at another workspace's records (the portal and portfolio read those with elevated rights).

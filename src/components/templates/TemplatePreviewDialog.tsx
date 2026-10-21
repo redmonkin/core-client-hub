@@ -155,7 +155,7 @@ export function TemplatePreviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[90vw] w-full h-[90vh] flex flex-col p-0 gap-0 [&>button]:hidden">
+      <DialogContent className="w-[calc(100%-2rem)] max-w-none sm:max-w-[90vw] h-[90dvh] flex flex-col p-0 gap-0 [&>button]:hidden">
         {/* Header */}
         <DialogHeader className="flex-shrink-0 px-6 py-4 border-b">
           <div className="flex items-center justify-between">

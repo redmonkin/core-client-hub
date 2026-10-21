@@ -79,9 +79,9 @@ export function ScopeOfWorkEditor({
   };
 
   return (
-    <div className="rounded-lg border border-input bg-background overflow-hidden">
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-1 p-2 border-b border-border bg-muted/30">
+    <div className="rounded-lg border border-input bg-background">
+      {/* Toolbar: sticks to the top of the dialog's scroll area on long content */}
+      <div className="sticky top-0 z-10 flex flex-wrap items-center gap-1 rounded-t-lg border-b border-border bg-card p-2">
         <Button
           type="button"
           variant="ghost"

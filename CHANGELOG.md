@@ -1,14 +1,28 @@
 # Changelog
 
-All notable changes to Clientra are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
+All notable changes to Clientra are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/). Versions aren't published as GitHub releases; `main` is always the latest.
 
 When you update a self-hosted copy, read the **Upgrade notes** of every version since yours: they list new migrations, secrets and settings. The steps are in [Updating to a new version](docs/self-hosting.md#updating-to-a-new-version).
 
-## [Unreleased]
+## Unreleased
 
-## [0.1.0] - 2026-10-06
+### Features
 
-The first public release.
+- **Contract emails** now carry the contract as a PDF attachment, rendered exactly as the preview's PDF export.
+- **Payment thank-you emails** attach the invoice PDF, stamped **PAID** (or **PARTIALLY PAID** with the payment date). Invoice PDFs downloaded or emailed after a payment carry the same stamp.
+- **Project names** appear in every email tied to a project: proposals, contracts, invoices, payment reminders and receipts, approval notices and the expiry/renewal digests.
+
+### Fixes
+
+- PDFs made in the browser (exports and email attachments) are now compressed: a two-page invoice drops from about 10 MB to under 300 KB with no visible change.
+
+### Upgrade notes
+
+- Redeploy the edge functions `send-notification-email`, `send-proposal-email`, `client-portal`, `invoice-due-reminders`, `generate-recurring-invoices`, `proposal-expiry-reminders` and `contract-renewal-reminders`. No new migrations or secrets.
+
+## 0.1.0 - 2026-10-06
+
+The first public version.
 
 ### Features
 
@@ -48,6 +62,3 @@ For the upstream hosted instance, which ran earlier unreleased versions:
 - Apply all migrations up to `20261006100000_signup_limit_counts_confirmed.sql`.
 - Redeploy all edge functions. `APP_URL` must be set to the site's `https://` address.
 - Optional: set `VITE_TURNSTILE_SITE_KEY` and enable CAPTCHA in Supabase Auth, in that order (see the [guide](docs/self-hosting.md#45-optional-captcha-against-bot-sign-ups)).
-
-[Unreleased]: https://github.com/redmonkin/core-client-hub/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/redmonkin/core-client-hub/releases/tag/v0.1.0

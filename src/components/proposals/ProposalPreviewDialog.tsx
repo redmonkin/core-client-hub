@@ -89,17 +89,17 @@ export function ProposalPreviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[90vw] w-full h-[90vh] flex flex-col p-0 gap-0 [&>button]:hidden">
+      <DialogContent className="w-[calc(100%-2rem)] max-w-none sm:max-w-[90vw] h-[90dvh] flex flex-col p-0 gap-0 [&>button]:hidden">
         {/* Header */}
         <DialogHeader className="flex-shrink-0 px-4 py-4 text-left sm:px-6 border-b">
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-start gap-3">
-              <Eye className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+              <Eye className="mt-0.5 hidden h-5 w-5 shrink-0 text-primary sm:block" />
               <div className="min-w-0">
-                <DialogTitle>{proposalData.title}</DialogTitle>
+                <DialogTitle className="text-base leading-snug sm:text-lg">{proposalData.title}</DialogTitle>
                 <DialogDescription asChild>
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-sm text-muted-foreground">
-                    Preview using template:{' '}
+                    <span className="hidden sm:inline">Preview using template:</span>{' '}
                     <Badge variant="secondary" className="bg-primary/10 text-primary text-xs">
                       {template.name}
                     </Badge>
