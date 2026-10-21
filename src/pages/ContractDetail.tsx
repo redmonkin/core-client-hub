@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { TablesUpdate } from '@/integrations/supabase/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useWorkspaceUser } from '@/hooks/useWorkspaceUser';
 import { useTemplates, Template } from '@/hooks/useTemplates';
@@ -430,7 +431,7 @@ export default function ContractDetail() {
       const liveTemplate = contract.template_id
         ? contractTemplates.find((template) => template.id === contract.template_id)
         : contractTemplates[0];
-      const updatePayload: Record<string, unknown> = {};
+      const updatePayload: TablesUpdate<'contracts'> = {};
       if (previousStatus === 'draft') updatePayload.status = 'sent';
       // Freeze the template content on first send so later template edits don't
       // retroactively change what this contract shows the client.

@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { Plus, Pencil, Trash2, Loader2, Repeat, Pause, Play, Mail, MailX } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { TablesUpdate } from '@/integrations/supabase/types';
 import { useWorkspaceUser } from '@/hooks/useWorkspaceUser';
 import { RequirePermission } from '@/components/shared/RequirePermission';
 import { EmptyState } from '@/components/shared/EmptyState';
@@ -187,7 +188,7 @@ export function RecurringInvoices({ clients, projects }: RecurringInvoicesProps)
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, f }: { id: string; f: ScheduleFormState }) => {
-      const payload: Record<string, unknown> = {
+      const payload: TablesUpdate<'recurring_invoices'> = {
         client_id: f.client_id,
         project_id: f.project_id || null,
         frequency: f.frequency,

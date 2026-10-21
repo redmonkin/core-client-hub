@@ -8,7 +8,6 @@ import {
   FileSignature,
   Bell,
   Share2,
-  Github,
   ArrowRight,
   CheckCircle,
   ShieldCheck,
@@ -28,6 +27,7 @@ import {
   Heart,
   ChevronDown,
 } from "lucide-react";
+import { GithubIcon } from "@/components/shared/GithubIcon";
 import clientraLogoLight from "@/assets/clientra-light.svg";
 import clientraLogoDark from "@/assets/clientra-dark.svg";
 import { LICENSE_URL, REPO_URL, SELF_HOST_GUIDE_URL, SITE_URL } from "@/lib/site";
@@ -252,7 +252,7 @@ export function LandingContent() {
               href={REPO_URL}
               className="hidden items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
             >
-              <Github className="h-4 w-4" />
+              <GithubIcon className="h-4 w-4" />
               <span className="sr-only lg:not-sr-only">GitHub</span>
             </ExternalLink>
             <Button variant="ghost" asChild className="px-3 sm:px-4">
@@ -309,7 +309,7 @@ export function LandingContent() {
                 </Button>
                 <Button size="lg" variant="outline" className="w-full gap-2 bg-background/70 backdrop-blur sm:w-auto" asChild>
                   <ExternalLink href={REPO_URL}>
-                    <Github className="h-4 w-4" />
+                    <GithubIcon className="h-4 w-4" />
                     View the code
                   </ExternalLink>
                 </Button>
@@ -572,7 +572,7 @@ export function LandingContent() {
                   asChild
                 >
                   <ExternalLink href={REPO_URL}>
-                    <Github className="h-4 w-4" />
+                    <GithubIcon className="h-4 w-4" />
                     Star on GitHub
                   </ExternalLink>
                 </Button>

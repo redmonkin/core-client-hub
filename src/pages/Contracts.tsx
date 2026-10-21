@@ -50,6 +50,7 @@ import { ProposalData, buildDisplayTemplate } from "@/lib/proposal-utils";
 import { contractPdfAttachment } from "@/lib/contract-pdf";
 import { useTemplates, Template } from "@/hooks/useTemplates";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspaceUser } from "@/hooks/useWorkspaceUser";
 import { useToast } from "@/hooks/use-toast";
@@ -555,7 +556,7 @@ export default function Contracts() {
       if (error) throw error;
 
       const previousStatus = selectedContract.status;
-      const updatePayload: Record<string, unknown> = {};
+      const updatePayload: TablesUpdate<'contracts'> = {};
       if (previousStatus === 'draft') updatePayload.status = 'sent';
       // Freeze the template content on first send so later template edits don't
       // retroactively change what this contract shows the client.
