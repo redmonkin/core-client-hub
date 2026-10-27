@@ -51,8 +51,12 @@ export function NotificationsDropdown({ align = 'end' }: { align?: 'start' | 'en
   useEffect(() => {
     if (!user) return;
 
+    // The dropdown is mounted twice (sidebar and mobile header). supabase-js
+    // hands back the existing channel for a topic it already knows, and adding
+    // a listener to an already-subscribed channel throws, so each instance
+    // needs its own topic.
     const channel = supabase
-      .channel('notifications-changes')
+      .channel(`notifications-${user.id}-${crypto.randomUUID()}`)
       .on(
         'postgres_changes',
         {
